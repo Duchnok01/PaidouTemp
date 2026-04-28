@@ -1,0 +1,7 @@
+CREATE TABLE users (
+    id BIGSERIAL PRIMARY KEY,
+    prenom VARCHAR(255) NOT NULL,
+    mdp VARCHAR(255) NOT NULL,
+    est_parti BOOLEAN NOT NULL DEFAULT FALSE,
+    doit_changer_mdp BOOLEAN NOT NULL DEFAULT TRUE
+);
