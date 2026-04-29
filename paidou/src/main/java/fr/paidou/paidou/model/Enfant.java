@@ -1,6 +1,7 @@
 package fr.paidou.paidou.model;
 
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import lombok.Data;
 
 @Data

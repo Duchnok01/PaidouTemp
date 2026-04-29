@@ -2,7 +2,6 @@ package fr.paidou.paidou.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import java.time.LocalDate; 
 
 @Data
 @Entity
@@ -30,8 +29,6 @@ public class EnregistrementVaccination {
     @JoinColumn(name = "id_user", nullable = false)
     private User user;
     
-    @MapsId("dateVaccination")
-    private LocalDate dateVaccination;
 
     
 
