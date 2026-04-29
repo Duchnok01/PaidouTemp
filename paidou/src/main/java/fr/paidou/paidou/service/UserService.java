@@ -29,7 +29,6 @@ public class UserService {
 
     public String createUser(String prenom) // cree un compte pour un nv directeur, et le rattache a ses creches.
     {
-        
         User newUser = new User();
         newUser.setPrenom(prenom);
         String mdp = UUID.randomUUID().toString();
