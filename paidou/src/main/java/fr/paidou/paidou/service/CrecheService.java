@@ -41,8 +41,7 @@ public class CrecheService {
     public void changeDirecteur(String nom, String directeur) // cree un compte pour un nv directeur, et le rattache a ses creches.
     {
         Creche c = this.crecheRepo.findById(nom).orElseThrow(() -> new IllegalArgumentException("Creche introuvable pour cet identifiant: \"" + nom + "\". Modification impossible"));
-        User dir = new User();
-        dir = this.userRepo.findByPrenom(directeur).orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + directeur + "Assignation a la creche impossible"));
+        User dir = this.userRepo.findByPrenom(directeur).orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + directeur + "Assignation a la creche impossible"));
         c.setDirecteur(dir);
         crecheRepo.save(c);
     } 
