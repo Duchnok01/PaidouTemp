@@ -8,6 +8,9 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 
 @Data
 @Entity
@@ -15,6 +18,7 @@ import lombok.Data;
 public class Enfant {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id_enfant;
 
     @Column(nullable = false)
