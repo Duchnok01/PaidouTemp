@@ -55,7 +55,7 @@ public class UserService {
 
 
 
-    public void disableUser(String prenom) // desactive un compte directrice (supprime ses acces sans perdre l'information de son passage)
+    public void disableUserAccount(String prenom) // desactive un compte directrice (supprime ses acces sans perdre l'information de son passage)
     {
         User user = userRepo.findByPrenom(prenom)
                 .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));

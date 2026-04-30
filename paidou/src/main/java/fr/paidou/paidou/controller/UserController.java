@@ -24,5 +24,21 @@ public class UserController {
 
     public record PrenomRequest(String prenom) {
     }
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
 }
 
