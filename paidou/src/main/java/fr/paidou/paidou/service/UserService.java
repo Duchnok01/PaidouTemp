@@ -2,6 +2,8 @@ package fr.paidou.paidou.service;
 
 import fr.paidou.paidou.model.User;
 import fr.paidou.paidou.repository.UserRepository;
+
+import java.util.List;
 import java.util.UUID;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -64,7 +66,9 @@ public class UserService {
     }  
 
 
-
+    public List<User> getAllUsers() {
+        return userRepo.findAll();
+    }
 
 
 

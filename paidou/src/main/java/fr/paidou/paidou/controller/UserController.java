@@ -1,10 +1,15 @@
 package fr.paidou.paidou.controller;
 
+import fr.paidou.paidou.model.User;
 import fr.paidou.paidou.service.UserService;
+
+import java.util.List;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/users")
 public class UserController {
@@ -37,6 +42,13 @@ public class UserController {
         userService.setPassword(request.prenom(), request.nouveauMdp());
         return ResponseEntity.ok().build();
     }
+
+    @GetMapping
+    public ResponseEntity<List<User>> getAllUsers() {
+        List<User> users = userService.getAllUsers();
+        return ResponseEntity.ok(users);
+    }
+
 
     public record PrenomRequest(String prenom) {}
 
