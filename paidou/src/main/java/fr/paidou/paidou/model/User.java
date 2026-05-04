@@ -29,4 +29,7 @@ public class User {
     @Column(nullable = false)
     private boolean doitChangerMdp = true;
 
+    @Column(nullable = false)
+    private String role = "Directrice";
+
 }

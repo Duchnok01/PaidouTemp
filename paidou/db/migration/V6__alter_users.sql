@@ -1,0 +1,6 @@
+ALTER TABLE users
+    ADD COLUMN role VARCHAR(50) NOT NULL DEFAULT 'DIRECTRICE';
+
+UPDATE users
+    SET role = 'ADMIN'
+    WHERE id = 0;
