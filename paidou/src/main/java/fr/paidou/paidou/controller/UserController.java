@@ -1,6 +1,7 @@
 package fr.paidou.paidou.controller;
 
 import fr.paidou.paidou.model.User;
+import fr.paidou.paidou.repository.UserRepository;
 import fr.paidou.paidou.service.UserService;
 
 import java.util.List;
@@ -49,6 +50,14 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
+    
+    @PostMapping("/login")
+    public ResponseEntity<String[]> login(@RequestBody LoginRequest request) {
+        String[] result = userService.login(request.prenom(), request.mdp());
+        return ResponseEntity.ok(result);
+    }
+
+    public record LoginRequest(String prenom, String mdp) {}
 
     public record PrenomRequest(String prenom) {}
 

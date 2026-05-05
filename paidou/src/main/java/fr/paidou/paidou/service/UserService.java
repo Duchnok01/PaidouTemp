@@ -22,6 +22,7 @@ public class UserService {
     {
         this.userRepo = uRep;
         this.encoder = bcpe;
+        System.out.println(new BCryptPasswordEncoder().encode("ParisSiege01")+"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
 
     }
 
@@ -40,7 +41,10 @@ public class UserService {
     } 
 
 
-
+    public User getUserByPrenom(String prenom) {
+        return userRepo.findByPrenom(prenom)
+                .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
+    }
 
 
 
@@ -81,9 +85,35 @@ public class UserService {
     } 
 
 
+    public Boolean verifyPassword(String prenom, String passwd) // vérifie si le mot de passe est correct
+    {
+        try {
+        User user = userRepo.findByPrenom(prenom)
+                .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
+            return encoder.matches(passwd, user.getMdp());
+        } catch (Exception e) {
+            System.out.println("Erreur lors de la vérification du mot de passe: " + e.getMessage());
+            return null;
+        }
+    }
 
 
 
+    public String[] login(String prenom, String mdp) { // renvoie un tableau de string contenant la page vers laquelle rediriger, le role de l'utilisateur, et son prenom 
+        Boolean result = this.verifyPassword(prenom, mdp);
+        if (result == null) {
+            return new String[] {"Prenom introuvable"};
+        }
+        if (!result) {
+            return new String[] {"Mot de passe incorrect"};
+        }
+        
+        User user = this.getUserByPrenom(prenom);
+
+        return new String[] {user.isDoitChangerMdp()?"changer-mdp":user.getRole().equals("Directrice")?"accueil":user.getRole(), user.getRole(), user.getPrenom()};  
+        
+
+    }
 
 
 

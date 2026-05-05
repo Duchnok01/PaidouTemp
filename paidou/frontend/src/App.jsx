@@ -7,9 +7,11 @@ import Creche from "./pages/Creche"
 import Enfant from "./pages/Enfant"
 import AjoutEnregistrement from "./pages/AjoutEnregistrement"
 import Admin from "./pages/Admin"
+import AuthContext, { AuthProvider } from "./context/AuthContext"
 
 function App() {
   return (
+    <AuthProvider>
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
@@ -21,6 +23,7 @@ function App() {
         <Route path="/admin" element={<Admin />} />
       </Routes>
     </BrowserRouter>
+    </AuthProvider>
   )
 }
 
