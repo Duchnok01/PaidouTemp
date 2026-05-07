@@ -6,51 +6,43 @@ import fr.paidou.paidou.repository.CrecheRepository;
 import org.springframework.stereotype.Service;
 import fr.paidou.paidou.model.User;
 import fr.paidou.paidou.repository.UserRepository;
+import fr.paidou.paidou.security.SecurityUtils;
 
 @Service
 public class CrecheService {
-   
-   
-   
+
     private final CrecheRepository crecheRepo;
     private final UserRepository userRepo;
+    private final SecurityUtils securityUtils;
 
-
-
-    public CrecheService(CrecheRepository cRep, UserRepository uRep) 
-    {
+    public CrecheService(CrecheRepository cRep, UserRepository uRep, SecurityUtils securityUtils) {
         this.crecheRepo = cRep;
         this.userRepo = uRep;
-
+        this.securityUtils = securityUtils;
     }
 
-
-
-
-
-    public void createCreche(String nom, String directeur) // cree un compte pour un nv directeur, et le rattache a ses creches.
-    {
+    public void createCreche(String nom, String directeurPrenom) {
+        // Seul un admin peut créer une crèche (temporaire)
+        if (!securityUtils.isAdmin()) {
+            throw new SecurityException("Seul un administrateur peut créer une crèche");
+        }
         Creche newCreche = new Creche();
         newCreche.setNom(nom);
-        User dir = this.userRepo.findByPrenom(directeur).orElseThrow(() -> new IllegalArgumentException("Directeur introuvable pour le prenom: \"" + directeur + "\". l'avez vous bien écrit?"));
+        User dir = userRepo.findByPrenom(directeurPrenom.toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("Directeur introuvable"));
         newCreche.setDirecteur(dir);
         crecheRepo.save(newCreche);
-    } 
+    }
 
-
-    public void changeDirecteur(String nom, String directeur) 
-    {
-        Creche c = this.crecheRepo.findById(nom).orElseThrow(() -> new IllegalArgumentException("Creche introuvable pour cet identifiant: \"" + nom + "\". Modification impossible"));
-        User dir = this.userRepo.findByPrenom(directeur).orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + directeur + "Assignation a la creche impossible"));
-        c.setDirecteur(dir);
+    public void changeDirecteur(String nomCreche, String nouveauDirecteurPrenom) {
+        if (!securityUtils.isAdmin()) {
+            throw new SecurityException("Seul un administrateur peut changer le directeur d'une crèche");
+        }
+        Creche c = crecheRepo.findById(nomCreche)
+                .orElseThrow(() -> new IllegalArgumentException("Crèche introuvable"));
+        User newDir = userRepo.findByPrenom(nouveauDirecteurPrenom.toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("Nouveau directeur introuvable"));
+        c.setDirecteur(newDir);
         crecheRepo.save(c);
-    } 
-
-
-
-
-
-
-
-
+    }
 }

@@ -22,8 +22,7 @@ public class UserService {
     {
         this.userRepo = uRep;
         this.encoder = bcpe;
-        System.out.println(new BCryptPasswordEncoder().encode("ParisSiege01")+"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
-
+        
     }
 
 
@@ -33,7 +32,7 @@ public class UserService {
     public String createUser(String prenom) // cree un compte pour un nv directeur, et le rattache a ses creches.
     {
         User newUser = new User();
-        newUser.setPrenom(prenom);
+        newUser.setPrenom(prenom.toLowerCase());
         String mdp = UUID.randomUUID().toString();
         newUser.setMdp(encoder.encode(mdp));
         userRepo.save(newUser);
@@ -42,7 +41,7 @@ public class UserService {
 
 
     public User getUserByPrenom(String prenom) {
-        return userRepo.findByPrenom(prenom)
+        return userRepo.findByPrenom(prenom.toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
     }
 
@@ -50,9 +49,9 @@ public class UserService {
 
     public void fixNameTypo(String prenom, String nvPrenom) // édite les info utilisateurs
     {
-        User user = userRepo.findByPrenom(prenom)
+        User user = userRepo.findByPrenom(prenom.toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
-        user.setPrenom(nvPrenom);
+        user.setPrenom(nvPrenom.toLowerCase());
         userRepo.save(user);
     }  
 
@@ -63,7 +62,7 @@ public class UserService {
 
     public void disableUserAccount(String prenom) // desactive un compte directrice (supprime ses acces sans perdre l'information de son passage)
     {
-        User user = userRepo.findByPrenom(prenom)
+        User user = userRepo.findByPrenom(prenom.toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
         user.setEstParti(true);
         userRepo.save(user);
@@ -78,7 +77,7 @@ public class UserService {
 
     public void setPassword(String prenom, String passwd) // édite les info utilisateurs
     {
-        User user = userRepo.findByPrenom(prenom)
+        User user = userRepo.findByPrenom(prenom.toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
         user.setMdp(encoder.encode(passwd));
         userRepo.save(user);
@@ -88,7 +87,7 @@ public class UserService {
     public Boolean verifyPassword(String prenom, String passwd) // vérifie si le mot de passe est correct
     {
         try {
-        User user = userRepo.findByPrenom(prenom)
+        User user = userRepo.findByPrenom(prenom.toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
             return encoder.matches(passwd, user.getMdp());
         } catch (Exception e) {
@@ -99,18 +98,11 @@ public class UserService {
 
 
 
-    public String[] login(String prenom, String mdp) { // renvoie un tableau de string contenant la page vers laquelle rediriger, le role de l'utilisateur, et son prenom 
-        Boolean result = this.verifyPassword(prenom, mdp);
-        if (result == null) {
-            return new String[] {"Prenom introuvable"};
-        }
-        if (!result) {
-            return new String[] {"Mot de passe incorrect"};
-        }
+    public String[] getRedirectInfo(String prenom) { // renvoie un tableau de string contenant la page vers laquelle rediriger, le role de l'utilisateur, et son prenom 
         
-        User user = this.getUserByPrenom(prenom);
+        User user = this.getUserByPrenom(prenom.toLowerCase());
 
-        return new String[] {user.isDoitChangerMdp()?"changer-mdp":user.getRole().equals("Directrice")?"accueil":user.getRole(), user.getRole(), user.getPrenom()};  
+        return new String[] {user.isDoitChangerMdp()?"changer-mdp":user.getRole().equals("directrice")?"accueil":user.getRole(), user.getRole(), user.getPrenom()};  
         
 
     }

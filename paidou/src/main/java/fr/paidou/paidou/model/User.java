@@ -30,6 +30,6 @@ public class User {
     private boolean doitChangerMdp = true;
 
     @Column(nullable = false)
-    private String role = "Directrice";
+    private String role = "directrice";
 
 }

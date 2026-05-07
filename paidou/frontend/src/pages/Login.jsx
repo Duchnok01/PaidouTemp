@@ -15,10 +15,11 @@ const Login = () => {
     setError("");
 
     try {
-      const response = await axios.post("/api/users/login", {
-        prenom,
-        mdp,
-      });
+      const response = await axios.post(
+        "/api/users/login",
+        { prenom, mdp },
+        { withCredentials: true }
+      );
 
       const result = response.data;
 
@@ -46,7 +47,7 @@ const Login = () => {
       // redirections
       if (status === "changer-mdp") {
         navigate("/changer-mdp");
-      } else if (status === "ADMIN") {
+      } else if (status === "admin") {
         navigate("/admin");
       } else {
         navigate("/accueil");

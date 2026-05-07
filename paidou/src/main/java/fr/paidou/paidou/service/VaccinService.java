@@ -2,29 +2,27 @@ package fr.paidou.paidou.service;
 
 import fr.paidou.paidou.model.Vaccin;
 import fr.paidou.paidou.repository.VaccinRepository;
+import fr.paidou.paidou.security.SecurityUtils;
 import org.springframework.stereotype.Service;
 
 @Service
 public class VaccinService {
-   
-   
-   
+
     private final VaccinRepository vaccinRepo;
+    private final SecurityUtils securityUtils;
 
-
-
-    public VaccinService(VaccinRepository vRep) 
-    {
+    public VaccinService(VaccinRepository vRep, SecurityUtils securityUtils) {
         this.vaccinRepo = vRep;
-
+        this.securityUtils = securityUtils;
     }
 
+    public void createVaccin(String nom, String listeMaladies, Integer pourEnfantsNesAvant,
+                             Integer pourEnfantsNesApres, Integer agePremiereVaccination,
+                             Integer nbMoisPremierDelai, Integer nbMoisDeuxiemeDelai) {
+        if (!securityUtils.isAdmin()) {
+            throw new SecurityException("Seul un administrateur peut créer un vaccin");
+        }
 
-
-
-
-    public void createVaccin(String nom, String listeMaladies, Integer pourEnfantsNesAvant, Integer pourEnfantsNesApres, Integer agePremiereVaccination, Integer nbMoisPremierDelai, Integer nbMoisDeuxiemeDelai) // cree un compte pour un nv directeur, et le rattache a ses creches.
-    {
         Vaccin newV = new Vaccin();
         newV.setNom(nom);
         newV.setMaladiesPrevenues(listeMaladies);
@@ -34,12 +32,17 @@ public class VaccinService {
         newV.setNbMoisPremierDelai(nbMoisPremierDelai);
         newV.setNbMoisDeuxiemeDelai(nbMoisDeuxiemeDelai);
         vaccinRepo.save(newV);
-    } 
+    }
 
+    public void editVaccin(Long id, String nom, String listeMaladies, Integer pourEnfantsNesAvant,
+                           Integer pourEnfantsNesApres, Integer agePremiereVaccination,
+                           Integer nbMoisPremierDelai, Integer nbMoisDeuxiemeDelai) {
+        if (!securityUtils.isAdmin()) {
+            throw new SecurityException("Seul un administrateur peut modifier un vaccin");
+        }
 
-    public void editVaccin(Long id, String nom, String listeMaladies, Integer pourEnfantsNesAvant, Integer pourEnfantsNesApres, Integer agePremiereVaccination, Integer nbMoisPremierDelai, Integer nbMoisDeuxiemeDelai) // cree un compte pour un nv directeur, et le rattache a ses creches.
-    {
-        Vaccin newV = vaccinRepo.findById(id).orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable, erreur requete BDD (fr.paidou.paidou.java.service.VaccinService.editVaccin()"));
+        Vaccin newV = vaccinRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
         newV.setNom(nom);
         newV.setMaladiesPrevenues(listeMaladies);
         newV.setPourEnfantsNesAvant(pourEnfantsNesAvant);
@@ -48,11 +51,5 @@ public class VaccinService {
         newV.setNbMoisPremierDelai(nbMoisPremierDelai);
         newV.setNbMoisDeuxiemeDelai(nbMoisDeuxiemeDelai);
         vaccinRepo.save(newV);
-    } 
-
-
-
-
-
-
+    }
 }
