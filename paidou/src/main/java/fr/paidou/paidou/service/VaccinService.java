@@ -3,6 +3,9 @@ package fr.paidou.paidou.service;
 import fr.paidou.paidou.model.Vaccin;
 import fr.paidou.paidou.repository.VaccinRepository;
 import fr.paidou.paidou.security.SecurityUtils;
+
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
 @Service
@@ -34,12 +37,28 @@ public class VaccinService {
         vaccinRepo.save(newV);
     }
 
+
+
+
+    public List<Vaccin> getAllVaccins() {
+        return vaccinRepo.findAll();
+    }
+
+
+
+
+
+
+
+
+
     public void editVaccin(Long id, String nom, String listeMaladies, Integer pourEnfantsNesAvant,
                            Integer pourEnfantsNesApres, Integer agePremiereVaccination,
                            Integer nbMoisPremierDelai, Integer nbMoisDeuxiemeDelai) {
         if (!securityUtils.isAdmin()) {
             throw new SecurityException("Seul un administrateur peut modifier un vaccin");
         }
+        
 
         Vaccin newV = vaccinRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));

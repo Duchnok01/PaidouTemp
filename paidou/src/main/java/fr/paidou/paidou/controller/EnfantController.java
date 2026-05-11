@@ -1,11 +1,14 @@
 package fr.paidou.paidou.controller;
 
 import fr.paidou.paidou.service.EnfantService;
+import fr.paidou.paidou.model.Enfant;
+
+import java.time.LocalDate;
+import java.util.List;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDate;
 
 @CrossOrigin(origins = "http://localhost:5173")
 @RestController
@@ -52,7 +55,44 @@ public class EnfantController {
         return ResponseEntity.ok().build();
     }
 
-    // ================= DTOs =================
+    // ======== LECTURE ========
+
+    @GetMapping
+    public ResponseEntity<List<EnfantSummaryDTO>> getEnfantsByCreche(@RequestParam String nomCreche) {
+        try {
+            List<EnfantSummaryDTO> enfants = enfantService.getEnfantsByCreche(nomCreche).stream()
+                    .map(e -> new EnfantSummaryDTO(
+                            e.getId_enfant(),
+                            e.getNom(),
+                            e.getPrenom(),
+                            e.getDateDeNaissance(),
+                            e.getCreche().getNom()
+                    ))
+                    .toList();
+            return ResponseEntity.ok(enfants);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<EnfantDetailDTO> getEnfantById(@PathVariable Long id) {
+        try {
+            Enfant enfant = enfantService.getEnfantById(id);
+            EnfantDetailDTO dto = new EnfantDetailDTO(
+                    enfant.getId_enfant(),
+                    enfant.getNom(),
+                    enfant.getPrenom(),
+                    enfant.getDateDeNaissance(),
+                    enfant.getCreche().getNom()
+            );
+            return ResponseEntity.ok(dto);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    // ======== DTOs ========
 
     public record CreateEnfantRequest(
             String nom,
@@ -61,10 +101,7 @@ public class EnfantController {
             String nomCreche
     ) {}
 
-    public record ChangeCrecheRequest(
-            Long id,
-            String nomCreche
-    ) {}
+    public record ChangeCrecheRequest(Long id, String nomCreche) {}
 
     public record RectifierInfosRequest(
             Long id,
@@ -74,4 +111,20 @@ public class EnfantController {
     ) {}
 
     public record DisableChildRequest(Long id) {}
+
+    public record EnfantSummaryDTO(
+            Long id,
+            String nom,
+            String prenom,
+            LocalDate dateDeNaissance,
+            String nomCreche
+    ) {}
+
+    public record EnfantDetailDTO(
+            Long id,
+            String nom,
+            String prenom,
+            LocalDate dateDeNaissance,
+            String nomCreche
+    ) {}
 }

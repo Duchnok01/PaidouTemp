@@ -3,6 +3,9 @@ package fr.paidou.paidou.service;
 
 import fr.paidou.paidou.model.Creche;
 import fr.paidou.paidou.repository.CrecheRepository;
+
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 import fr.paidou.paidou.model.User;
 import fr.paidou.paidou.repository.UserRepository;
@@ -33,6 +36,32 @@ public class CrecheService {
         newCreche.setDirecteur(dir);
         crecheRepo.save(newCreche);
     }
+
+
+
+
+
+
+
+
+
+    public List<Creche> getAllCreches() {
+        return crecheRepo.findAll();
+    }
+
+
+    public List<Creche> getMesCreches() {
+        User currentUser = securityUtils.getCurrentUser();
+        return crecheRepo.findByDirecteurId(currentUser.getId());
+    }
+
+
+
+
+
+
+
+
 
     public void changeDirecteur(String nomCreche, String nouveauDirecteurPrenom) {
         if (!securityUtils.isAdmin()) {

@@ -1,18 +1,16 @@
-
 package fr.paidou.paidou.service;
 
 import fr.paidou.paidou.model.Creche;
 import fr.paidou.paidou.repository.CrecheRepository;
 import fr.paidou.paidou.model.Enfant;
 import fr.paidou.paidou.repository.EnfantRepository;
+import fr.paidou.paidou.security.SecurityUtils;
 import fr.paidou.paidou.model.User;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
-import fr.paidou.paidou.security.SecurityUtils;
-
-
 
 @Service
 public class EnfantService {
@@ -43,26 +41,52 @@ public class EnfantService {
         Creche c = crecheRepo.findById(nomCreche)
                 .orElseThrow(() -> new IllegalArgumentException("Crèche introuvable"));
         Enfant child = new Enfant();
-        // ... (le reste inchangé)
+        child.setPrenom(prenom);
+        child.setNom(nom);
+        child.setDateDeNaissance(birth);
+        child.setCreche(c);
+        enfantRepo.save(child);
     }
 
     public void changeCreche(Long id, String nomCreche) {
         verifierAuthorisationPourCreche(nomCreche);
-        // ... (reste)
+        Creche c = crecheRepo.findById(nomCreche)
+                .orElseThrow(() -> new IllegalArgumentException("Crèche introuvable"));
+        Enfant child = enfantRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
+        child.setCreche(c);
+        enfantRepo.save(child);
     }
 
     public void rectifierInfos(Long id, String nom, String prenom, LocalDate birth) {
-        // Récupérer l'enfant pour connaître sa crèche, et vérifier autorisation
         Enfant child = enfantRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
         verifierAuthorisationPourCreche(child.getCreche().getNom());
-        // ... modifications
+        child.setPrenom(prenom);
+        child.setNom(nom);
+        child.setDateDeNaissance(birth);
+        enfantRepo.save(child);
     }
 
     public void disableChildAccount(Long id) {
         Enfant child = enfantRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
         verifierAuthorisationPourCreche(child.getCreche().getNom());
-        // ...
+        child.setEstParti(true);
+        enfantRepo.save(child);
+    }
+
+    // ======== LECTURE ========
+
+    public List<Enfant> getEnfantsByCreche(String nomCreche) {
+        verifierAuthorisationPourCreche(nomCreche);
+        return enfantRepo.findByCrecheNom(nomCreche);
+    }
+
+    public Enfant getEnfantById(Long id) {
+        Enfant enfant = enfantRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
+        verifierAuthorisationPourCreche(enfant.getCreche().getNom());
+        return enfant;
     }
 }

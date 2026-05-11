@@ -1,8 +1,12 @@
 package fr.paidou.paidou.controller;
 
+import fr.paidou.paidou.security.SecurityUtils;
 import fr.paidou.paidou.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -19,11 +23,16 @@ public class UserController {
 
     private final UserService userService;
     private final AuthenticationManager authenticationManager;
+    private final SecurityUtils securityUtils; 
 
-    public UserController(UserService userService,
-                          AuthenticationManager authenticationManager) {
+    public UserController(  UserService userService,
+                            AuthenticationManager authenticationManager,
+                            SecurityUtils securityUtils
+                         ) 
+    {  
         this.userService = userService;
         this.authenticationManager = authenticationManager;
+        this.securityUtils = securityUtils; 
     }
 
     // DTO login (record)
@@ -88,9 +97,38 @@ public class UserController {
         }
     }
 
+
+
+
+
+
+    @GetMapping
+    public ResponseEntity<List<UserSummaryDTO>> getAllUsers() {
+        try {
+            if (!securityUtils.isAdmin()) {
+                return ResponseEntity.status(403).build();
+            }
+            List<UserSummaryDTO> users = userService.getAllUsers().stream()
+                    .map(u -> new UserSummaryDTO(u.getId(), u.getPrenom(), u.getRole(), u.isEstParti()))
+                    .toList();
+            return ResponseEntity.ok(users);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+
+
+
+
+
+
+
+
     // DTO
     public record SetPasswordRequest(String nouveauMdp) {}
-
+    
+    public record UserSummaryDTO(Long id, String prenom, String role, boolean estParti) {}
 
 
 

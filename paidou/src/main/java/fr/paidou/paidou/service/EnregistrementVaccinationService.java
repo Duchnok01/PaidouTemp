@@ -6,6 +6,7 @@ import fr.paidou.paidou.security.SecurityUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Service
 public class EnregistrementVaccinationService {
@@ -130,6 +131,22 @@ public class EnregistrementVaccinationService {
         verifierAuthorisationPourCreche(enregistrement.getCreche().getNom());
 
         enregistrementRepo.delete(enregistrement);
+    }
+
+    // =========================
+    // LECTURE
+    // =========================
+
+    public List<EnregistrementVaccination> getEnregistrementsByEnfant(Long idEnfant) {
+        Enfant enfant = enfantRepo.findById(idEnfant)
+                .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
+        verifierAuthorisationPourCreche(enfant.getCreche().getNom());
+        return enregistrementRepo.findByIdIdEnfant(idEnfant);
+    }
+
+    public List<EnregistrementVaccination> getEnregistrementsByCreche(String nomCreche) {
+        verifierAuthorisationPourCreche(nomCreche);
+        return enregistrementRepo.findByCrecheNom(nomCreche);
     }
 
     // =========================
