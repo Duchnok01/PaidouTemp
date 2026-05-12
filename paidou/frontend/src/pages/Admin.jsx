@@ -7,297 +7,152 @@ const Admin = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // ==================== ÉTATS ====================
+  // États généraux
   const [users, setUsers] = useState([]);
   const [creches, setCreches] = useState([]);
   const [vaccins, setVaccins] = useState([]);
-  const [showManageUsers, setShowManageUsers] = useState(false);
-  const [mdpAdmin, setMdpAdmin] = useState("");
-  const [showEditVaccin, setShowEditVaccin] = useState(false);
-  const [editVaccinId, setEditVaccinId] = useState("");
-  const [editVaccin, setEditVaccin] = useState({
-    nom: "",
-    maladiesPrevenues: "",
-    pourEnfantsNesAvant: "",
-    pourEnfantsNesApres: "",
-    agePremiereVaccination: "",
-    nbMoisPremierDelai: "",
-    nbMoisDeuxiemeDelai: "",
-  });
 
-  // Panneaux rétractables
+  // Visibilité des panneaux
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [showCreateCreche, setShowCreateCreche] = useState(false);
   const [showCreateVaccin, setShowCreateVaccin] = useState(false);
-  const [showAssignDirectrice, setShowAssignDirectrice] = useState(false);
+  const [showUserList, setShowUserList] = useState(false);
+  const [showInfos, setShowInfos] = useState(false);
+  const [showDanger, setShowDanger] = useState(false);
+  const [dangerConfirmed, setDangerConfirmed] = useState(false);
+  const [showUltra, setShowUltra] = useState(false);
+  const [ultraConfirmed, setUltraConfirmed] = useState(false);
 
-  // Champs formulaire création utilisateur
+  // Création user
   const [newUserPrenom, setNewUserPrenom] = useState("");
   const [newUserMdp, setNewUserMdp] = useState(null);
-
-  // Champs formulaire création crèche
+  // Création crèche
   const [newCrecheNom, setNewCrecheNom] = useState("");
   const [newCrecheDirecteur, setNewCrecheDirecteur] = useState("");
-
-  // Champs formulaire création vaccin
+  // Création vaccin
   const [newVaccin, setNewVaccin] = useState({
-    nom: "",
-    maladiesPrevenues: "",
-    pourEnfantsNesAvant: "",
-    pourEnfantsNesApres: "",
-    agePremiereVaccination: "",
-    nbMoisPremierDelai: "",
-    nbMoisDeuxiemeDelai: "",
+    nom: "", maladiesPrevenues: "", pourEnfantsNesAvant: "", pourEnfantsNesApres: "",
+    agePremiereVaccination: "", nbMoisPremierDelai: "", nbMoisDeuxiemeDelai: ""
   });
 
-  // Assignation directrice
-  const [assignations, setAssignations] = useState({}); // { nomCreche: directeurPrenom }
+  // Édition vaccin
+  const [editVaccinId, setEditVaccinId] = useState("");
+  const [editVaccin, setEditVaccin] = useState({ ...newVaccin });
 
-  // ==================== CHARGEMENT INITIAL ====================
+  // Zone dangereuse
+  const [dangerMdp, setDangerMdp] = useState("");
+  const [renameCrecheSelect, setRenameCrecheSelect] = useState("");
+  const [renameCrecheNewName, setRenameCrecheNewName] = useState("");
+  const [changeDirCreche, setChangeDirCreche] = useState("");
+  const [changeDirNewDir, setChangeDirNewDir] = useState("");
+  const [delUserSelect, setDelUserSelect] = useState("");
+  const [obsoleteVaccinSelect, setObsoleteVaccinSelect] = useState("");
+
+  // Zone ultra
+  const [ultraMdp, setUltraMdp] = useState("");
+  const [ultraDelCreche, setUltraDelCreche] = useState("");
+  const [ultraDelUser, setUltraDelUser] = useState("");
+  const [ultraDelVaccin, setUltraDelVaccin] = useState("");
+  const [ultraDelEvEnfant, setUltraDelEvEnfant] = useState("");
+  const [ultraDelEvVaccin, setUltraDelEvVaccin] = useState("");
+  const [selectedVaccinInfo, setSelectedVaccinInfo] = useState("");
+
+  // Chargement initial
   useEffect(() => {
-    if (!user || user.role !== "admin") {
-      navigate("/");
-      return;
-    }
-    fetchUsers();
-    fetchCreches();
-    fetchVaccins();
+    if (!user || user.role !== "admin") { navigate("/"); return; }
+    fetchUsers(); fetchCreches(); fetchVaccins();
   }, []);
 
   const fetchUsers = async () => {
-    try {
-      const res = await axios.get("/api/users", { withCredentials: true });
-      setUsers(res.data);
-    } catch (err) {
-      console.error("Erreur chargement users", err);
-      const message = err.response?.data || "Erreur lors de la recuperation de la liste des directrices.";
-      alert(message);
-    }
+    const r = await axios.get("/api/users", { withCredentials: true });
+    setUsers(r.data);
   };
-
   const fetchCreches = async () => {
-    try {
-      const res = await axios.get("/api/creches", { withCredentials: true });
-      setCreches(res.data);
-      // Initialiser les assignations avec les directeurs actuels
-      const initAssignations = {};
-      res.data.forEach((c) => {
-        initAssignations[c.nom] = c.directeurPrenom;
-      });
-      setAssignations(initAssignations);
-    } catch (err) {
-      console.error("Erreur chargement creches", err);
-      const message = err.response?.data || "Erreur lors de la recuperation de la liste des creches.";
-      alert(message);
-    }
+    const r = await axios.get("/api/creches", { withCredentials: true });
+    setCreches(r.data);
   };
-
   const fetchVaccins = async () => {
-    try {
-      const res = await axios.get("/api/vaccins", { withCredentials: true });
-      setVaccins(res.data);
-    } catch (err) {
-      console.error("Erreur chargement vaccins", err);
-      const message = err.response?.data || "Erreur lors de la recuperation de la liste des vaccins.";
-      alert(message);
-    }
+    const r = await axios.get("/api/vaccins", { withCredentials: true });
+    setVaccins(r.data);
   };
 
-  // ==================== ACTIONS ====================
-
-  // Créer un utilisateur
+  // Créations
   const handleCreateUser = async () => {
     try {
-      const res = await axios.post(
-        "/api/users/create?prenom=" + newUserPrenom,
-        null,
-        { withCredentials: true }
-      );
-      setNewUserMdp(res.data);
-      setNewUserPrenom("");
-      fetchUsers();
-    } catch (err) {
-      console.error("Erreur création user", err);
-      const message = err.response?.data || "Erreur lors de la creation de l'utilisateur.";
-      alert(message);
-    }
+      const r = await axios.post("/api/users/create?prenom=" + newUserPrenom, null, { withCredentials: true });
+      setNewUserMdp(r.data); setNewUserPrenom(""); fetchUsers();
+    } catch (e) { alert(e.response?.data || "Erreur"); }
   };
-
-  // Créer une crèche
   const handleCreateCreche = async () => {
     try {
-      await axios.post(
-        "/api/creches",
-        { nom: newCrecheNom, directeur: newCrecheDirecteur },
-        { withCredentials: true }
-      );
-      setNewCrecheNom("");
-      setNewCrecheDirecteur("");
-      fetchCreches();
-    } catch (err) {
-      console.error("Erreur création creche", err);
-      const message = err.response?.data || "Erreur lors de la creation de la creche.";
-      alert(message);
-    }
+      await axios.post("/api/creches", { nom: newCrecheNom, directeur: newCrecheDirecteur }, { withCredentials: true });
+      setNewCrecheNom(""); setNewCrecheDirecteur(""); fetchCreches();
+    } catch (e) { alert(e.response?.data || "Erreur"); }
   };
-
-  // Créer un vaccin
   const handleCreateVaccin = async () => {
     try {
-      const payload = {
+      await axios.post("/api/vaccins", {
         nom: newVaccin.nom,
         listeMaladies: newVaccin.maladiesPrevenues,
         pourEnfantsNesAvant: newVaccin.pourEnfantsNesAvant || null,
         pourEnfantsNesApres: newVaccin.pourEnfantsNesApres || null,
         agePremiereVaccination: parseInt(newVaccin.agePremiereVaccination),
         nbMoisPremierDelai: parseInt(newVaccin.nbMoisPremierDelai),
-        nbMoisDeuxiemeDelai: newVaccin.nbMoisDeuxiemeDelai
-          ? parseInt(newVaccin.nbMoisDeuxiemeDelai)
-          : null,
-      };
-      await axios.post("/api/vaccins", payload, { withCredentials: true });
-      setNewVaccin({
-        nom: "",
-        maladiesPrevenues: "",
-        pourEnfantsNesAvant: "",
-        pourEnfantsNesApres: "",
-        agePremiereVaccination: "",
-        nbMoisPremierDelai: "",
-        nbMoisDeuxiemeDelai: "",
-      });
+        nbMoisDeuxiemeDelai: newVaccin.nbMoisDeuxiemeDelai ? parseInt(newVaccin.nbMoisDeuxiemeDelai) : null
+      }, { withCredentials: true });
+      setNewVaccin({ nom: "", maladiesPrevenues: "", pourEnfantsNesAvant: "", pourEnfantsNesApres: "", agePremiereVaccination: "", nbMoisPremierDelai: "", nbMoisDeuxiemeDelai: "" });
       fetchVaccins();
-    } catch (err) {
-      console.error("Erreur création vaccin", err);
-      const message = err.response?.data || "Erreur lors de la creation du vaccin.";
-      alert(message);
-    }
+    } catch (e) { alert(e.response?.data || "Erreur"); }
   };
 
-  // Changer le directeur d'une crèche
-  const handleChangeDirecteur = async (nomCreche) => {
-    try {
-      await axios.put(
-        "/api/creches/change-directeur",
-        { nom: nomCreche, directeur: assignations[nomCreche] },
-        { withCredentials: true }
-      );
-      fetchCreches();
-    } catch (err) {
-      console.error("Erreur changement directeur", err);
-      const message = err.response?.data || "Erreur lors de la tentative de changement de directeur.";
-      alert(message);
-    }
-  };
-
-
+  // Gestion utilisateurs
   const handleDisableUser = async (prenom) => {
     if (!window.confirm("Désactiver " + prenom + " ?")) return;
-    try {
-        await axios.put("/api/users/disable", { prenom: prenom }, { withCredentials: true });
-        fetchUsers();
-    } catch (err) {
-        console.error("Erreur désactivation user", err);
-        const message = err.response?.data || "Erreur lors de la désactivation du compte.";
-        alert(message);
-    }
+    await axios.put("/api/users/disable", { prenom }, { withCredentials: true });
+    fetchUsers();
   };
-  
-
-  const handleRenameUser = async (ancienPrenom) => {
-    const nouveauPrenom = prompt("Nouveau prénom pour " + ancienPrenom + " :");
-    if (!nouveauPrenom) return;
-    try {
-        await axios.put("/api/users/fix-name?ancienPrenom=" + ancienPrenom + "&nouveauPrenom=" + nouveauPrenom, null, { withCredentials: true });
-        fetchUsers();
-    } catch (err) {
-        console.error("Erreur renommage", err);
-        const message = err.response?.data || "Erreur lors du renommage de cet utilisateur.";
-        alert(message);
-    }
+  const handleRenameUser = async (ancien) => {
+    const nv = prompt("Nouveau prénom :"); if (!nv) return;
+    await axios.put(`/api/users/fix-name?ancienPrenom=${ancien}&nouveauPrenom=${nv}`, null, { withCredentials: true });
+    fetchUsers();
   };
-
   const handleResetPassword = async (prenom) => {
-      if (!window.confirm("Réinitialiser le mot de passe de " + prenom + " ?")) return;
-      try {
-          const res = await axios.put("/api/users/reset-password", { prenom: prenom }, { withCredentials: true });
-          alert(res.data);
-          fetchUsers();
-      } catch (err) {
-          console.error("Erreur reset MDP", err);
-          const message = err.response?.data || "Erreur lors de la reinitialisation du mot de passe.";
-          alert(message);
-      }
+    if (!window.confirm("Réinitialiser le mot de passe de " + prenom + " ?")) return;
+    const r = await axios.put("/api/users/reset-password", { prenom }, { withCredentials: true });
+    alert(r.data); fetchUsers();
   };
 
-
-
-
-
-  const handleDeleteUser = async (prenom) => {
-      if (!mdpAdmin) { alert("Veuillez entrer votre mot de passe admin"); return; }
-      if (!window.confirm("Supprimer DÉFINITIVEMENT " + prenom + " ?")) return;
-      try {
-          await axios.delete("/api/users/delete", { data: { prenom, mdpAdmin }, withCredentials: true });
-          fetchUsers();
-          fetchCreches();
-      } catch (err) {
-          alert(err.response?.data || "Erreur suppression");
-      }
+  // Zone dangereuse
+  const promptMdp = () => prompt("Votre mot de passe admin :");
+  const handleRenameCreche = async () => {
+    const mdp = promptMdp(); if (!mdp) return;
+    try {
+      await axios.put("/api/creches/rename", { ancienNom: renameCrecheSelect, nouveauNom: renameCrecheNewName, mdpAdmin: mdp }, { withCredentials: true });
+      fetchCreches(); setRenameCrecheSelect(""); setRenameCrecheNewName("");
+    } catch (e) { alert(e.response?.data || "Erreur"); }
   };
-
-  const handleDeleteCreche = async (nom) => {
-      if (!mdpAdmin) { alert("Veuillez entrer votre mot de passe admin"); return; }
-      if (!window.confirm("Supprimer DÉFINITIVEMENT la crèche " + nom + " ?")) return;
-      try {
-          await axios.delete("/api/creches/delete", { data: { nom, mdpAdmin }, withCredentials: true });
-          fetchCreches();
-      } catch (err) {
-          alert(err.response?.data || "Erreur suppression");
-      }
+  const handleChangeDirecteur = async () => {
+    const mdp = promptMdp(); if (!mdp) return;
+    try {
+      await axios.put("/api/creches/change-directeur", { nom: changeDirCreche, directeur: changeDirNewDir, mdpAdmin: mdp }, { withCredentials: true });
+      fetchCreches(); setChangeDirCreche(""); setChangeDirNewDir("");
+    } catch (e) { alert(e.response?.data || "Erreur"); }
   };
-
-  const handleObsoleteVaccin = async (id) => {
-      if (!mdpAdmin) { alert("Veuillez entrer votre mot de passe admin"); return; }
-      if (!window.confirm("Rendre ce vaccin obsolète ? Il restera en historique mais n'apparaîtra plus dans les sélections.")) return;
+  const handleDeleteUserZone = async () => {
+    const choix = window.confirm("Voulez-vous vraiment supprimer définitivement cet utilisateur ? (Cliquez sur Annuler pour le désactiver à la place)"); 
+    if (choix) {
+      const mdp = promptMdp(); if (!mdp) return;
       try {
-          await axios.put("/api/vaccins/rendre-obsolete", { id, mdpAdmin }, { withCredentials: true });
-          fetchVaccins();
-      } catch (err) {
-          alert(err.response?.data || "Erreur");
-      }
+        await axios.delete("/api/users/delete", { data: { prenom: delUserSelect, mdpAdmin: mdp }, withCredentials: true });
+        fetchUsers(); fetchCreches(); setDelUserSelect("");
+      } catch (e) { alert(e.response?.data || "Erreur"); }
+    } else {
+      handleDisableUser(delUserSelect); // désactiver à la place
+    }
   };
-
-
-
-  const handleRenameCreche = async (ancienNom) => {
-      const nouveauNom = prompt("Nouveau nom pour " + ancienNom + " :");
-      if (!nouveauNom || !mdpAdmin) return;
-      try {
-          await axios.put("/api/creches/rename", { ancienNom, nouveauNom, mdpAdmin }, { withCredentials: true });
-          fetchCreches();
-      } catch (err) {
-          alert(err.response?.data || "Erreur renommage");
-      }
-  };
-
-  const handleTransferEnfants = async (fromCreche) => {
-      const toCreche = prompt("Transférer tous les enfants de " + fromCreche + " vers quelle crèche ?");
-      if (!toCreche || !mdpAdmin) return;
-      try {
-          await axios.put("/api/enfants/transfer-all", { from: fromCreche, to: toCreche, mdpAdmin }, { withCredentials: true });
-          fetchCreches();
-      } catch (err) {
-          alert(err.response?.data || "Erreur transfert");
-      }
-  };
-
-
-
-
-
   const handleEditVaccin = async () => {
     try {
-      const payload = {
+      await axios.put("/api/vaccins/edit", {
         id: parseInt(editVaccinId),
         nom: editVaccin.nom,
         listeMaladies: editVaccin.maladiesPrevenues,
@@ -305,349 +160,277 @@ const Admin = () => {
         pourEnfantsNesApres: editVaccin.pourEnfantsNesApres || null,
         agePremiereVaccination: parseInt(editVaccin.agePremiereVaccination),
         nbMoisPremierDelai: parseInt(editVaccin.nbMoisPremierDelai),
-        nbMoisDeuxiemeDelai: editVaccin.nbMoisDeuxiemeDelai
-          ? parseInt(editVaccin.nbMoisDeuxiemeDelai)
-          : null,
-      };
-      await axios.put("/api/vaccins/edit", payload, { withCredentials: true });
-      setShowEditVaccin(false);
-      fetchVaccins();
-    } catch (err) {
-      alert(err.response?.data || "Erreur modification vaccin");
-    }
+        nbMoisDeuxiemeDelai: editVaccin.nbMoisDeuxiemeDelai ? parseInt(editVaccin.nbMoisDeuxiemeDelai) : null
+      }, { withCredentials: true });
+      fetchVaccins(); setEditVaccinId("");
+    } catch (e) { alert(e.response?.data || "Erreur"); }
   };
-  
-  const openEditVaccin = (v) => {
-    setEditVaccinId(v.id);
-    setEditVaccin({
-      nom: v.nom,
-      maladiesPrevenues: v.maladiesPrevenues,
-      pourEnfantsNesAvant: v.pourEnfantsNesAvant || "",
-      pourEnfantsNesApres: v.pourEnfantsNesApres || "",
-      agePremiereVaccination: v.agePremiereVaccination || "",
-      nbMoisPremierDelai: v.nbMoisPremierDelai || "",
-      nbMoisDeuxiemeDelai: v.nbMoisDeuxiemeDelai || "",
-    });
-    setShowEditVaccin(true);
+  const handleObsoleteVaccin = async () => {
+    const mdp = promptMdp(); if (!mdp) return;
+    if (!window.confirm("Rendre ce vaccin obsolète ?")) return;
+    try {
+      await axios.put("/api/vaccins/rendre-obsolete", { id: obsoleteVaccinSelect, mdpAdmin: mdp }, { withCredentials: true });
+      fetchVaccins(); setObsoleteVaccinSelect("");
+    } catch (e) { alert(e.response?.data || "Erreur"); }
   };
 
+  // Ultra dangereuse
+  const ultraConfirm = (action, payload) => {
+    const mdp = prompt("Mot de passe admin (ULTRA) :"); if (!mdp) return;
+    if (!window.confirm("ACTION IRRÉVERSIBLE. Confirmez-vous ?")) return;
+    action({ ...payload, mdpAdmin: mdp });
+  };
+  const handleUltraDeleteCreche = async () => {
+    ultraConfirm(async (p) => {
+      await axios.delete("/api/creches/delete", { data: p, withCredentials: true });
+      fetchCreches(); setUltraDelCreche("");
+    }, { nom: ultraDelCreche });
+  };
+  const handleUltraDeleteUser = async () => {
+    ultraConfirm(async (p) => {
+      await axios.delete("/api/users/delete", { data: p, withCredentials: true });
+      fetchUsers(); fetchCreches(); setUltraDelUser("");
+    }, { prenom: ultraDelUser });
+  };
+  const handleUltraDeleteVaccin = async () => {
+    ultraConfirm(async (p) => {
+      // Suppression physique du vaccin (nouvel endpoint nécessaire ?) On va utiliser un DELETE /vaccins/delete physique
+      // Pour l'instant, on va supprimer via un appel à un nouvel endpoint DELETE /vaccins/physique
+      await axios.delete("/api/vaccins/delete", { data: p, withCredentials: true });
+      fetchVaccins(); setUltraDelVaccin("");
+    }, { id: ultraDelVaccin });
+  };
+  const handleUltraDeleteEnregistrement = async () => {
+    // Récupérer l'enregistrement ? On a besoin de l'id enfant, vaccin, date. On va demander la date.
+    const date = prompt("Date de l'enregistrement (AAAA-MM-JJ) :"); if (!date) return;
+    ultraConfirm(async (p) => {
+      await axios.delete("/api/enregistrements-vaccination", {
+        data: { idEnfant: parseInt(ultraDelEvEnfant), idVaccin: parseInt(ultraDelEvVaccin), dateVaccination: date, mdpAdmin: p.mdpAdmin },
+        withCredentials: true
+      });
+      alert("Enregistrement supprimé"); setUltraDelEvEnfant(""); setUltraDelEvVaccin("");
+    }, {});
+  };
 
-
-
-
-
-  // ==================== RENDU ====================
   return (
     <div style={{ maxWidth: "900px", margin: "auto", padding: "20px" }}>
-      <h1>Admin</h1>
+      <h1>Administration</h1>
 
-      {/* ===== CRÉER UN UTILISATEUR ===== */}
-      <div style={panelStyle}>
-        <div style={panelHeaderStyle} onClick={() => setShowCreateUser(!showCreateUser)}>
-          <span>Créer une directrice</span>
-          <span>{showCreateUser ? "▲" : "▼"}</span>
-        </div>
-        {showCreateUser && (
-          <div style={panelBodyStyle}>
-            <input
-              type="text"
-              placeholder="Prénom"
-              value={newUserPrenom}
-              onChange={(e) => setNewUserPrenom(e.target.value)}
-            />
-            <button onClick={handleCreateUser}>Créer</button>
-            {newUserMdp && <p>✅ {newUserMdp}</p>}
-          </div>
-        )}
-      </div>
+      {/* Panneau 1 */}
+      <Panel title="Créer une directrice" show={showCreateUser} setShow={setShowCreateUser}>
+        <input placeholder="Prénom" value={newUserPrenom} onChange={e => setNewUserPrenom(e.target.value)} />
+        <button onClick={handleCreateUser}>Créer</button>
+        {newUserMdp && <p>✅ {newUserMdp}</p>}
+      </Panel>
 
+      {/* Panneau 2 */}
+      <Panel title="Créer une crèche" show={showCreateCreche} setShow={setShowCreateCreche}>
+        <input placeholder="Nom" value={newCrecheNom} onChange={e => setNewCrecheNom(e.target.value)} />
+        <select value={newCrecheDirecteur} onChange={e => setNewCrecheDirecteur(e.target.value)}>
+          <option value="">-- Directrice --</option>
+          {users.filter(u => u.role === "directrice" && !u.estParti).map(u => <option key={u.id} value={u.prenom}>{u.prenom}</option>)}
+        </select>
+        <button onClick={handleCreateCreche}>Créer</button>
+      </Panel>
 
-        
+      {/* Panneau 3 */}
+      <Panel title="Créer un vaccin" show={showCreateVaccin} setShow={setShowCreateVaccin}>
+        <input placeholder="Nom" value={newVaccin.nom} onChange={e => setNewVaccin({...newVaccin, nom: e.target.value})} />
+        <input placeholder="Maladies" value={newVaccin.maladiesPrevenues} onChange={e => setNewVaccin({...newVaccin, maladiesPrevenues: e.target.value})} />
+        <input placeholder="Nés avant (année)" value={newVaccin.pourEnfantsNesAvant} onChange={e => setNewVaccin({...newVaccin, pourEnfantsNesAvant: e.target.value})} />
+        <input placeholder="Nés après (année)" value={newVaccin.pourEnfantsNesApres} onChange={e => setNewVaccin({...newVaccin, pourEnfantsNesApres: e.target.value})} />
+        <input placeholder="Âge 1ère dose (mois)" value={newVaccin.agePremiereVaccination} onChange={e => setNewVaccin({...newVaccin, agePremiereVaccination: e.target.value})} />
+        <input placeholder="Délai 1 (mois)" value={newVaccin.nbMoisPremierDelai} onChange={e => setNewVaccin({...newVaccin, nbMoisPremierDelai: e.target.value})} />
+        <input placeholder="Délai 2 (mois)" value={newVaccin.nbMoisDeuxiemeDelai} onChange={e => setNewVaccin({...newVaccin, nbMoisDeuxiemeDelai: e.target.value})} />
+        <button onClick={handleCreateVaccin}>Créer</button>
+      </Panel>
 
-
-
-
-      {/* ===== CRÉER UNE CRÈCHE ===== */}
-      <div style={panelStyle}>
-        <div style={panelHeaderStyle} onClick={() => setShowCreateCreche(!showCreateCreche)}>
-          <span>Créer une crèche</span>
-          <span>{showCreateCreche ? "▲" : "▼"}</span>
-        </div>
-        {showCreateCreche && (
-          <div style={panelBodyStyle}>
-            <input
-              type="text"
-              placeholder="Nom de la crèche"
-              value={newCrecheNom}
-              onChange={(e) => setNewCrecheNom(e.target.value)}
-            />
-            <select
-              value={newCrecheDirecteur}
-              onChange={(e) => setNewCrecheDirecteur(e.target.value)}
-            >
-              <option value="">-- Choisir une directrice --</option>
-              {users
-                .filter((u) => u.role === "directrice")
-                .map((u) => (
-                  <option key={u.id} value={u.prenom}>
-                    {u.prenom}
-                  </option>
-                ))}
-            </select>
-            <button onClick={handleCreateCreche}>Créer</button>
-          </div>
-        )}
-      </div>
-
-      {/* ===== CRÉER UN VACCIN ===== */}
-      <div style={panelStyle}>
-        <div style={panelHeaderStyle} onClick={() => setShowCreateVaccin(!showCreateVaccin)}>
-          <span>Créer un vaccin</span>
-          <span>{showCreateVaccin ? "▲" : "▼"}</span>
-        </div>
-        {showCreateVaccin && (
-          <div style={panelBodyStyle}>
-            <input placeholder="Nom" value={newVaccin.nom} onChange={(e) => setNewVaccin({ ...newVaccin, nom: e.target.value })} />
-            <input placeholder="Maladies" value={newVaccin.maladiesPrevenues} onChange={(e) => setNewVaccin({ ...newVaccin, maladiesPrevenues: e.target.value })} />
-            <input placeholder="Nés avant (année)" value={newVaccin.pourEnfantsNesAvant} onChange={(e) => setNewVaccin({ ...newVaccin, pourEnfantsNesAvant: e.target.value })} />
-            <input placeholder="Nés après (année)" value={newVaccin.pourEnfantsNesApres} onChange={(e) => setNewVaccin({ ...newVaccin, pourEnfantsNesApres: e.target.value })} />
-            <input placeholder="Âge 1ère vaccination (mois)" value={newVaccin.agePremiereVaccination} onChange={(e) => setNewVaccin({ ...newVaccin, agePremiereVaccination: e.target.value })} />
-            <input placeholder="Délai 1 (mois)" value={newVaccin.nbMoisPremierDelai} onChange={(e) => setNewVaccin({ ...newVaccin, nbMoisPremierDelai: e.target.value })} />
-            <input placeholder="Délai 2 (mois)" value={newVaccin.nbMoisDeuxiemeDelai} onChange={(e) => setNewVaccin({ ...newVaccin, nbMoisDeuxiemeDelai: e.target.value })} />
-            <button onClick={handleCreateVaccin}>Créer</button>
-          </div>
-        )}
-      </div>
-
-
-
-
-
-
-
-
-
-
-        {/* ===== MODIFIER UN VACCIN ===== */}
-        <div style={panelStyle}>
-          <div style={panelHeaderStyle} onClick={() => setShowEditVaccin(!showEditVaccin)}>
-            <span>Modifier un vaccin</span>
-            <span>{showEditVaccin ? "▲" : "▼"}</span>
-          </div>
-          {showEditVaccin && (
-            <div style={panelBodyStyle}>
-              <select
-                value={editVaccinId}
-                onChange={(e) => {
-                  const v = vaccins.find(v => v.id === parseInt(e.target.value));
-                  if (v) openEditVaccin(v);
-                }}
-              >
-                <option value="">-- Choisir un vaccin --</option>
-                {vaccins.map(v => (
-                  <option key={v.id} value={v.id}>{v.nom}</option>
-                ))}
-              </select>
-              {editVaccinId && (
-                <>
-                  <input placeholder="Nom" value={editVaccin.nom} onChange={(e) => setEditVaccin({ ...editVaccin, nom: e.target.value })} />
-                  <input placeholder="Maladies" value={editVaccin.maladiesPrevenues} onChange={(e) => setEditVaccin({ ...editVaccin, maladiesPrevenues: e.target.value })} />
-                  <input placeholder="Nés avant (année)" value={editVaccin.pourEnfantsNesAvant} onChange={(e) => setEditVaccin({ ...editVaccin, pourEnfantsNesAvant: e.target.value })} />
-                  <input placeholder="Nés après (année)" value={editVaccin.pourEnfantsNesApres} onChange={(e) => setEditVaccin({ ...editVaccin, pourEnfantsNesApres: e.target.value })} />
-                  <input placeholder="Âge 1ère vaccination (mois)" value={editVaccin.agePremiereVaccination} onChange={(e) => setEditVaccin({ ...editVaccin, agePremiereVaccination: e.target.value })} />
-                  <input placeholder="Délai 1 (mois)" value={editVaccin.nbMoisPremierDelai} onChange={(e) => setEditVaccin({ ...editVaccin, nbMoisPremierDelai: e.target.value })} />
-                  <input placeholder="Délai 2 (mois)" value={editVaccin.nbMoisDeuxiemeDelai} onChange={(e) => setEditVaccin({ ...editVaccin, nbMoisDeuxiemeDelai: e.target.value })} />
-                  <button onClick={handleEditVaccin}>Enregistrer</button>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-
-
-
-
-
-
-
-
-
-      {/* ===== ASSIGNER DIRECTRICE ===== */}
-      <div style={panelStyle}>
-        <div style={panelHeaderStyle} onClick={() => setShowAssignDirectrice(!showAssignDirectrice)}>
-          <span>Assigner directrice à une crèche</span>
-          <span>{showAssignDirectrice ? "▲" : "▼"}</span>
-        </div>
-        {showAssignDirectrice && (
-          <div style={panelBodyStyle}>
-            {creches.map((creche) => (
-              <div key={creche.nom} style={{ marginBottom: "10px" }}>
-                <strong>{creche.nom}</strong> : 
-                <select
-                  value={assignations[creche.nom] || ""}
-                  onChange={(e) =>
-                    setAssignations({ ...assignations, [creche.nom]: e.target.value })
-                  }
-                >
-                  <option value="">-- Choisir --</option>
-                  {users
-                    .filter((u) => u.role === "directrice")
-                    .map((u) => (
-                      <option key={u.id} value={u.prenom}>
-                        {u.prenom}
-                      </option>
-                    ))}
-                </select>
-                <button onClick={() => handleChangeDirecteur(creche.nom)}>
-                  Appliquer
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-
-
-
-        {/* ===== GÉRER LES DIRECTRICES ===== */}
-        {users.filter(u => u.role === "directrice" && !u.estParti).length === 0 && (
-            <p>Aucune directrice active.</p>
-        )}
+      {/* Panneau 4 : Liste utilisateurs */}
+      <Panel title="Utilisateurs" show={showUserList} setShow={setShowUserList}>
+        <h4>Directrices</h4>
         {users.filter(u => u.role === "directrice" && !u.estParti).map(u => (
-            <div key={u.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
-                <span>{u.prenom}</span>
-                <div>
-                    <button onClick={() => handleRenameUser(u.prenom)} style={{ marginRight: "5px" }}>✏️</button>
-                    <button onClick={() => handleResetPassword(u.prenom)} style={{ marginRight: "5px" }}>🔑</button>
-                    <button onClick={() => handleDisableUser(u.prenom)}>❌</button>
-                </div>
-            </div>
+          <div key={u.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+            <span>{u.prenom}</span>
+            <span>
+              <button onClick={() => handleRenameUser(u.prenom)}>✏️</button>
+              <button onClick={() => handleResetPassword(u.prenom)}>🔑</button>
+              <button onClick={() => handleDisableUser(u.prenom)}>❌</button>
+            </span>
+          </div>
         ))}
+        <h4>Administrateurs</h4>
+        {users.filter(u => u.role === "admin").map(u => (
+          <div key={u.id}>{u.prenom} (non modifiable)</div>
+        ))}
+      </Panel>
 
+      {/* Panneau 5 : Autres informations */}
+      <Panel title="Autres informations" show={showInfos} setShow={setShowInfos}>
+        <h4>Crèches</h4>
+        {creches.map(c => (
+          <div key={c.nom} style={{ marginBottom: 4 }}>
+            {c.nom} — Dirigée par {c.directeurPrenom} — {c.nbEnfants} enfant(s) {c.estFerme ? "(fermée)" : ""}
+          </div>
+        ))}
+        <h4>Vaccins</h4>
+        <select value={selectedVaccinInfo} onChange={e => setSelectedVaccinInfo(e.target.value)}>
+          <option value="">-- Choisir un vaccin --</option>
+          {vaccins.map(v => <option key={v.id} value={v.id}>{v.nom}</option>)}
+        </select>
+        {selectedVaccinInfo && (() => {
+          const v = vaccins.find(x => x.id === parseInt(selectedVaccinInfo));
+          if (!v) return null;
+          const delai2 = v.nbMoisDeuxiemeDelai ? `la dernière ${v.nbMoisDeuxiemeDelai} mois plus tard` : "il n'y a pas de troisième dose";
+          const condition = v.pourEnfantsNesAvant ? `Concerne les enfants nés avant ${v.pourEnfantsNesAvant}. ` : v.pourEnfantsNesApres ? `Concerne les enfants nés après ${v.pourEnfantsNesApres}. ` : "";
+          return (
+            <div style={{ marginTop: 10 }}>
+              <strong>{v.nom}</strong> est injecté contre : {v.maladiesPrevenues}.<br/>
+              La première prise est à {v.agePremiereVaccination} mois, la seconde {v.nbMoisPremierDelai} mois plus tard, et {delai2}.<br/>
+              {condition}
+            </div>
+          );
+        })()}
+      </Panel>
 
-
-
-
-
-
-
-
-
-
-  {/* ===== ZONE DANGEREUSE ===== */}
-  <div style={{ ...panelStyle, border: "2px solid red" }}>
-      <div style={{ ...panelHeaderStyle, background: "#ffe0e0" }}>
-          <span>⚠️ Zone dangereuse</span>
+      {/* Zone dangereuse */}
+      <div style={{ border: "2px solid orange", borderRadius: 5, marginBottom: 10 }}>
+        <div style={{ background: "#ffe0b0", padding: 10, cursor: "pointer", fontWeight: "bold" }}
+          onClick={() => {
+            if (!dangerConfirmed) {
+              if (window.confirm("⚠️ Zone dangereuse. Continuer ?")) { setDangerConfirmed(true); setShowDanger(true); }
+            } else setShowDanger(!showDanger);
+          }}>
+          ⚠️ Zone dangereuse {showDanger ? "▲" : "▼"}
+        </div>
+        {showDanger && (
+          <div style={{ padding: 10 }}>
+            {/* Renommer crèche */}
+            <div style={{ marginBottom: 10 }}>
+              <strong>Renommer une crèche</strong><br/>
+              <select value={renameCrecheSelect} onChange={e => setRenameCrecheSelect(e.target.value)}>
+                <option value="">-- Crèche --</option>
+                {creches.map(c => <option key={c.nom} value={c.nom}>{c.nom}</option>)}
+              </select>
+              <input placeholder="Nouveau nom" value={renameCrecheNewName} onChange={e => setRenameCrecheNewName(e.target.value)} />
+              <button onClick={handleRenameCreche}>Renommer</button>
+            </div>
+            {/* Changer directeur */}
+            <div style={{ marginBottom: 10 }}>
+              <strong>Changer directeur</strong><br/>
+              <select value={changeDirCreche} onChange={e => setChangeDirCreche(e.target.value)}>
+                <option value="">-- Crèche --</option>
+                {creches.map(c => <option key={c.nom} value={c.nom}>{c.nom}</option>)}
+              </select>
+              <select value={changeDirNewDir} onChange={e => setChangeDirNewDir(e.target.value)}>
+                <option value="">-- Nouvelle directrice --</option>
+                {users.filter(u => u.role === "directrice" && !u.estParti).map(u => <option key={u.id} value={u.prenom}>{u.prenom}</option>)}
+              </select>
+              <button onClick={handleChangeDirecteur}>Appliquer</button>
+            </div>
+            {/* Supprimer utilisateur */}
+            <div style={{ marginBottom: 10 }}>
+              <strong>Supprimer une directrice</strong><br/>
+              <select value={delUserSelect} onChange={e => setDelUserSelect(e.target.value)}>
+                <option value="">-- Directrice --</option>
+                {users.filter(u => u.role === "directrice").map(u => <option key={u.id} value={u.prenom}>{u.prenom}</option>)}
+              </select>
+              <button onClick={handleDeleteUserZone}>Supprimer</button>
+            </div>
+            {/* Modifier vaccin */}
+            <div style={{ marginBottom: 10 }}>
+              <strong>Modifier un vaccin</strong><br/>
+              <select value={editVaccinId} onChange={e => { setEditVaccinId(e.target.value); const v = vaccins.find(x => x.id === parseInt(e.target.value)); if (v) setEditVaccin({ nom: v.nom, maladiesPrevenues: v.maladiesPrevenues, pourEnfantsNesAvant: v.pourEnfantsNesAvant || "", pourEnfantsNesApres: v.pourEnfantsNesApres || "", agePremiereVaccination: v.agePremiereVaccination, nbMoisPremierDelai: v.nbMoisPremierDelai, nbMoisDeuxiemeDelai: v.nbMoisDeuxiemeDelai || "" }); }}>
+                <option value="">-- Vaccin --</option>
+                {vaccins.map(v => <option key={v.id} value={v.id}>{v.nom}</option>)}
+              </select>
+              {editVaccinId && <>
+                <input placeholder="Nom" value={editVaccin.nom} onChange={e => setEditVaccin({...editVaccin, nom: e.target.value})} />
+                <input placeholder="Maladies" value={editVaccin.maladiesPrevenues} onChange={e => setEditVaccin({...editVaccin, maladiesPrevenues: e.target.value})} />
+                <input placeholder="Nés avant" value={editVaccin.pourEnfantsNesAvant} onChange={e => setEditVaccin({...editVaccin, pourEnfantsNesAvant: e.target.value})} />
+                <input placeholder="Nés après" value={editVaccin.pourEnfantsNesApres} onChange={e => setEditVaccin({...editVaccin, pourEnfantsNesApres: e.target.value})} />
+                <input placeholder="Âge 1ère dose" value={editVaccin.agePremiereVaccination} onChange={e => setEditVaccin({...editVaccin, agePremiereVaccination: e.target.value})} />
+                <input placeholder="Délai 1" value={editVaccin.nbMoisPremierDelai} onChange={e => setEditVaccin({...editVaccin, nbMoisPremierDelai: e.target.value})} />
+                <input placeholder="Délai 2" value={editVaccin.nbMoisDeuxiemeDelai} onChange={e => setEditVaccin({...editVaccin, nbMoisDeuxiemeDelai: e.target.value})} />
+                <button onClick={handleEditVaccin}>Enregistrer</button>
+              </>}
+            </div>
+            {/* Rendre obsolète */}
+            <div style={{ marginBottom: 10 }}>
+              <strong>Rendre un vaccin obsolète</strong><br/>
+              <select value={obsoleteVaccinSelect} onChange={e => setObsoleteVaccinSelect(e.target.value)}>
+                <option value="">-- Vaccin --</option>
+                {vaccins.filter(v => !v.estObsolete).map(v => <option key={v.id} value={v.id}>{v.nom}</option>)}
+              </select>
+              <button onClick={handleObsoleteVaccin}>Rendre obsolète</button>
+            </div>
+          </div>
+        )}
       </div>
-      <div style={panelBodyStyle}>
-          <input
-              type="password"
-              placeholder="Votre mot de passe admin"
-              value={mdpAdmin}
-              onChange={(e) => setMdpAdmin(e.target.value)}
-          />
-          
-          <h4>Supprimer une directrice</h4>
-          {users.filter(u => u.role === "directrice").map(u => (
-              <div key={u.id} style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>{u.prenom}</span>
-                  <button onClick={() => handleDeleteUser(u.prenom)}>🗑️</button>
-              </div>
-          ))}
-          
-          
 
-          <h4>Crèches</h4>
-          {creches.map(c => (
-              <div key={c.nom} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
-                  <span>{c.nom}</span>
-                  <div>
-                      <button onClick={() => handleRenameCreche(c.nom)} style={{ marginRight: "5px" }}>✏️</button>
-                      <button onClick={() => handleTransferEnfants(c.nom)} style={{ marginRight: "5px" }}>➡️</button>
-                      <button onClick={() => handleDeleteCreche(c.nom)}>🗑️</button>
-                  </div>
-              </div>
-          ))}
-          
-          <h4>Vaccins</h4>
-          {vaccins.map(v => (
-              <div key={v.id} style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span>{v.nom} {v.estObsolete ? "(obsolète)" : ""}</span>
-                  <button onClick={() => handleObsoleteVaccin(v.id)}>🔒</button>
-              </div>
-          ))}
-      </div>
-  </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      {/* ===== LISTES ===== */}
-      <div style={{ marginTop: "30px" }}>
-        <h3>Utilisateurs</h3>
-        <ul>
-          {users.map((u) => (
-            <li key={u.id}>
-              {u.prenom} — {u.role} {u.estParti ? "(inactif)" : ""}
-            </li>
-          ))}
-        </ul>
-
-        <h3>Crèches</h3>
-        <ul>
-          {creches.map((c) => (
-            <li key={c.nom}>
-              {c.nom} — Dirigée par {c.directeurPrenom}
-            </li>
-          ))}
-        </ul>
-
-        <h3>Vaccins</h3>
-        <ul>
-          {vaccins.map((v) => (
-            <li key={v.id}>
-              {v.nom} — {v.maladiesPrevenues}
-            </li>
-          ))}
-        </ul>
+      {/* Zone ultra dangereuse */}
+      <div style={{ border: "2px solid red", borderRadius: 5 }}>
+        <div style={{ background: "#ffcccc", padding: 10, cursor: "pointer", fontWeight: "bold" }}
+          onClick={() => {
+            if (!ultraConfirmed) {
+              if (window.confirm("☠️ Zone ULTRA dangereuse. Les suppressions sont IRRÉVERSIBLES. Continuer ?")) { setUltraConfirmed(true); setShowUltra(true); }
+            } else setShowUltra(!showUltra);
+          }}>
+          ☠️ Zone ultra dangereuse {showUltra ? "▲" : "▼"}
+        </div>
+        {showUltra && (
+          <div style={{ padding: 10 }}>
+            <div style={{ marginBottom: 10 }}>
+              <strong>Supprimer une crèche</strong><br/>
+              <select value={ultraDelCreche} onChange={e => setUltraDelCreche(e.target.value)}>
+                <option value="">-- Crèche --</option>
+                {creches.map(c => <option key={c.nom} value={c.nom}>{c.nom}</option>)}
+              </select>
+              <button onClick={handleUltraDeleteCreche}>Supprimer</button>
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <strong>Supprimer un utilisateur (définitif)</strong><br/>
+              <select value={ultraDelUser} onChange={e => setUltraDelUser(e.target.value)}>
+                <option value="">-- Utilisateur --</option>
+                {users.map(u => <option key={u.id} value={u.prenom}>{u.prenom} ({u.role})</option>)}
+              </select>
+              <button onClick={handleUltraDeleteUser}>Supprimer</button>
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <strong>Supprimer un vaccin (définitif)</strong><br/>
+              <select value={ultraDelVaccin} onChange={e => setUltraDelVaccin(e.target.value)}>
+                <option value="">-- Vaccin --</option>
+                {vaccins.map(v => <option key={v.id} value={v.id}>{v.nom}</option>)}
+              </select>
+              <button onClick={handleUltraDeleteVaccin}>Supprimer</button>
+            </div>
+            <div style={{ marginBottom: 10 }}>
+              <strong>Supprimer un enregistrement</strong><br/>
+              <select value={ultraDelEvEnfant} onChange={e => setUltraDelEvEnfant(e.target.value)}>
+                <option value="">-- Enfant --</option>
+                {/* Idéalement charger la liste des enfants, mais on utilisera les enfants depuis les crèches (pas chargés ici). On va simplifier avec un champ texte pour l'ID enfant. */}
+              </select>
+              <input placeholder="ID Enfant" value={ultraDelEvEnfant} onChange={e => setUltraDelEvEnfant(e.target.value)} />
+              <select value={ultraDelEvVaccin} onChange={e => setUltraDelEvVaccin(e.target.value)}>
+                <option value="">-- Vaccin --</option>
+                {vaccins.map(v => <option key={v.id} value={v.id}>{v.nom}</option>)}
+              </select>
+              <button onClick={handleUltraDeleteEnregistrement}>Supprimer</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-// ==================== STYLES ====================
-const panelStyle = {
-  border: "1px solid #ccc",
-  borderRadius: "5px",
-  marginBottom: "10px",
-};
-
-const panelHeaderStyle = {
-  background: "#f0f0f0",
-  padding: "10px",
-  cursor: "pointer",
-  display: "flex",
-  justifyContent: "space-between",
-  fontWeight: "bold",
-};
-
-const panelBodyStyle = {
-  padding: "10px",
-  display: "flex",
-  flexDirection: "column",
-  gap: "8px",
-};
+// Composant Panel réutilisable
+const Panel = ({ title, show, setShow, children }) => (
+  <div style={{ border: "1px solid #ccc", borderRadius: 5, marginBottom: 10 }}>
+    <div onClick={() => setShow(!show)} style={{ background: "#f0f0f0", padding: 10, cursor: "pointer", fontWeight: "bold", display: "flex", justifyContent: "space-between" }}>
+      <span>{title}</span><span>{show ? "▲" : "▼"}</span>
+    </div>
+    {show && <div style={{ padding: 10, display: "flex", flexDirection: "column", gap: 8 }}>{children}</div>}
+  </div>
+);
 
 export default Admin;

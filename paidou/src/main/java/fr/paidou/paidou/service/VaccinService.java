@@ -48,7 +48,10 @@ public class VaccinService {
 
 
 
-
+    public void deleteVaccinPhysique(Long id) {
+        if (!securityUtils.isAdmin()) throw new SecurityException("Admin requis");
+        vaccinRepo.deleteById(id);
+    }
 
 
 

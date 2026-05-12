@@ -12,4 +12,5 @@ public interface EnfantRepository extends JpaRepository<Enfant, Long> {
     List<Enfant> findByDateDeNaissanceAfter(LocalDate date);      
     List<Enfant> findByEstParti(boolean estParti);    
     List<Enfant> findByCrecheNom(String nomCreche);
+    long countByCrecheNom(String nomCreche);
 }

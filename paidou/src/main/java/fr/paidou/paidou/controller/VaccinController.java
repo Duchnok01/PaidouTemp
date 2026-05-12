@@ -95,7 +95,18 @@ public ResponseEntity<List<VaccinSummaryDTO>> getAllVaccins(
 
 
 
-
+    @DeleteMapping("/delete")
+    public ResponseEntity<?> deleteVaccin(@RequestBody Map<String, String> request) {
+        try {
+            if (!securityUtils.isAdmin()) return ResponseEntity.status(403).build();
+            Long id = Long.parseLong(request.get("id"));
+            String mdp = request.get("mdpAdmin");
+            if (!userService.verifyPassword(securityUtils.getCurrentUser().getPrenom(), mdp))
+                return ResponseEntity.status(403).body("Mot de passe incorrect");
+            vaccinService.deleteVaccinPhysique(id); // méthode à créer dans VaccinService utilisant deleteById
+            return ResponseEntity.ok().build();
+        } catch (Exception e) { return ResponseEntity.badRequest().body(e.getMessage()); }
+    }
 
 
 

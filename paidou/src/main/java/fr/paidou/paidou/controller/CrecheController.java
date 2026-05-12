@@ -3,25 +3,19 @@ package fr.paidou.paidou.controller;
 import fr.paidou.paidou.security.SecurityUtils;
 import fr.paidou.paidou.service.CrecheService;
 import fr.paidou.paidou.service.UserService;
-
-import java.util.List;
-import java.util.Map;
-
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-//@CrossOrigin(origins = "http://localhost:5173")
+import java.util.List;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/creches")
 public class CrecheController {
 
     private final CrecheService crecheService;
-    private final SecurityUtils securityUtils; 
-
-
-
-
+    private final SecurityUtils securityUtils;
     private final UserService userService;
 
     public CrecheController(CrecheService crecheService, SecurityUtils securityUtils, UserService userService) {
@@ -46,72 +40,26 @@ public class CrecheController {
         return ResponseEntity.ok().build();
     }
 
-
     @GetMapping
     public ResponseEntity<List<CrecheSummaryDTO>> getAllCreches() {
         try {
             if (!securityUtils.isAdmin()) {
                 return ResponseEntity.status(403).build();
             }
-            List<CrecheSummaryDTO> creches = crecheService.getAllCreches().stream()
-                    .map(c -> new CrecheSummaryDTO(
-                            c.getNom(),
-                            c.getDirecteur().getPrenom()
-                    ))
-                    .toList();
-            return ResponseEntity.ok(creches);
+            return ResponseEntity.ok(crecheService.getAllCrechesWithInfos());
         } catch (Exception e) {
             return ResponseEntity.status(500).build();
         }
     }
-
-
-
-
 
     @GetMapping("/mes-creches")
     public ResponseEntity<List<CrecheSummaryDTO>> getMesCreches() {
         try {
-            List<CrecheSummaryDTO> creches = crecheService.getMesCreches().stream()
-                    .map(c -> new CrecheSummaryDTO(
-                            c.getNom(),
-                            c.getDirecteur().getPrenom()
-                    ))
-                    .toList();
-            return ResponseEntity.ok(creches);
+            return ResponseEntity.ok(crecheService.getMesCrechesWithInfos());
         } catch (Exception e) {
             return ResponseEntity.status(500).build();
         }
     }
-
-
-
-
-
-
-
-    @DeleteMapping("/delete")
-    public ResponseEntity<?> deleteCreche(@RequestBody Map<String, String> request) {
-        try {
-            if (!securityUtils.isAdmin()) {
-                return ResponseEntity.status(403).build();
-            }
-            String nom = request.get("nom");
-            String mdpAdmin = request.get("mdpAdmin");
-            if (!userService.verifyPassword(securityUtils.getCurrentUser().getPrenom(), mdpAdmin)) {
-                return ResponseEntity.status(403).body("Mot de passe admin incorrect");
-            }
-            crecheService.deleteCreche(nom);
-            return ResponseEntity.ok().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-
-
-
-
 
     @PutMapping("/rename")
     public ResponseEntity<?> renameCreche(@RequestBody Map<String, String> request) {
@@ -132,30 +80,25 @@ public class CrecheController {
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    @DeleteMapping("/delete")
+    public ResponseEntity<?> deleteCreche(@RequestBody Map<String, String> request) {
+        try {
+            if (!securityUtils.isAdmin()) {
+                return ResponseEntity.status(403).build();
+            }
+            String nom = request.get("nom");
+            String mdpAdmin = request.get("mdpAdmin");
+            if (!userService.verifyPassword(securityUtils.getCurrentUser().getPrenom(), mdpAdmin)) {
+                return ResponseEntity.status(403).body("Mot de passe admin incorrect");
+            }
+            crecheService.deleteCreche(nom);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 
     public record CreateCrecheRequest(String nom, String directeur) {}
-
     public record ChangeDirecteurRequest(String nom, String directeur) {}
-
-    public record CrecheSummaryDTO(String nom, String directeurPrenom) {}
+    public record CrecheSummaryDTO(String nom, String directeurPrenom, boolean estFerme, long nbEnfants) {}
 }

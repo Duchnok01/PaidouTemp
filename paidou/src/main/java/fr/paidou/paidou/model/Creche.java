@@ -5,6 +5,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Column;
 import lombok.Data;
 
 @Data
@@ -19,5 +20,6 @@ public class Creche {
     @JoinColumn(name = "id_directeur", nullable = false)
     private User directeur;
 
-
+    @Column(nullable = false)
+    private boolean estFerme = false;
 }
