@@ -1,18 +1,43 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom"
-
-import Login from "./pages/Login"
-import ChangerMotDePasse from "./pages/ChangerMotDePasse"
-import Accueil from "./pages/Accueil"
-import Creche from "./pages/Creche"
-import Enfant from "./pages/Enfant"
-import AjoutEnregistrement from "./pages/AjoutEnregistrement"
-import Admin from "./pages/Admin"
-import AuthContext, { AuthProvider } from "./context/AuthContext"
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import Login from "./pages/Login";
+import ChangerMotDePasse from "./pages/ChangerMotDePasse";
+import Accueil from "./pages/Accueil";
+import Creche from "./pages/Creche";
+import Enfant from "./pages/Enfant";
+import AjoutEnregistrement from "./pages/AjoutEnregistrement";
+import Admin from "./pages/Admin";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 
 function App() {
   return (
     <AuthProvider>
-    <BrowserRouter>
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
+    </AuthProvider>
+  );
+}
+
+function AppContent() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+  };
+
+  return (
+    <>
+      {user && (
+        <div style={{ textAlign: "right", padding: "10px" }}>
+          <span>{user.prenom} ({user.role})</span>
+          <button onClick={handleLogout} style={{ marginLeft: "10px" }}>
+            Déconnexion
+          </button>
+        </div>
+      )}
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/changer-mdp" element={<ChangerMotDePasse />} />
@@ -22,9 +47,8 @@ function App() {
         <Route path="/ajout-enregistrement" element={<AjoutEnregistrement />} />
         <Route path="/admin" element={<Admin />} />
       </Routes>
-    </BrowserRouter>
-    </AuthProvider>
-  )
+    </>
+  );
 }
 
-export default App
+export default App;

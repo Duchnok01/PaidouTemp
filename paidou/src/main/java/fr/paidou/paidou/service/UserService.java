@@ -1,5 +1,6 @@
 package fr.paidou.paidou.service;
 
+import fr.paidou.paidou.model.Creche;
 import fr.paidou.paidou.model.User;
 import fr.paidou.paidou.repository.UserRepository;
 
@@ -7,6 +8,10 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import fr.paidou.paidou.model.Creche;
+import fr.paidou.paidou.repository.CrecheRepository;
+
+
 
 @Service
 public class UserService {
@@ -15,29 +20,30 @@ public class UserService {
    
     private final UserRepository userRepo;
     private final BCryptPasswordEncoder encoder;
-
-
-
-    public UserService(UserRepository uRep, BCryptPasswordEncoder bcpe) 
-    {
+    private final CrecheRepository crecheRepo;
+    
+    public UserService(UserRepository uRep, BCryptPasswordEncoder bcpe, CrecheRepository crecheRepo) {
         this.userRepo = uRep;
         this.encoder = bcpe;
-        
+        this.crecheRepo = crecheRepo;
     }
 
 
 
 
 
-    public String createUser(String prenom) // cree un compte pour un nv directeur, et le rattache a ses creches.
-    {
+    public String createUser(String prenom) {
+        String prenomNormalized = prenom.toLowerCase();
+        if (userRepo.findByPrenom(prenomNormalized).isPresent()) {
+            throw new IllegalArgumentException("Ce prénom existe déjà dans la liste des directions.");
+        }
         User newUser = new User();
-        newUser.setPrenom(prenom.toLowerCase());
+        newUser.setPrenom(prenomNormalized);
         String mdp = UUID.randomUUID().toString();
         newUser.setMdp(encoder.encode(mdp));
         userRepo.save(newUser);
         return mdp;
-    } 
+    }
 
 
     public User getUserByPrenom(String prenom) {
@@ -45,7 +51,15 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
     }
 
-
+    public String resetPassword(String prenom) {
+        User user = userRepo.findByPrenom(prenom.toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
+        String mdp = UUID.randomUUID().toString();
+        user.setMdp(encoder.encode(mdp));
+        user.setDoitChangerMdp(true);
+        userRepo.save(user);
+        return mdp;
+    }
 
     public void fixNameTypo(String prenom, String nvPrenom) // édite les info utilisateurs
     {
@@ -106,6 +120,34 @@ public class UserService {
         
 
     }
+
+
+
+
+
+
+
+
+
+    public void deleteUser(String prenom) {
+        User user = userRepo.findByPrenom(prenom.toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("User introuvable"));
+        
+        // Vérifier si le user dirige une ou plusieurs crèches
+        List<Creche> creches = crecheRepo.findByDirecteurId(user.getId());
+        if (!creches.isEmpty()) {
+            throw new IllegalArgumentException(
+                "Impossible de supprimer " + prenom + " : elle dirige encore la/les crèche(s) " +
+                creches.stream().map(Creche::getNom).collect(java.util.stream.Collectors.joining(", "))
+            );
+        }
+        
+        userRepo.delete(user);
+    }
+
+
+
+
 
 
 

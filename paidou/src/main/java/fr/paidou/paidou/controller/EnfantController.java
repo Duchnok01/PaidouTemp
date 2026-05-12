@@ -6,32 +6,46 @@ import fr.paidou.paidou.model.Enfant;
 import java.time.LocalDate;
 import java.util.List;
 
+import fr.paidou.paidou.security.SecurityUtils;
+import fr.paidou.paidou.service.UserService;
+import java.util.Map;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@CrossOrigin(origins = "http://localhost:5173")
+//@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/enfants")
 public class EnfantController {
 
     private final EnfantService enfantService;
-
-    public EnfantController(EnfantService enfantService) {
+    
+    private final SecurityUtils securityUtils;
+    private final UserService userService;
+    
+    public EnfantController(EnfantService enfantService, SecurityUtils securityUtils, UserService userService) {
         this.enfantService = enfantService;
+        this.securityUtils = securityUtils;
+        this.userService = userService;
     }
 
+   
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Void> createEnfant(@RequestBody CreateEnfantRequest request) {
-        enfantService.createEnfant(
+    public ResponseEntity<?> createEnfant(@RequestBody CreateEnfantRequest request) {
+        try {
+            enfantService.createEnfant(
                 request.nom(),
                 request.prenom(),
                 request.dateDeNaissance(),
                 request.nomCreche()
         );
-        return ResponseEntity.ok().build();
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
-
+    
     @PutMapping("/change-creche")
     public ResponseEntity<Void> changeCreche(@RequestBody ChangeCrecheRequest request) {
         enfantService.changeCreche(request.id(), request.nomCreche());
@@ -54,6 +68,58 @@ public class EnfantController {
         enfantService.disableChildAccount(request.id());
         return ResponseEntity.ok().build();
     }
+
+
+
+    @PutMapping("/transfer-all")
+    public ResponseEntity<?> transferAllEnfants(@RequestBody Map<String, String> request) {
+        try {
+            if (!securityUtils.isAdmin()) {
+                return ResponseEntity.status(403).build();
+            }
+            String from = request.get("from");
+            String to = request.get("to");
+            String mdpAdmin = request.get("mdpAdmin");
+            if (!userService.verifyPassword(securityUtils.getCurrentUser().getPrenom(), mdpAdmin)) {
+                return ResponseEntity.status(403).body("Mot de passe admin incorrect");
+            }
+            enfantService.transferAllEnfants(from, to);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     // ======== LECTURE ========
 

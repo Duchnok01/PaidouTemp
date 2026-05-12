@@ -3,9 +3,11 @@ package fr.paidou.paidou.service;
 import fr.paidou.paidou.model.Creche;
 import fr.paidou.paidou.repository.CrecheRepository;
 import fr.paidou.paidou.model.Enfant;
+import fr.paidou.paidou.model.EnregistrementVaccination;
 import fr.paidou.paidou.repository.EnfantRepository;
 import fr.paidou.paidou.security.SecurityUtils;
 import fr.paidou.paidou.model.User;
+    import fr.paidou.paidou.repository.EnregistrementVaccinationRepository;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -18,11 +20,15 @@ public class EnfantService {
     private final CrecheRepository crecheRepo;
     private final EnfantRepository enfantRepo;
     private final SecurityUtils securityUtils;
-
-    public EnfantService(CrecheRepository cRep, EnfantRepository eRep, SecurityUtils securityUtils) {
+    
+    private final EnregistrementVaccinationRepository enregistrementRepo;
+    
+    public EnfantService(CrecheRepository cRep, EnfantRepository eRep, SecurityUtils securityUtils,
+                         EnregistrementVaccinationRepository evRep) {
         this.crecheRepo = cRep;
         this.enfantRepo = eRep;
         this.securityUtils = securityUtils;
+        this.enregistrementRepo = evRep;
     }
 
     private void verifierAuthorisationPourCreche(String nomCreche) {
@@ -75,6 +81,51 @@ public class EnfantService {
         child.setEstParti(true);
         enfantRepo.save(child);
     }
+
+
+
+
+
+    public void transferAllEnfants(String fromCreche, String toCreche) {
+        if (!securityUtils.isAdmin()) {
+            throw new SecurityException("Seul un administrateur peut transférer des enfants");
+        }
+        String fromNorm = fromCreche.toLowerCase();
+        String toNorm = toCreche.toLowerCase();
+        
+        if (fromNorm.equals(toNorm)) {
+            throw new IllegalArgumentException("Impossible de transférer vers la même crèche");
+        }
+        
+        Creche crecheSource = crecheRepo.findById(fromNorm)
+                .orElseThrow(() -> new IllegalArgumentException("Crèche source introuvable"));
+        Creche crecheCible = crecheRepo.findById(toNorm)
+                .orElseThrow(() -> new IllegalArgumentException("Crèche cible introuvable"));
+        
+        List<Enfant> enfants = enfantRepo.findByCrecheNom(fromNorm);
+        for (Enfant enfant : enfants) {
+            enfant.setCreche(crecheCible);
+            enfantRepo.save(enfant);
+        }
+        
+        List<EnregistrementVaccination> evs = enregistrementRepo.findByCrecheNom(fromNorm);
+        for (EnregistrementVaccination ev : evs) {
+            ev.setCreche(crecheCible);
+            enregistrementRepo.save(ev);
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
 
     // ======== LECTURE ========
 

@@ -38,6 +38,7 @@ public class Vaccin {
     @Column(nullable = true)
     private Integer nbMoisDeuxiemeDelai; // nombre de mois entre la deuxieme et la troisieme prise, si il y en a une
 
-    
+    @Column(nullable = false)
+    private boolean estObsolete = false;
 
 }

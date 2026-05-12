@@ -1,22 +1,43 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import axios from "axios";
 
-// Création du contexte
 const AuthContext = createContext();
 
-// Provider
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Vérifier la session au chargement
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const res = await axios.get("/api/users/me", { withCredentials: true });
+        setUser({ id: res.data.id, prenom: res.data.prenom, role: res.data.role });
+      } catch (err) {
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkSession();
+  }, []);
 
   const login = (userData) => {
     setUser({
-      prenom: userData.prenom,
-      role: userData.role,
+        id: userData.id,
+        prenom: userData.prenom,
+        role: userData.role,
     });
-  };
+};
 
-  const logout = () => {
+  
+
+  const logout = async () => {
+    await axios.post("/api/users/logout", {}, { withCredentials: true });
     setUser(null);
   };
+
+  if (loading) return <div>Chargement...</div>;
 
   return (
     <AuthContext.Provider value={{ user, login, logout }}>
@@ -25,9 +46,5 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Hook personnalisé pour accès rapide
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
-
+export const useAuth = () => useContext(AuthContext);
 export default AuthContext;

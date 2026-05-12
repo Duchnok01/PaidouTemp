@@ -2,14 +2,16 @@ package fr.paidou.paidou.controller;
 
 import fr.paidou.paidou.security.SecurityUtils;
 import fr.paidou.paidou.service.CrecheService;
+import fr.paidou.paidou.service.UserService;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@CrossOrigin(origins = "http://localhost:5173")
+//@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/creches")
 public class CrecheController {
@@ -17,15 +19,25 @@ public class CrecheController {
     private final CrecheService crecheService;
     private final SecurityUtils securityUtils; 
 
-    public CrecheController(CrecheService crecheService, SecurityUtils securityUtils){
+
+
+
+    private final UserService userService;
+
+    public CrecheController(CrecheService crecheService, SecurityUtils securityUtils, UserService userService) {
         this.crecheService = crecheService;
-        this.securityUtils = securityUtils; 
+        this.securityUtils = securityUtils;
+        this.userService = userService;
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Void> createCreche(@RequestBody CreateCrecheRequest request) {
-        crecheService.createCreche(request.nom(), request.directeur());
-        return ResponseEntity.ok().build();
+    public ResponseEntity<?> createCreche(@RequestBody CreateCrecheRequest request) {
+        try {
+            crecheService.createCreche(request.nom(), request.directeur());
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @PutMapping("/change-directeur")
@@ -71,6 +83,68 @@ public class CrecheController {
             return ResponseEntity.status(500).build();
         }
     }
+
+
+
+
+
+
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<?> deleteCreche(@RequestBody Map<String, String> request) {
+        try {
+            if (!securityUtils.isAdmin()) {
+                return ResponseEntity.status(403).build();
+            }
+            String nom = request.get("nom");
+            String mdpAdmin = request.get("mdpAdmin");
+            if (!userService.verifyPassword(securityUtils.getCurrentUser().getPrenom(), mdpAdmin)) {
+                return ResponseEntity.status(403).body("Mot de passe admin incorrect");
+            }
+            crecheService.deleteCreche(nom);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
+
+
+
+
+    @PutMapping("/rename")
+    public ResponseEntity<?> renameCreche(@RequestBody Map<String, String> request) {
+        try {
+            if (!securityUtils.isAdmin()) {
+                return ResponseEntity.status(403).build();
+            }
+            String ancienNom = request.get("ancienNom");
+            String nouveauNom = request.get("nouveauNom");
+            String mdpAdmin = request.get("mdpAdmin");
+            if (!userService.verifyPassword(securityUtils.getCurrentUser().getPrenom(), mdpAdmin)) {
+                return ResponseEntity.status(403).body("Mot de passe admin incorrect");
+            }
+            crecheService.renameCreche(ancienNom, nouveauNom);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -41,7 +41,9 @@ public class VaccinService {
 
 
     public List<Vaccin> getAllVaccins() {
-        return vaccinRepo.findAll();
+        return vaccinRepo.findAll().stream()
+                .filter(v -> !v.isEstObsolete())
+                .toList();
     }
 
 
@@ -71,4 +73,40 @@ public class VaccinService {
         newV.setNbMoisDeuxiemeDelai(nbMoisDeuxiemeDelai);
         vaccinRepo.save(newV);
     }
+
+
+
+
+
+
+
+
+
+
+
+    public Vaccin getVaccinById(Long id) {
+        return vaccinRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
+    }
+    
+    public void rendreObsolete(Long id) {
+        if (!securityUtils.isAdmin()) {
+            throw new SecurityException("Seul un administrateur peut rendre un vaccin obsolète");
+        }
+        Vaccin vaccin = vaccinRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
+        vaccin.setEstObsolete(true);
+        vaccinRepo.save(vaccin);
+    }
+
+
+    public List<Vaccin> getAllVaccinsAdmin() {
+        return vaccinRepo.findAll();
+    }
+
+
+
+
+
+
 }

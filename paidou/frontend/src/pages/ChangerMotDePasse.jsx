@@ -37,8 +37,8 @@ const ChangerMotDePasse = () => {
         navigate("/accueil");
       }
     } catch (err) {
-      console.error("Erreur set-password :", err);
-      setError("Erreur réseau ou serveur");
+      const message = err.response?.data || "Erreur réseau ou serveur";
+      setError(message);
     }
   };
 

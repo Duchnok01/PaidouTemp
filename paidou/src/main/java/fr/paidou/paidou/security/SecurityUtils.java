@@ -30,10 +30,12 @@ public class SecurityUtils {
         return user;
     }
 
+    
+
     // Vérifie si l'utilisateur actuel est ADMIN
     public boolean isAdmin() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return auth != null && auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        .anyMatch(a -> a.getAuthority().equalsIgnoreCase("ROLE_admin"));
     }
 }

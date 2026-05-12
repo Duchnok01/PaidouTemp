@@ -38,11 +38,14 @@ const Login = () => {
         return;
       }
 
-      // login context
-      login({
-        prenom: result[2],
-        role: result[1],
-      });
+      // Après login, récupérer l'id utilisateur
+      try {
+        const meRes = await axios.get("/api/users/me", { withCredentials: true });
+        login({ id: meRes.data.id, prenom: result[2], role: result[1] });
+      } catch (err) {
+        // fallback : si /me échoue, on met quand même prenom/role
+        login({ prenom: result[2], role: result[1] });
+      }
 
       // redirections
       if (status === "changer-mdp") {
@@ -53,7 +56,10 @@ const Login = () => {
         navigate("/accueil");
       }
     } catch (err) {
-      setError("Erreur serveur");
+      const message = Array.isArray(err.response?.data) 
+      ? err.response.data[0] 
+      : err.response?.data || "Erreur lors de la connexion.";
+      setError(message);
     }
   };
 
