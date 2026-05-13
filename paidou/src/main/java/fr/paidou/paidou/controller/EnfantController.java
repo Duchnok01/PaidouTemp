@@ -46,6 +46,43 @@ public class EnfantController {
         }
     }
     
+    @DeleteMapping("/delete")
+    public ResponseEntity<?> deleteEnfant(@RequestBody Map<String, String> request) {
+        try {
+            if (!securityUtils.isAdmin()) return ResponseEntity.status(403).build();
+            Long id = Long.parseLong(request.get("id"));
+            String mdp = request.get("mdpAdmin");
+            if (!userService.verifyPassword(securityUtils.getCurrentUser().getPrenom(), mdp))
+                return ResponseEntity.status(403).body("Mot de passe admin incorrect");
+            enfantService.deleteEnfantPhysique(id);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
+
+
+    @GetMapping("/all")
+    public ResponseEntity<List<EnfantSummaryDTO>> getAllEnfantsByCreche(@RequestParam String nomCreche) {
+        try {
+            List<EnfantSummaryDTO> enfants = enfantService.getAllEnfantsByCreche(nomCreche).stream()
+                    .map(e -> new EnfantSummaryDTO(
+                            e.getId_enfant(),
+                            e.getNom(),
+                            e.getPrenom(),
+                            e.getDateDeNaissance(),
+                            e.getCreche().getNom()
+                    ))
+                    .toList();
+            return ResponseEntity.ok(enfants);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+
     @PutMapping("/change-creche")
     public ResponseEntity<Void> changeCreche(@RequestBody ChangeCrecheRequest request) {
         enfantService.changeCreche(request.id(), request.nomCreche());
@@ -154,9 +191,26 @@ public class EnfantController {
             );
             return ResponseEntity.ok(dto);
         } catch (Exception e) {
+            e.printStackTrace(); // <-- ajoute cette ligne
             return ResponseEntity.status(500).build();
         }
     }
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
 
     // ======== DTOs ========
 

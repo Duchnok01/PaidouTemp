@@ -67,46 +67,29 @@ public class VaccinController {
 
 
     @GetMapping
-public ResponseEntity<List<VaccinSummaryDTO>> getAllVaccins(
-        @RequestParam(required = false, defaultValue = "false") boolean inclureObsoletes) {
-    try {
-        List<Vaccin> vaccins = inclureObsoletes 
-            ? vaccinService.getAllVaccinsAdmin() 
-            : vaccinService.getAllVaccins();
-        
-        List<VaccinSummaryDTO> dtos = vaccins.stream()
-                .map(v -> new VaccinSummaryDTO(
-                    v.getId(),
-                    v.getNom(),
-                    v.getMaladiesPrevenues(),
-                    v.getPourEnfantsNesAvant(),
-                    v.getPourEnfantsNesApres(),
-                    v.getAgePremiereVaccination(),
-                    v.getNbMoisPremierDelai(),
-                    v.getNbMoisDeuxiemeDelai(),
-                    v.isEstObsolete()
-                ))
-                .toList();
-        return ResponseEntity.ok(dtos);
-    } catch (Exception e) {
-        return ResponseEntity.status(500).build();
-    }
-}
-
-
-
-    @DeleteMapping("/delete")
-    public ResponseEntity<?> deleteVaccin(@RequestBody Map<String, String> request) {
+    public ResponseEntity<List<VaccinSummaryDTO>> getAllVaccins(
+            @RequestParam(required = false, defaultValue = "false") boolean inclureObsoletes) {
         try {
-            if (!securityUtils.isAdmin()) return ResponseEntity.status(403).build();
-            Long id = Long.parseLong(request.get("id"));
-            String mdp = request.get("mdpAdmin");
-            if (!userService.verifyPassword(securityUtils.getCurrentUser().getPrenom(), mdp))
-                return ResponseEntity.status(403).body("Mot de passe incorrect");
-            vaccinService.deleteVaccinPhysique(id); // méthode à créer dans VaccinService utilisant deleteById
-            return ResponseEntity.ok().build();
-        } catch (Exception e) { return ResponseEntity.badRequest().body(e.getMessage()); }
+            List<Vaccin> vaccins = inclureObsoletes 
+                ? vaccinService.getAllVaccinsAdmin() 
+                : vaccinService.getAllVaccins();
+            List<VaccinSummaryDTO> dtos = vaccins.stream()
+                    .map(v -> new VaccinSummaryDTO(
+                        v.getId(), v.getNom(), v.getMaladiesPrevenues(),
+                        v.getPourEnfantsNesAvant(), v.getPourEnfantsNesApres(),
+                        v.getAgePremiereVaccination(), v.getNbMoisPremierDelai(),
+                        v.getNbMoisDeuxiemeDelai(), v.isEstObsolete()
+                    ))
+                    .toList();
+            return ResponseEntity.ok(dtos);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
     }
+
+
+
+    
 
 
 
@@ -127,6 +110,23 @@ public ResponseEntity<List<VaccinSummaryDTO>> getAllVaccins(
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<?> deleteVaccin(@RequestBody Map<String, String> request) {
+        try {
+            if (!securityUtils.isAdmin()) return ResponseEntity.status(403).build();
+            Long id = Long.parseLong(request.get("id"));
+            String mdpAdmin = request.get("mdpAdmin");
+            if (!userService.verifyPassword(securityUtils.getCurrentUser().getPrenom(), mdpAdmin))
+                return ResponseEntity.status(403).body("Mot de passe admin incorrect");
+            vaccinService.deleteVaccinPhysique(id);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
 
 
 

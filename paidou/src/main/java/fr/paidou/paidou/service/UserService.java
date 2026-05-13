@@ -94,6 +94,7 @@ public class UserService {
         User user = userRepo.findByPrenom(prenom.toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
         user.setMdp(encoder.encode(passwd));
+        user.setDoitChangerMdp(false);
         userRepo.save(user);
     } 
 

@@ -34,12 +34,6 @@ public class CrecheController {
         }
     }
 
-    @PutMapping("/change-directeur")
-    public ResponseEntity<Void> changeDirecteur(@RequestBody ChangeDirecteurRequest request) {
-        crecheService.changeDirecteur(request.nom(), request.directeur());
-        return ResponseEntity.ok().build();
-    }
-
     @GetMapping
     public ResponseEntity<List<CrecheSummaryDTO>> getAllCreches() {
         try {
@@ -61,12 +55,20 @@ public class CrecheController {
         }
     }
 
+    @PutMapping("/change-directeur")
+    public ResponseEntity<?> changeDirecteur(@RequestBody ChangeDirecteurRequest request) {
+        try {
+            crecheService.changeDirecteur(request.nom(), request.directeur());
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @PutMapping("/rename")
     public ResponseEntity<?> renameCreche(@RequestBody Map<String, String> request) {
         try {
-            if (!securityUtils.isAdmin()) {
-                return ResponseEntity.status(403).build();
-            }
+            if (!securityUtils.isAdmin()) return ResponseEntity.status(403).build();
             String ancienNom = request.get("ancienNom");
             String nouveauNom = request.get("nouveauNom");
             String mdpAdmin = request.get("mdpAdmin");
@@ -80,12 +82,55 @@ public class CrecheController {
         }
     }
 
+    @PutMapping("/fermer")
+    public ResponseEntity<?> fermerCreche(@RequestBody Map<String, String> request) {
+        try {
+            if (!securityUtils.isAdmin()) return ResponseEntity.status(403).build();
+            String nom = request.get("nom");
+            String mdpAdmin = request.get("mdpAdmin");
+            if (!userService.verifyPassword(securityUtils.getCurrentUser().getPrenom(), mdpAdmin)) {
+                return ResponseEntity.status(403).body("Mot de passe admin incorrect");
+            }
+            crecheService.fermerCreche(nom);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
+
+
+    @GetMapping("/toutes")
+    public ResponseEntity<List<CrecheSummaryDTO>> getToutesLesCreches() {
+        try {
+            return ResponseEntity.ok(crecheService.getAllCrechesWithInfos());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    @PutMapping("/transferer-enfants")
+    public ResponseEntity<?> transfererEnfants(@RequestBody Map<String, String> request) {
+        try {
+            if (!securityUtils.isAdmin()) return ResponseEntity.status(403).build();
+            String from = request.get("from");
+            String to = request.get("to");
+            String mdpAdmin = request.get("mdpAdmin");
+            if (!userService.verifyPassword(securityUtils.getCurrentUser().getPrenom(), mdpAdmin)) {
+                return ResponseEntity.status(403).body("Mot de passe admin incorrect");
+            }
+            crecheService.transfererTousEnfants(from, to);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @DeleteMapping("/delete")
     public ResponseEntity<?> deleteCreche(@RequestBody Map<String, String> request) {
         try {
-            if (!securityUtils.isAdmin()) {
-                return ResponseEntity.status(403).build();
-            }
+            if (!securityUtils.isAdmin()) return ResponseEntity.status(403).build();
             String nom = request.get("nom");
             String mdpAdmin = request.get("mdpAdmin");
             if (!userService.verifyPassword(securityUtils.getCurrentUser().getPrenom(), mdpAdmin)) {

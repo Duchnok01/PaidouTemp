@@ -25,6 +25,9 @@ public class VaccinService {
         if (!securityUtils.isAdmin()) {
             throw new SecurityException("Seul un administrateur peut créer un vaccin");
         }
+        if (vaccinRepo.findByNom(nom.toLowerCase()).isPresent()) {
+            throw new IllegalArgumentException("Un vaccin avec ce nom existe déjà");
+        }
 
         Vaccin newV = new Vaccin();
         newV.setNom(nom);
@@ -46,7 +49,7 @@ public class VaccinService {
                 .toList();
     }
 
-
+    
 
     public void deleteVaccinPhysique(Long id) {
         if (!securityUtils.isAdmin()) throw new SecurityException("Admin requis");

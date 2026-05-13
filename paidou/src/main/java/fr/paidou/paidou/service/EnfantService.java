@@ -54,12 +54,29 @@ public class EnfantService {
         enfantRepo.save(child);
     }
 
-    public void changeCreche(Long id, String nomCreche) {
+    public void deleteEnfantPhysique(Long id) {
+        Enfant enfant = enfantRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
+        // Supprimer d'abord tous ses enregistrements
+        List<EnregistrementVaccination> evs = enregistrementRepo.findByIdIdEnfant(id);
+        enregistrementRepo.deleteAll(evs);
+        enfantRepo.delete(enfant);
+    }
+
+    public List<Enfant> getAllEnfantsByCreche(String nomCreche) {
         verifierAuthorisationPourCreche(nomCreche);
-        Creche c = crecheRepo.findById(nomCreche)
-                .orElseThrow(() -> new IllegalArgumentException("Crèche introuvable"));
+        return enfantRepo.findByCrecheNom(nomCreche); // pas de filtre
+    }
+
+
+    public void changeCreche(Long id, String nomCreche) {
         Enfant child = enfantRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
+        // Vérifier que l'utilisateur a le droit de modifier CET enfant (sa crèche actuelle)
+        verifierAuthorisationPourCreche(child.getCreche().getNom());
+        // Pas de vérification sur la crèche cible
+        Creche c = crecheRepo.findById(nomCreche.toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("Crèche cible introuvable"));
         child.setCreche(c);
         enfantRepo.save(child);
     }
@@ -131,7 +148,9 @@ public class EnfantService {
 
     public List<Enfant> getEnfantsByCreche(String nomCreche) {
         verifierAuthorisationPourCreche(nomCreche);
-        return enfantRepo.findByCrecheNom(nomCreche);
+        return enfantRepo.findByCrecheNom(nomCreche).stream()
+                .filter(e -> !e.isEstParti())
+                .toList();
     }
 
     public Enfant getEnfantById(Long id) {

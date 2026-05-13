@@ -15,6 +15,7 @@ const Enfant = () => {
   const [editEvVaccin, setEditEvVaccin] = useState("");
   const [editEvDate, setEditEvDate] = useState("");
   const [vaccins, setVaccins] = useState([]);
+  const [mdpDirectrice, setMdpDirectrice] = useState("");
 
   // Panneaux
   const [showModifier, setShowModifier] = useState(false);
@@ -28,13 +29,17 @@ const Enfant = () => {
 
   useEffect(() => {
     if (!user) {
-      navigate("/");
-      return;
+        navigate("/");
+        return;
     }
     fetchEnfant();
     fetchEnregistrements();
-    fetchCreches();
-  }, [id]);
+}, [id]);
+useEffect(() => {
+  if (showChangerCreche && enfant) {
+      fetchCrechesForChange();
+  }
+}, [showChangerCreche]);
 
   useEffect(() => {
     if (showEditEv !== null) {
@@ -75,63 +80,65 @@ const Enfant = () => {
     }
   };
 
-  const fetchCreches = async () => {
-    try {
-      // Admin voit toutes les crèches, directrice voit les siennes
-      const url = user.role === "admin" ? "/api/creches" : "/api/creches/mes-creches";
-      const res = await axios.get(url, { withCredentials: true });
-      setCreches(res.data);
-    } catch (err) {
-      console.error("Erreur chargement creches", err);
-    }
+  const fetchCrechesForChange = async () => {
+      if (!enfant) return;
+      try {
+          const res = await axios.get("/api/creches/toutes", { withCredentials: true });
+          setCreches(res.data.filter(c => c.nom !== enfant.nomCreche));
+      } catch (err) {
+          console.error(err);
+      }
   };
 
   // ======== MODIFIER L'ENFANT ========
   const handleModifier = async () => {
-    try {
-      await axios.put("/api/enfants/rectifier", {
-        id: parseInt(id),
-        nom: editNom,
-        prenom: editPrenom,
-        dateDeNaissance: editDate,
-      }, { withCredentials: true });
-      setShowModifier(false);
-      fetchEnfant();
-    } catch (err) {
-      alert(err.response?.data || "Erreur modification");
-    }
+      if (!mdpDirectrice) { alert("Veuillez entrer votre mot de passe."); return; }
+      try {
+          await axios.put("/api/enfants/rectifier", {
+              id: parseInt(id),
+              nom: editNom,
+              prenom: editPrenom,
+              dateDeNaissance: editDate,
+          }, { withCredentials: true });
+          setShowModifier(false);
+          setMdpDirectrice("");
+          fetchEnfant();
+      } catch (err) {
+          alert(err.response?.data || "Erreur modification");
+      }
   };
 
   // ======== DÉSACTIVER L'ENFANT ========
   const handleDisable = async () => {
-    if (!window.confirm("Désactiver cet enfant ? Il n'apparaîtra plus dans les listes.")) return;
-    try {
-      await axios.put("/api/enfants/disable", {
-        id: parseInt(id),
-      }, { withCredentials: true });
-      navigate("/creche/" + enfant.nomCreche);
-    } catch (err) {
-      alert(err.response?.data || "Erreur désactivation");
-    }
+      if (!mdpDirectrice) { alert("Veuillez entrer votre mot de passe."); return; }
+      if (!window.confirm("Désactiver cet enfant ? Il n'apparaîtra plus dans les listes.")) return;
+      try {
+          await axios.put("/api/enfants/disable", {
+              id: parseInt(id),
+          }, { withCredentials: true });
+          setMdpDirectrice("");
+          navigate("/creche/" + enfant.nomCreche);
+      } catch (err) {
+          alert(err.response?.data || "Erreur désactivation");
+      }
   };
 
   // ======== CHANGER DE CRÈCHE ========
   const handleChangeCreche = async () => {
-      if (!newCrecheNom) {
-        alert("Veuillez sélectionner une crèche");
-        return;
-      }
+      if (!newCrecheNom) { alert("Veuillez sélectionner une crèche"); return; }
+      if (!mdpDirectrice) { alert("Veuillez entrer votre mot de passe."); return; }
       try {
-        await axios.put("/api/enfants/change-creche", {
-          id: parseInt(id),
-          nomCreche: newCrecheNom,
-        }, { withCredentials: true });
-        setShowChangerCreche(false);
-        fetchEnfant();
+          await axios.put("/api/enfants/change-creche", {
+              id: parseInt(id),
+              nomCreche: newCrecheNom,
+          }, { withCredentials: true });
+          setShowChangerCreche(false);
+          setMdpDirectrice("");
+          fetchEnfant();
       } catch (err) {
-        alert(err.response?.data || "Erreur changement de crèche");
+          alert(err.response?.data || "Erreur changement de crèche");
       }
-    };
+  };
 
 
     // Ouvrir le panneau d'édition pour un enregistrement
@@ -143,37 +150,41 @@ const Enfant = () => {
 
   // Enregistrer la modification
   const handleEditEv = async (idVaccinAncien, dateAncienne) => {
-    try {
-      await axios.put("/api/enregistrements-vaccination/edit", {
-        idEnfant: parseInt(id),
-        idVaccin: parseInt(idVaccinAncien),
-        ancienneDate: dateAncienne,
-        newIdVaccin: parseInt(editEvVaccin),
-        nouvelleDate: editEvDate,
-      }, { withCredentials: true });
-      setShowEditEv(null);
-      fetchEnregistrements();
-    } catch (err) {
-      alert(err.response?.data || "Erreur modification");
-    }
+      if (!mdpDirectrice) { alert("Veuillez entrer votre mot de passe."); return; }
+      try {
+          await axios.put("/api/enregistrements-vaccination/edit", {
+              idEnfant: parseInt(id),
+              idVaccin: parseInt(idVaccinAncien),
+              ancienneDate: dateAncienne,
+              newIdVaccin: parseInt(editEvVaccin),
+              nouvelleDate: editEvDate,
+          }, { withCredentials: true });
+          setShowEditEv(null);
+          setMdpDirectrice("");
+          fetchEnregistrements();
+      } catch (err) {
+          alert(err.response?.data || "Erreur modification");
+      }
   };
 
   // Supprimer un enregistrement
   const handleDeleteEv = async (idVaccin, dateVaccination) => {
-    if (!window.confirm("Supprimer cet enregistrement ?")) return;
-    try {
-      await axios.delete("/api/enregistrements-vaccination", {
-        data: {
-          idEnfant: parseInt(id),
-          idVaccin: idVaccin,
-          dateVaccination: dateVaccination,
-        },
-        withCredentials: true,
-      });
-      fetchEnregistrements();
-    } catch (err) {
-      alert(err.response?.data || "Erreur suppression");
-    }
+      if (!mdpDirectrice) { alert("Veuillez entrer votre mot de passe."); return; }
+      if (!window.confirm("Supprimer cet enregistrement ?")) return;
+      try {
+          await axios.delete("/api/enregistrements-vaccination", {
+              data: {
+                  idEnfant: parseInt(id),
+                  idVaccin: idVaccin,
+                  dateVaccination: dateVaccination,
+              },
+              withCredentials: true,
+          });
+          setMdpDirectrice("");
+          fetchEnregistrements();
+      } catch (err) {
+          alert(err.response?.data || "Erreur suppression");
+      }
   };
 
 
@@ -211,6 +222,15 @@ const Enfant = () => {
         <button onClick={handleDisable} style={{ color: "red" }}>
           ❌ Désactiver
         </button>
+        <div style={{ marginBottom: "20px" }}>
+            <label>Votre mot de passe : </label>
+            <input
+                type="password"
+                value={mdpDirectrice}
+                onChange={(e) => setMdpDirectrice(e.target.value)}
+                style={{ marginLeft: "10px" }}
+            />
+        </div>
       </div>
 
       {/* ===== PANNEAU MODIFIER ===== */}
