@@ -18,61 +18,58 @@ const AjoutEnregistrement = () => {
   const [dateVaccination, setDateVaccination] = useState("");
 
   useEffect(() => {
-    if (!user) {
-      navigate("/");
-      return;
-    }
+    if (!user) { navigate("/"); return; }
     fetchCreches();
-    fetchVaccins();
-  }, []);
+  }, [user]);
 
   const fetchCreches = async () => {
     try {
-      const res = await axios.get("/api/creches/mes-creches", {
-        withCredentials: true,
-      });
+      const res = await axios.get("/api/creches/mes-creches", { withCredentials: true });
       setCreches(res.data);
-      // Préremplir si venu depuis une crèche spécifique
       const params = new URLSearchParams(location.search);
       const crecheParam = params.get("creche");
-      if (crecheParam) setSelectedCreche(crecheParam);
+      const enfantParam = params.get("enfant");
+      if (crecheParam) {
+        setSelectedCreche(crecheParam);
+        fetchEnfants(crecheParam);
+        if (enfantParam) setSelectedEnfant(enfantParam);
+      }
     } catch (err) {
-      console.error("Erreur lors de la recherche de creche", err);
-      const message = err.response?.data || "Erreur lors de la recherche de creche";
-      alert(message);
+      console.error("Erreur chargement creches", err);
     }
   };
 
   const fetchEnfants = async (nomCreche) => {
     try {
-      const res = await axios.get("/api/enfants?nomCreche=" + nomCreche, {
-        withCredentials: true,
-      });
+      const res = await axios.get("/api/enfants?nomCreche=" + nomCreche, { withCredentials: true });
       setEnfants(res.data);
     } catch (err) {
-      console.error("Erreur lors de la recherche de l'enfant", err);
-      const message = err.response?.data || "Erreur lors de la recherche de l'enfant.";
-      alert(message);
+      console.error("Erreur chargement enfants", err);
     }
   };
 
-  const fetchVaccins = async () => {
+  const fetchVaccins = async (idEnfant) => {
     try {
-      const res = await axios.get("/api/vaccins", {
-        withCredentials: true,
-      });
+      const url = idEnfant ? `/api/vaccins/pour-enfant/${idEnfant}` : "/api/vaccins";
+      const res = await axios.get(url, { withCredentials: true });
       setVaccins(res.data);
     } catch (err) {
       console.error("Erreur chargement vaccins", err);
-      const message = err.response?.data || "Erreur lors de la recherche du vaccin.";
-      alert(message);
     }
   };
 
   const handleCrecheChange = (nomCreche) => {
     setSelectedCreche(nomCreche);
     setSelectedEnfant("");
+    setSelectedVaccin("");
+    setVaccins([]);
     if (nomCreche) fetchEnfants(nomCreche);
+  };
+
+  const handleEnfantChange = (idEnfant) => {
+    setSelectedEnfant(idEnfant);
+    setSelectedVaccin("");
+    if (idEnfant) fetchVaccins(idEnfant);
   };
 
   const handleSubmit = async () => {
@@ -81,23 +78,17 @@ const AjoutEnregistrement = () => {
       return;
     }
     try {
-      await axios.post(
-        "/api/enregistrements-vaccination",
-        {
-          idEnfant: parseInt(selectedEnfant),
-          idVaccin: parseInt(selectedVaccin),
-          dateVaccination: dateVaccination,
-          nomCreche: selectedCreche,
-          idUser: user.id, // temporaire : l'admin a l'id 1
-        },
-        { withCredentials: true }
-      );
+      await axios.post("/api/enregistrements-vaccination", {
+        idEnfant: parseInt(selectedEnfant),
+        idVaccin: parseInt(selectedVaccin),
+        dateVaccination: dateVaccination,
+        nomCreche: selectedCreche,
+        idUser: user.id,
+      }, { withCredentials: true });
       alert("Enregistrement ajouté !");
       navigate("/accueil");
-    } catch (err) 
-    {
-      console.error("Erreur ajout enregistrement", err);
-      const message = err.response?.data || "Erreur lors de l'ajout dans la base de donnees.";
+    } catch (err) {
+      const message = err.response?.data || "Erreur lors de l'ajout dans la base de données.";
       alert(message);
     }
   };
@@ -108,62 +99,43 @@ const AjoutEnregistrement = () => {
 
       <div style={{ marginBottom: "15px" }}>
         <label>Crèche :</label>
-        <select
-          value={selectedCreche}
-          onChange={(e) => handleCrecheChange(e.target.value)}
-        >
+        <select value={selectedCreche} onChange={(e) => handleCrecheChange(e.target.value)}>
           <option value="">-- Choisir --</option>
-          {creches.map((c) => (
-            <option key={c.nom} value={c.nom}>
-              {c.nom}
-            </option>
-          ))}
+          {creches.map(c => <option key={c.nom} value={c.nom}>{c.nom}</option>)}
         </select>
       </div>
 
       <div style={{ marginBottom: "15px" }}>
         <label>Enfant :</label>
-        <select
-          value={selectedEnfant}
-          onChange={(e) => setSelectedEnfant(e.target.value)}
-          disabled={!selectedCreche}
-        >
+        <select value={selectedEnfant} onChange={(e) => handleEnfantChange(e.target.value)} disabled={!selectedCreche}>
           <option value="">-- Choisir --</option>
-          {enfants.map((e) => (
-            <option key={e.id} value={e.id}>
-              {e.nom} {e.prenom}
-            </option>
-          ))}
+          {enfants.map(e => <option key={e.id} value={e.id}>{e.nom} {e.prenom}</option>)}
         </select>
       </div>
 
       <div style={{ marginBottom: "15px" }}>
         <label>Vaccin :</label>
-        <select
-          value={selectedVaccin}
-          onChange={(e) => setSelectedVaccin(e.target.value)}
-        >
+        <select value={selectedVaccin} onChange={(e) => setSelectedVaccin(e.target.value)} disabled={!selectedEnfant}>
           <option value="">-- Choisir --</option>
-          {vaccins.map((v) => (
-            <option key={v.id} value={v.id}>
-              {v.nom}
+          {vaccins.map(v => (
+            <option key={v.id} value={v.id} disabled={v.complet}>
+              {v.nom} {v.complet ? `(complet ${v.dosesRecues}/${v.dosesRequises})` : `(${v.dosesRecues}/${v.dosesRequises})`}
             </option>
           ))}
         </select>
+        {selectedEnfant && vaccins.length > 0 && vaccins.every(v => v.complet) && (
+          <p style={{ color: "green", marginTop: "5px" }}>
+            ✅ Tous les vaccins sont à jour pour cet enfant. Vous pouvez modifier un enregistrement existant depuis la fiche enfant.
+          </p>
+        )}
       </div>
 
       <div style={{ marginBottom: "15px" }}>
         <label>Date de vaccination :</label>
-        <input
-          type="date"
-          value={dateVaccination}
-          onChange={(e) => setDateVaccination(e.target.value)}
-        />
+        <input type="date" value={dateVaccination} onChange={(e) => setDateVaccination(e.target.value)} />
       </div>
 
-      <button onClick={handleSubmit} style={{ padding: "10px 20px" }}>
-        ✅ Enregistrer
-      </button>
+      <button onClick={handleSubmit} style={{ padding: "10px 20px" }}>✅ Enregistrer</button>
     </div>
   );
 };

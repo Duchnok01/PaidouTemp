@@ -14,11 +14,11 @@ const Creche = () => {
 
   useEffect(() => {
     if (!user) {
-      navigate("/");
-      return;
+        navigate("/");
+        return;
     }
     fetchEnfants();
-  }, [nom]);
+}, [nom, user]);
 
   const fetchEnfants = async () => {
     try {

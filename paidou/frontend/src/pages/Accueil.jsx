@@ -6,87 +6,46 @@ import { useAuth } from "../context/AuthContext";
 const Accueil = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-
   const [creches, setCreches] = useState([]);
   const [enfantsByCreche, setEnfantsByCreche] = useState({});
   const [vaccins, setVaccins] = useState([]);
   const [showVaccins, setShowVaccins] = useState(false);
+  const [selectedVaccinInfo, setSelectedVaccinInfo] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
-      navigate("/");
-      return;
-    }
+    if (!user) { navigate("/"); return; }
     fetchData();
-  }, []);
+  }, [user]);
 
   const fetchData = async () => {
     try {
-      const crechesRes = await axios.get("/api/creches/mes-creches", {
-        withCredentials: true,
-      });
+      const crechesRes = await axios.get("/api/creches/mes-creches", { withCredentials: true });
       const crechesData = crechesRes.data;
       setCreches(crechesData);
-
-      // Pour chaque crèche, récupérer ses enfants
       const enfantsMap = {};
       for (const creche of crechesData) {
-        const enfantsRes = await axios.get(
-          "/api/enfants?nomCreche=" + creche.nom,
-          { withCredentials: true }
-        );
-        enfantsMap[creche.nom] = enfantsRes.data;
+        const statutsRes = await axios.get("/api/enfants/statuts-vaccinaux?nomCreche=" + creche.nom, { withCredentials: true });
+        enfantsMap[creche.nom] = statutsRes.data; // déjà trié par le backend
       }
       setEnfantsByCreche(enfantsMap);
-
-      // Récupérer les vaccins pour le référentiel
-      const vaccinsRes = await axios.get("/api/vaccins", {
-        withCredentials: true,
-      });
+      const vaccinsRes = await axios.get("/api/vaccins", { withCredentials: true });
       setVaccins(vaccinsRes.data);
     } catch (err) {
       console.error("Erreur chargement accueil", err);
-      const message = err.response?.data || "Erreur lors du chargement des infos de la creche.";
-      alert(message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Calculer le retard vaccinal d'un enfant
-  const calculerRetard = (enfant) => {
-    if (!enfant.dateDeNaissance) return null;
-    const aujourdhui = new Date();
-    const naissance = new Date(enfant.dateDeNaissance);
-    const ageEnMois =
-      (aujourdhui.getFullYear() - naissance.getFullYear()) * 12 +
-      (aujourdhui.getMonth() - naissance.getMonth());
-
-    // Trouver le vaccin le plus urgent pour cet enfant
-    let plusUrgent = null;
-    for (const vaccin of vaccins) {
-      const ageMin = vaccin.agePremiereVaccination;
-      if (ageMin && ageEnMois >= ageMin) {
-        const retard = ageEnMois - ageMin;
-        if (!plusUrgent || retard > plusUrgent.retard) {
-          plusUrgent = { vaccin, retard };
-        }
-      }
+  const couleurStatut = (statut) => {
+    switch (statut) {
+      case "RETARD": return "#ffcccc";
+      case "PROCHE": return "#fff0b3";
+      case "EN_COURS": return "#d9edf7";
+      case "COMPLET": return "#d4edda";
+      default: return "#eee";
     }
-    return plusUrgent;
-  };
-
-  // Trier les enfants par priorité vaccinale
-  const trierEnfants = (enfants) => {
-    return [...enfants].sort((a, b) => {
-      const retardA = calculerRetard(a);
-      const retardB = calculerRetard(b);
-      if (!retardA && !retardB) return 0;
-      if (!retardA) return 1;
-      if (!retardB) return -1;
-      return retardB.retard - retardA.retard;
-    });
   };
 
   if (loading) return <p>Chargement...</p>;
@@ -94,64 +53,40 @@ const Accueil = () => {
   return (
     <div style={{ maxWidth: "1000px", margin: "auto", padding: "20px" }}>
       <h1>Accueil — {user.prenom}</h1>
-
-      <button
-        onClick={() => navigate("/ajout-enregistrement")}
-        style={{
-          padding: "12px 24px",
-          fontSize: "16px",
-          marginBottom: "20px",
-          cursor: "pointer",
-        }}
-      >
+      <button onClick={() => navigate("/ajout-enregistrement")} style={{ padding: "12px 24px", fontSize: "16px", marginBottom: "20px", cursor: "pointer" }}>
         ➕ Ajouter un enregistrement
       </button>
 
-      {/* Colonnes par crèche */}
       <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
         {creches.map((creche) => {
           const enfants = enfantsByCreche[creche.nom] || [];
-          const enfantsTries = trierEnfants(enfants);
-
           return (
-            <div
-              key={creche.nom}
-              style={{
-                flex: "1",
-                minWidth: "280px",
-                border: "1px solid #ddd",
-                borderRadius: "8px",
-                padding: "15px",
-              }}
-            >
-              <h2>{creche.nom}</h2>
-              <button onClick={() => navigate("/creche/" + creche.nom)}>
-                Voir ma crèche
-              </button>
-
-              <h3>Enfants</h3>
-              {enfantsTries.length === 0 && <p>Aucun enfant</p>}
-              {enfantsTries.map((enfant) => {
-                const retard = calculerRetard(enfant);
+            <div key={creche.nom} style={{ flex: "1", minWidth: "280px", border: "1px solid #ddd", borderRadius: "8px", padding: "15px" }}>
+              <h2>{creche.nom} ({enfants.length} enfant{enfants.length > 1 ? "s" : ""})</h2>
+              <button onClick={() => navigate("/creche/" + creche.nom)}>Voir ma crèche</button>
+              {enfants.length === 0 && <p>Aucun enfant</p>}
+              {enfants.map((enfant) => {
+                const ageEnMois = Math.floor((new Date() - new Date(enfant.dateDeNaissance)) / (1000 * 60 * 60 * 24 * 30.4375));
+                const annees = Math.floor(ageEnMois / 12);
+                const mois = ageEnMois % 12;
                 return (
                   <div
                     key={enfant.id}
+                    onClick={() => navigate("/enfant/" + enfant.id)}
                     style={{
-                      padding: "8px",
-                      margin: "5px 0",
-                      borderRadius: "5px",
-                      background: retard ? "#ffe0e0" : "#e0ffe0",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
+                      padding: "8px", margin: "5px 0", borderRadius: "5px",
+                      background: couleurStatut(enfant.statut),
+                      cursor: "pointer", display: "flex", flexDirection: "column"
                     }}
                   >
-                    <span>
-                      {enfant.prenom} {enfant.nom}
-                    </span>
-                    {retard && (
-                      <span style={{ color: "red", fontWeight: "bold" }}>
-                        ⚠ {retard.vaccin.nom} ({retard.retard} mois de retard)
+                    <strong>{enfant.prenom} {enfant.nom}</strong>
+                    <small>Né le {new Date(enfant.dateDeNaissance).toLocaleDateString("fr-FR")} ({annees} an{annees > 1 ? "s" : ""} {mois} mois)</small>
+                    {enfant.nomVaccin && (
+                      <span>
+                        Prochaine prise : <strong>{enfant.nomVaccin}</strong>
+                        {enfant.statut === "RETARD" && ` prévue le ${new Date(enfant.datePrevue).toLocaleDateString("fr-FR")} (retard de ${enfant.jours} jour${enfant.jours > 1 ? "s" : ""})`}
+                        {enfant.statut === "PROCHE" && ` prévue le ${new Date(enfant.datePrevue).toLocaleDateString("fr-FR")} (dans ${enfant.jours} jour${enfant.jours > 1 ? "s" : ""})`}
+                        {(enfant.statut === "EN_COURS" || enfant.statut === "COMPLET") && ` complète`}
                       </span>
                     )}
                   </div>
@@ -162,39 +97,33 @@ const Accueil = () => {
         })}
       </div>
 
-      {/* Référentiel vaccinal rétractable */}
+      {/* Référentiel vaccinal */}
       <div style={{ marginTop: "30px", border: "1px solid #ccc", borderRadius: "5px" }}>
-        <div
-          onClick={() => setShowVaccins(!showVaccins)}
-          style={{
-            background: "#f0f0f0",
-            padding: "10px",
-            cursor: "pointer",
-            fontWeight: "bold",
-            display: "flex",
-            justifyContent: "space-between",
-          }}
-        >
-          <span>Référentiel vaccinal</span>
-          <span>{showVaccins ? "▲" : "▼"}</span>
+        <div onClick={() => setShowVaccins(!showVaccins)} style={{ background: "#f0f0f0", padding: "10px", cursor: "pointer", fontWeight: "bold", display: "flex", justifyContent: "space-between" }}>
+          <span>Référentiel vaccinal</span><span>{showVaccins ? "▲" : "▼"}</span>
         </div>
         {showVaccins && (
           <div style={{ padding: "10px" }}>
-            {vaccins.map((v) => (
-              <div key={v.id} style={{ marginBottom: "8px" }}>
-                <strong>{v.nom}</strong> — {v.maladiesPrevenues}
-                <br />
-                <small>
-                  Dès {v.agePremiereVaccination} mois
-                  {v.nbMoisPremierDelai
-                    ? `, rappel à +${v.nbMoisPremierDelai} mois`
-                    : ""}
-                  {v.nbMoisDeuxiemeDelai
-                    ? `, 2ᵉ rappel à +${v.nbMoisDeuxiemeDelai} mois`
-                    : ""}
-                </small>
-              </div>
-            ))}
+            <select value={selectedVaccinInfo} onChange={e => setSelectedVaccinInfo(e.target.value)}>
+              <option value="">-- Choisir un vaccin --</option>
+              {vaccins.map(v => <option key={v.id} value={v.id}>{v.nom}</option>)}
+            </select>
+            {selectedVaccinInfo && (() => {
+              const v = vaccins.find(x => x.id === parseInt(selectedVaccinInfo));
+              if (!v) return null;
+              const delai2 = v.nbMoisDeuxiemeDelai ? `la dernière ${v.nbMoisDeuxiemeDelai} mois plus tard` : "il n'y a pas de troisième dose";
+              const conditions = [];
+              if (v.pourEnfantsNesAvant) conditions.push(`Concerne les enfants nés avant ${v.pourEnfantsNesAvant}.`);
+              if (v.pourEnfantsNesApres) conditions.push(`Concerne les enfants nés après ${v.pourEnfantsNesApres}.`);
+              return (
+                <div style={{ marginTop: 10 }}>
+                  {v.estObsolete && <span style={{ color: "red", fontWeight: "bold" }}>⚠ Ce vaccin est obsolète ! </span>}
+                  <strong>{v.nom}</strong> est injecté contre : {v.maladiesPrevenues}.<br/>
+                  La première prise est à {v.agePremiereVaccination} mois, la seconde {v.nbMoisPremierDelai} mois plus tard, et {delai2}.<br/>
+                  {conditions.join(" ")}
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>

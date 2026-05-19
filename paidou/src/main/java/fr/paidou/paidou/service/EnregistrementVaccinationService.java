@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class EnregistrementVaccinationService {
@@ -51,6 +52,22 @@ public class EnregistrementVaccinationService {
         Vaccin vaccin = vaccinRepo.findById(idVaccin)
                 .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
 
+        // Validation des dates
+        if (dateVaccination.isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("La date de vaccination ne peut pas être dans le futur.");
+        }
+        if (dateVaccination.isBefore(enfant.getDateDeNaissance())) {
+            throw new IllegalArgumentException("La date de vaccination ne peut pas être avant la naissance de l'enfant.");
+        }
+        List<EnregistrementVaccination> existants = enregistrementRepo.findByIdIdEnfant(idEnfant);
+        Optional<LocalDate> derniere = existants.stream()
+                .filter(ev -> ev.getVaccin().getId().equals(idVaccin))
+                .map(ev -> ev.getId().getDateVaccination())
+                .max(LocalDate::compareTo);
+        if (derniere.isPresent() && dateVaccination.isBefore(derniere.get())) {
+            throw new IllegalArgumentException("La date ne peut pas être antérieure à la dose précédente (" + derniere.get() + ").");
+        }
+
         Creche creche = crecheRepo.findById(nomCreche)
                 .orElseThrow(() -> new IllegalArgumentException("Crèche introuvable"));
 
@@ -94,6 +111,14 @@ public class EnregistrementVaccinationService {
 
         Vaccin newVaccin = vaccinRepo.findById(newIdVaccin)
                 .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
+
+        // Optionnel : même validation de dates que pour la création
+        if (nouvelleDate.isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("La date de vaccination ne peut pas être dans le futur.");
+        }
+        if (nouvelleDate.isBefore(ancien.getEnfant().getDateDeNaissance())) {
+            throw new IllegalArgumentException("La date de vaccination ne peut pas être avant la naissance de l'enfant.");
+        }
 
         enregistrementRepo.delete(ancien);
 

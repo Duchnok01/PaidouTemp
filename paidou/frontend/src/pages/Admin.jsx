@@ -41,7 +41,6 @@ const Admin = () => {
   const [fermerCrecheSelect, setFermerCrecheSelect] = useState("");
   const [transferFrom, setTransferFrom] = useState("");
   const [transferTo, setTransferTo] = useState("");
-  const [delUserSelect, setDelUserSelect] = useState("");
   const [editVaccinId, setEditVaccinId] = useState("");
   const [editVaccin, setEditVaccin] = useState({ ...newVaccin });
   const [obsoleteVaccinSelect, setObsoleteVaccinSelect] = useState("");
@@ -65,9 +64,16 @@ const Admin = () => {
 
   // ==================== CHARGEMENT INITIAL ====================
   useEffect(() => {
-    if (!user || user.role !== "admin") { navigate("/"); return; }
+    if (!user) {
+        navigate("/");
+        return;
+    }
+    if (user.role !== "admin") {
+        navigate("/accueil");
+        return;
+    }
     fetchUsers(); fetchCreches(); fetchVaccins();
-  }, []);
+}, [user]); // ← ajoute user comme dépendance
 
   const fetchUsers = async () => {
     try { const r = await axios.get("/api/users", { withCredentials: true }); setUsers(r.data); }
@@ -208,26 +214,7 @@ const Admin = () => {
     } catch (e) { alert(e.response?.data || "Erreur"); }
   };
 
-  const handleDeleteUserZone = async () => {
-    const mdp = getAdminMdp(); if (!mdp) return;
-    const userToDelete = users.find(u => u.prenom === delUserSelect);
-    if (!userToDelete) return;
-    if (userToDelete.role === "admin") {
-      alert("Impossible de supprimer un administrateur.");
-      return;
-    }
-    // Vérifier si l'utilisateur a des crèches (le backend le fera aussi, mais on prévient)
-    const userCreches = creches.filter(c => c.directeurPrenom === delUserSelect);
-    if (userCreches.length > 0) {
-      alert("Impossible de supprimer " + delUserSelect + " car elle dirige encore : " + userCreches.map(c => c.nom).join(", ") + ".\nRéassignez ces crèches d'abord.");
-      return;
-    }
-    if (!window.confirm("Supprimer DÉFINITIVEMENT " + delUserSelect + " ?\n\nCette action est irréversible.")) return;
-    try {
-      await axios.delete("/api/users/delete", { data: { prenom: delUserSelect, mdpAdmin: mdp }, withCredentials: true });
-      fetchUsers(); fetchCreches(); setDelUserSelect(""); setDangerMdp("");
-    } catch (e) { alert(e.response?.data || "Erreur"); }
-  };
+  
 
   const handleEditVaccin = async () => {
       const mdp = getAdminMdp(); if (!mdp) return;
@@ -472,13 +459,6 @@ const Admin = () => {
               <button onClick={handleTransferEnfants}>Transférer</button>
             </Section>
 
-            <Section title="Supprimer une directrice (avec vérification)">
-              <select value={delUserSelect} onChange={e => setDelUserSelect(e.target.value)}>
-                <option value="">-- Directrice --</option>
-                {users.filter(u => u.role === "directrice").map(u => <option key={u.id} value={u.prenom}>{u.prenom}</option>)}
-              </select>
-              <button onClick={handleDeleteUserZone}>Supprimer</button>
-            </Section>
 
             <Section title="Modifier un vaccin">
               <select value={editVaccinId} onChange={e => {

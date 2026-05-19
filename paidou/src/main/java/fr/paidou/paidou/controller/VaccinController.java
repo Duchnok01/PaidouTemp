@@ -127,7 +127,14 @@ public class VaccinController {
         }
     }
 
-
+    @GetMapping("/pour-enfant/{id}")
+    public ResponseEntity<List<VaccinPourEnfantDTO>> getVaccinsPourEnfant(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(vaccinService.getVaccinsPourEnfant(id));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
 
 
 
@@ -174,7 +181,7 @@ public class VaccinController {
 
 
 
-
+    public record VaccinPourEnfantDTO(Long id, String nom, long dosesRecues, int dosesRequises, boolean complet) {}
 
 
 

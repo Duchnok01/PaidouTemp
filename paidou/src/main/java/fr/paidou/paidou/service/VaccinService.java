@@ -1,9 +1,15 @@
 package fr.paidou.paidou.service;
 
+import fr.paidou.paidou.controller.VaccinController.VaccinPourEnfantDTO;
+import fr.paidou.paidou.model.Enfant;
+import fr.paidou.paidou.model.EnregistrementVaccination;
 import fr.paidou.paidou.model.Vaccin;
+import fr.paidou.paidou.repository.EnfantRepository;
+import fr.paidou.paidou.repository.EnregistrementVaccinationRepository;
 import fr.paidou.paidou.repository.VaccinRepository;
 import fr.paidou.paidou.security.SecurityUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -13,10 +19,15 @@ public class VaccinService {
 
     private final VaccinRepository vaccinRepo;
     private final SecurityUtils securityUtils;
+    private final EnfantRepository enfantRepo;
+    private final EnregistrementVaccinationRepository enregistrementRepo;
 
-    public VaccinService(VaccinRepository vRep, SecurityUtils securityUtils) {
+    public VaccinService(VaccinRepository vRep, SecurityUtils securityUtils,
+                         EnfantRepository eRep, EnregistrementVaccinationRepository evRepo) {
         this.vaccinRepo = vRep;
         this.securityUtils = securityUtils;
+        this.enfantRepo = eRep;
+        this.enregistrementRepo = evRepo;
     }
 
     public void createVaccin(String nom, String listeMaladies, Integer pourEnfantsNesAvant,
@@ -40,25 +51,15 @@ public class VaccinService {
         vaccinRepo.save(newV);
     }
 
-
-
-
     public List<Vaccin> getAllVaccins() {
         return vaccinRepo.findAll().stream()
                 .filter(v -> !v.isEstObsolete())
                 .toList();
     }
 
-    
-
-    public void deleteVaccinPhysique(Long id) {
-        if (!securityUtils.isAdmin()) throw new SecurityException("Admin requis");
-        vaccinRepo.deleteById(id);
+    public List<Vaccin> getAllVaccinsAdmin() {
+        return vaccinRepo.findAll();
     }
-
-
-
-
 
     public void editVaccin(Long id, String nom, String listeMaladies, Integer pourEnfantsNesAvant,
                            Integer pourEnfantsNesApres, Integer agePremiereVaccination,
@@ -66,8 +67,6 @@ public class VaccinService {
         if (!securityUtils.isAdmin()) {
             throw new SecurityException("Seul un administrateur peut modifier un vaccin");
         }
-        
-
         Vaccin newV = vaccinRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
         newV.setNom(nom);
@@ -80,21 +79,6 @@ public class VaccinService {
         vaccinRepo.save(newV);
     }
 
-
-
-
-
-
-
-
-
-
-
-    public Vaccin getVaccinById(Long id) {
-        return vaccinRepo.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
-    }
-    
     public void rendreObsolete(Long id) {
         if (!securityUtils.isAdmin()) {
             throw new SecurityException("Seul un administrateur peut rendre un vaccin obsolète");
@@ -105,14 +89,31 @@ public class VaccinService {
         vaccinRepo.save(vaccin);
     }
 
-
-    public List<Vaccin> getAllVaccinsAdmin() {
-        return vaccinRepo.findAll();
+    public void deleteVaccinPhysique(Long id) {
+        if (!securityUtils.isAdmin()) throw new SecurityException("Admin requis");
+        vaccinRepo.deleteById(id);
     }
 
+    public Vaccin getVaccinById(Long id) {
+        return vaccinRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
+    }
 
-
-
-
-
+    public List<VaccinPourEnfantDTO> getVaccinsPourEnfant(Long enfantId) {
+        Enfant enfant = enfantRepo.findById(enfantId)
+                .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
+        List<Vaccin> vaccins = getAllVaccins(); // non obsolètes
+        List<EnregistrementVaccination> enregistrements = enregistrementRepo.findByIdIdEnfant(enfantId);
+        int annee = enfant.getDateDeNaissance().getYear();
+        List<VaccinPourEnfantDTO> result = new ArrayList<>();
+        for (Vaccin v : vaccins) {
+            if (v.getPourEnfantsNesAvant() != null && annee > v.getPourEnfantsNesAvant()) continue;
+            if (v.getPourEnfantsNesApres() != null && annee < v.getPourEnfantsNesApres()) continue;
+            long recues = enregistrements.stream().filter(ev -> ev.getVaccin().getId().equals(v.getId())).count();
+            int requises = v.getNbMoisDeuxiemeDelai() != null ? 3 : 2;
+            boolean complet = recues >= requises;
+            result.add(new VaccinPourEnfantDTO(v.getId(), v.getNom(), recues, requises, complet));
+        }
+        return result;
+    }
 }

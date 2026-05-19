@@ -198,7 +198,23 @@ public class EnfantController {
 
 
 
-
+    @GetMapping("/{id}/statut-vaccinal")
+    public ResponseEntity<List<VaccinStatusDTO>> getStatutVaccinal(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(enfantService.getStatutVaccinal(id));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+    
+    @GetMapping("/statuts-vaccinaux")
+    public ResponseEntity<List<EnfantStatutGlobalDTO>> getStatutsVaccinaux(@RequestParam String nomCreche) {
+        try {
+            return ResponseEntity.ok(enfantService.getStatutsVaccinauxParCreche(nomCreche));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
 
 
 
@@ -247,4 +263,30 @@ public class EnfantController {
             LocalDate dateDeNaissance,
             String nomCreche
     ) {}
+
+
+
+
+
+
+    public record VaccinStatusDTO(
+        Long idVaccin, String nomVaccin, long dosesRecues, int dosesRequises,
+        LocalDate dateDose1Recommandee, LocalDate dateDose2Recommandee, LocalDate dateDose3Recommandee,
+        String statut
+    ) {}
+    
+    public record EnfantStatutGlobalDTO(
+        Long id, String nom, String prenom, LocalDate dateDeNaissance,
+        String statut, String nomVaccin, long jours, LocalDate datePrevue
+    ) {}
+
+
+
+
+
+
+
+
+
+
 }

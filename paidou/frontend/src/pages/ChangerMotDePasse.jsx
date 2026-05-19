@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -10,6 +10,12 @@ const ChangerMotDePasse = () => {
 
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  useEffect(() => {
+    if (!user) {
+      navigate("/");
+    }
+  }, [user]);
 
   const handleSubmit = async () => {
     setError("");
@@ -27,9 +33,9 @@ const ChangerMotDePasse = () => {
     try {
       await axios.put("/api/users/set-password", {
         nouveauMdp: nouveauMdp,
-    }, {
+      }, {
         withCredentials: true,
-    });
+      });
 
       if (user.role === "admin") {
         navigate("/admin");
@@ -37,6 +43,7 @@ const ChangerMotDePasse = () => {
         navigate("/accueil");
       }
     } catch (err) {
+      console.error("Erreur set-password :", err);
       const message = err.response?.data || "Erreur réseau ou serveur";
       setError(message);
     }
