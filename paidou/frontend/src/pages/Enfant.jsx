@@ -117,7 +117,7 @@ const Enfant = () => {
     try {
       await axios.put("/api/enfants/disable", { id: parseInt(id) }, { withCredentials: true });
       setMdpDirectrice("");
-      navigate("/creche/" + enfant.nomCreche);
+      navigate(-1);
     } catch (err) {
       alert(err.response?.data || "Erreur désactivation");
     }

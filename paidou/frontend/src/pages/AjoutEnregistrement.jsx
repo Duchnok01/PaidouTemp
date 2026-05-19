@@ -32,7 +32,10 @@ const AjoutEnregistrement = () => {
       if (crecheParam) {
         setSelectedCreche(crecheParam);
         fetchEnfants(crecheParam);
-        if (enfantParam) setSelectedEnfant(enfantParam);
+        if (enfantParam) {
+          setSelectedEnfant(enfantParam);
+          fetchVaccins(enfantParam);
+        } 
       }
     } catch (err) {
       console.error("Erreur chargement creches", err);
@@ -96,6 +99,10 @@ const AjoutEnregistrement = () => {
   return (
     <div style={{ maxWidth: "600px", margin: "auto", padding: "20px" }}>
       <h1>Ajouter un enregistrement</h1>
+      
+      <button onClick={() => navigate(-1)} style={{ marginBottom: "15px" }}>
+          ← Retour
+      </button>
 
       <div style={{ marginBottom: "15px" }}>
         <label>Crèche :</label>

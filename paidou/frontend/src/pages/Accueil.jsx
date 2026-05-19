@@ -81,13 +81,16 @@ const Accueil = () => {
                   >
                     <strong>{enfant.prenom} {enfant.nom}</strong>
                     <small>Né le {new Date(enfant.dateDeNaissance).toLocaleDateString("fr-FR")} ({annees} an{annees > 1 ? "s" : ""} {mois} mois)</small>
-                    {enfant.nomVaccin && (
+                    {enfant.nomVaccin && enfant.statut !== "COMPLET" && (
                       <span>
-                        Prochaine prise : <strong>{enfant.nomVaccin}</strong>
-                        {enfant.statut === "RETARD" && ` prévue le ${new Date(enfant.datePrevue).toLocaleDateString("fr-FR")} (retard de ${enfant.jours} jour${enfant.jours > 1 ? "s" : ""})`}
-                        {enfant.statut === "PROCHE" && ` prévue le ${new Date(enfant.datePrevue).toLocaleDateString("fr-FR")} (dans ${enfant.jours} jour${enfant.jours > 1 ? "s" : ""})`}
-                        {(enfant.statut === "EN_COURS" || enfant.statut === "COMPLET") && ` complète`}
+                          Prochaine prise : <strong>{enfant.nomVaccin}</strong>
+                          {enfant.statut === "RETARD" && ` prévue le ${new Date(enfant.datePrevue).toLocaleDateString("fr-FR")} (retard de ${enfant.jours} jour${enfant.jours > 1 ? "s" : ""})`}
+                          {enfant.statut === "PROCHE" && ` prévue le ${new Date(enfant.datePrevue).toLocaleDateString("fr-FR")} (dans ${enfant.jours} jour${enfant.jours > 1 ? "s" : ""})`}
+                          {enfant.statut === "EN_COURS" && ` prévue le ${new Date(enfant.datePrevue).toLocaleDateString("fr-FR")} (dans ${enfant.jours} jour${enfant.jours > 1 ? "s" : ""})`}
                       </span>
+                    )}
+                    {enfant.statut === "COMPLET" && (
+                        <span style={{ color: "green", fontWeight: "bold" }}>✅ Toutes les injections ont été prises !</span>
                     )}
                   </div>
                 );
@@ -113,8 +116,8 @@ const Accueil = () => {
               if (!v) return null;
               const delai2 = v.nbMoisDeuxiemeDelai ? `la dernière ${v.nbMoisDeuxiemeDelai} mois plus tard` : "il n'y a pas de troisième dose";
               const conditions = [];
-              if (v.pourEnfantsNesAvant) conditions.push(`Concerne les enfants nés avant ${v.pourEnfantsNesAvant}.`);
-              if (v.pourEnfantsNesApres) conditions.push(`Concerne les enfants nés après ${v.pourEnfantsNesApres}.`);
+              if (v.pourEnfantsNesAvant) conditions.push(`Concerne les enfants nés AVANT ${v.pourEnfantsNesAvant}.`);
+              if (v.pourEnfantsNesApres) conditions.push(`Concerne les enfants nés APRES ${v.pourEnfantsNesApres}.`);
               return (
                 <div style={{ marginTop: 10 }}>
                   {v.estObsolete && <span style={{ color: "red", fontWeight: "bold" }}>⚠ Ce vaccin est obsolète ! </span>}

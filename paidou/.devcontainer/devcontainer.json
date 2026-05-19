@@ -1,0 +1,13 @@
+{
+  "name": "Paidou Dev Container",
+  "image": "mcr.microsoft.com/devcontainers/java:1-21-bullseye",
+  "remoteUser": "codespace",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "vmware.vscode-boot-dev-pack"
+      ]
+    }
+  }
+}

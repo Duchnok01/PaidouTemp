@@ -391,8 +391,8 @@ const Admin = () => {
               ? `la dernière ${v.nbMoisDeuxiemeDelai} mois plus tard`
               : "il n'y a pas de troisième dose";
           const conditions = [];
-          if (v.pourEnfantsNesAvant) conditions.push(`Concerne les enfants nés avant ${v.pourEnfantsNesAvant}.`);
-          if (v.pourEnfantsNesApres) conditions.push(`Concerne les enfants nés après ${v.pourEnfantsNesApres}.`);
+          if (v.pourEnfantsNesAvant) conditions.push(`Concerne les enfants nés AVANT ${v.pourEnfantsNesAvant}.`);
+          if (v.pourEnfantsNesApres) conditions.push(`Concerne les enfants nés APRES ${v.pourEnfantsNesApres}.`);
           const condition = conditions.join(" ");
           return (
               <div style={{ marginTop: 10 }}>
