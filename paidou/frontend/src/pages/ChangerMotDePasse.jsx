@@ -43,37 +43,43 @@ const ChangerMotDePasse = () => {
         navigate("/accueil");
       }
     } catch (err) {
-      console.error("Erreur set-password :", err);
       const message = err.response?.data || "Erreur réseau ou serveur";
       setError(message);
     }
   };
 
   return (
-    <div style={{ maxWidth: "400px", margin: "auto" }}>
-      <h2>Changer mot de passe</h2>
+    <div className="page-center">
+      <div className="card auth-card">
+        <h1 className="brand-title">Paidou</h1>
+        <h2>Changer mot de passe</h2>
 
-      <input
-        type="password"
-        placeholder="Nouveau mot de passe"
-        value={nouveauMdp}
-        onChange={(e) => setNouveauMdp(e.target.value)}
-        style={{ display: "block", marginBottom: "10px" }}
-      />
+        <div className="form-group">
+          <label>Nouveau mot de passe</label>
+          <input
+            type="password"
+            placeholder="Nouveau mot de passe"
+            value={nouveauMdp}
+            onChange={(e) => setNouveauMdp(e.target.value)}
+          />
+        </div>
 
-      <input
-        type="password"
-        placeholder="Confirmation"
-        value={confirmation}
-        onChange={(e) => setConfirmation(e.target.value)}
-        style={{ display: "block", marginBottom: "10px" }}
-      />
+        <div className="form-group">
+          <label>Confirmation</label>
+          <input
+            type="password"
+            placeholder="Confirmation"
+            value={confirmation}
+            onChange={(e) => setConfirmation(e.target.value)}
+          />
+        </div>
 
-      <button onClick={handleSubmit}>Valider</button>
+        <button className="btn btn-primary btn-full" onClick={handleSubmit}>
+          Valider
+        </button>
 
-      {error && (
-        <p style={{ color: "red", marginTop: "10px" }}>{error}</p>
-      )}
+        {error && <p className="error-message">{error}</p>}
+      </div>
     </div>
   );
 };

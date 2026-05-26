@@ -15,6 +15,7 @@ const Accueil = () => {
 
   useEffect(() => {
     if (!user) { navigate("/"); return; }
+    if (user.role == "admin") {navigate("/admin");}
     fetchData();
   }, [user]);
 
@@ -26,7 +27,7 @@ const Accueil = () => {
       const enfantsMap = {};
       for (const creche of crechesData) {
         const statutsRes = await axios.get("/api/enfants/statuts-vaccinaux?nomCreche=" + creche.nom, { withCredentials: true });
-        enfantsMap[creche.nom] = statutsRes.data; // déjà trié par le backend
+        enfantsMap[creche.nom] = statutsRes.data;
       }
       setEnfantsByCreche(enfantsMap);
       const vaccinsRes = await axios.get("/api/vaccins", { withCredentials: true });
@@ -40,57 +41,83 @@ const Accueil = () => {
 
   const couleurStatut = (statut) => {
     switch (statut) {
-      case "RETARD": return "#ffcccc";
-      case "PROCHE": return "#fff0b3";
-      case "EN_COURS": return "#d9edf7";
-      case "COMPLET": return "#d4edda";
-      default: return "#eee";
+      case "RETARD": return { bg: "var(--danger-bg)", border: "var(--danger)", point: "var(--danger-point)" };
+      case "PROCHE": return { bg: "var(--warning-bg)", border: "var(--warning)", point: "var(--warning-point)" };
+      case "EN_COURS": return { bg: "var(--info-bg)", border: "var(--info)", point: "var(--info-point)" };
+      case "COMPLET": return { bg: "var(--success-bg)", border: "var(--success)", point: "var(--success-point)" };
+      default: return { bg: "var(--gray-100)", border: "var(--gray-400)", point: "var(--gray-500)" };
     }
   };
 
-  if (loading) return <p>Chargement...</p>;
+  if (loading) return <p className="text-secondary">Chargement...</p>;
 
   return (
-    <div style={{ maxWidth: "1000px", margin: "auto", padding: "20px" }}>
-      <h1>Accueil — {user.prenom}</h1>
-      <button onClick={() => navigate("/ajout-enregistrement")} style={{ padding: "12px 24px", fontSize: "16px", marginBottom: "20px", cursor: "pointer" }}>
-        ➕ Ajouter un enregistrement
-      </button>
+    <div className="page-container">
+      <div className="header-actions">
+        <h1>Accueil — {user.prenom}</h1>
+        <button className="btn btn-primary" onClick={() => navigate("/ajout-enregistrement")}>
+          ➕ Ajouter un enregistrement
+        </button>
+      </div>
 
-      <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
+      <div className="creches-grid">
         {creches.map((creche) => {
           const enfants = enfantsByCreche[creche.nom] || [];
           return (
-            <div key={creche.nom} style={{ flex: "1", minWidth: "280px", border: "1px solid #ddd", borderRadius: "8px", padding: "15px" }}>
-              <h2>{creche.nom} ({enfants.length} enfant{enfants.length > 1 ? "s" : ""})</h2>
-              <button onClick={() => navigate("/creche/" + creche.nom)}>Voir ma crèche</button>
-              {enfants.length === 0 && <p>Aucun enfant</p>}
+            <div key={creche.nom} className="card creche-card">
+              <div className="creche-header">
+                <h2>{creche.nom}</h2>
+                <span className="badge">{enfants.length} enfant{enfants.length > 1 ? "s" : ""}</span>
+              </div>
+              <button className="btn btn-secondary" onClick={() => navigate("/creche/" + creche.nom)}>
+                Voir ma crèche
+              </button>
+
+              {enfants.length === 0 && <p className="text-secondary">Aucun enfant</p>}
+
               {enfants.map((enfant) => {
+                const colors = couleurStatut(enfant.statut);
                 const ageEnMois = Math.floor((new Date() - new Date(enfant.dateDeNaissance)) / (1000 * 60 * 60 * 24 * 30.4375));
                 const annees = Math.floor(ageEnMois / 12);
                 const mois = ageEnMois % 12;
+
                 return (
                   <div
                     key={enfant.id}
                     onClick={() => navigate("/enfant/" + enfant.id)}
+                    className="enfant-card"
                     style={{
-                      padding: "8px", margin: "5px 0", borderRadius: "5px",
-                      background: couleurStatut(enfant.statut),
-                      cursor: "pointer", display: "flex", flexDirection: "column"
+                      borderLeft: `4px solid ${colors.point}`,
+                      background: colors.bg,
                     }}
                   >
-                    <strong>{enfant.prenom} {enfant.nom}</strong>
-                    <small>Né le {new Date(enfant.dateDeNaissance).toLocaleDateString("fr-FR")} ({annees} an{annees > 1 ? "s" : ""} {mois} mois)</small>
-                    {enfant.nomVaccin && enfant.statut !== "COMPLET" && (
-                      <span>
-                          Prochaine prise : <strong>{enfant.nomVaccin}</strong>
-                          {enfant.statut === "RETARD" && ` prévue le ${new Date(enfant.datePrevue).toLocaleDateString("fr-FR")} (retard de ${enfant.jours} jour${enfant.jours > 1 ? "s" : ""})`}
-                          {enfant.statut === "PROCHE" && ` prévue le ${new Date(enfant.datePrevue).toLocaleDateString("fr-FR")} (dans ${enfant.jours} jour${enfant.jours > 1 ? "s" : ""})`}
-                          {enfant.statut === "EN_COURS" && ` prévue le ${new Date(enfant.datePrevue).toLocaleDateString("fr-FR")} (dans ${enfant.jours} jour${enfant.jours > 1 ? "s" : ""})`}
+                    <div className="enfant-header">
+                      <strong>{enfant.prenom} {enfant.nom}</strong>
+                      <span className="badge badge-statut" style={{ background: colors.point }}>
+                        {enfant.statut === "RETARD" ? "En retard" :
+                         enfant.statut === "PROCHE" ? "Dû bientôt" :
+                         enfant.statut === "EN_COURS" ? "À jour" : "Complet"}
                       </span>
+                    </div>
+                    <small className="text-secondary">
+                      Né le {new Date(enfant.dateDeNaissance).toLocaleDateString("fr-FR")} ({annees} an{annees > 1 ? "s" : ""} {mois} mois)
+                    </small>
+                    {enfant.nomVaccin && enfant.statut !== "COMPLET" && (
+                      <p className="enfant-echeance">
+                        Prochaine prise : <strong>{enfant.nomVaccin}</strong>
+                        {enfant.statut === "RETARD" && (
+                          <span> — prévue le {new Date(enfant.datePrevue).toLocaleDateString("fr-FR")} (retard de {enfant.jours} jour{enfant.jours > 1 ? "s" : ""})</span>
+                        )}
+                        {enfant.statut === "PROCHE" && (
+                          <span> — prévue le {new Date(enfant.datePrevue).toLocaleDateString("fr-FR")} (dans {enfant.jours} jour{enfant.jours > 1 ? "s" : ""})</span>
+                        )}
+                        {enfant.statut === "EN_COURS" && (
+                          <span> — prévue le {new Date(enfant.datePrevue).toLocaleDateString("fr-FR")} (dans {enfant.jours} jour{enfant.jours > 1 ? "s" : ""})</span>
+                        )}
+                      </p>
                     )}
                     {enfant.statut === "COMPLET" && (
-                        <span style={{ color: "green", fontWeight: "bold" }}>✅ Toutes les injections ont été prises !</span>
+                      <p className="enfant-complet">✅ Toutes les injections ont été prises !</p>
                     )}
                   </div>
                 );
@@ -101,13 +128,14 @@ const Accueil = () => {
       </div>
 
       {/* Référentiel vaccinal */}
-      <div style={{ marginTop: "30px", border: "1px solid #ccc", borderRadius: "5px" }}>
-        <div onClick={() => setShowVaccins(!showVaccins)} style={{ background: "#f0f0f0", padding: "10px", cursor: "pointer", fontWeight: "bold", display: "flex", justifyContent: "space-between" }}>
-          <span>Référentiel vaccinal</span><span>{showVaccins ? "▲" : "▼"}</span>
+      <div className="card referentiel">
+        <div className="panel-header" onClick={() => setShowVaccins(!showVaccins)}>
+          <span>Référentiel vaccinal</span>
+          <span>{showVaccins ? "▲" : "▼"}</span>
         </div>
         {showVaccins && (
-          <div style={{ padding: "10px" }}>
-            <select value={selectedVaccinInfo} onChange={e => setSelectedVaccinInfo(e.target.value)}>
+          <div className="panel-body">
+            <select className="form-select" value={selectedVaccinInfo} onChange={e => setSelectedVaccinInfo(e.target.value)}>
               <option value="">-- Choisir un vaccin --</option>
               {vaccins.map(v => <option key={v.id} value={v.id}>{v.nom}</option>)}
             </select>
@@ -116,14 +144,14 @@ const Accueil = () => {
               if (!v) return null;
               const delai2 = v.nbMoisDeuxiemeDelai ? `la dernière ${v.nbMoisDeuxiemeDelai} mois plus tard` : "il n'y a pas de troisième dose";
               const conditions = [];
-              if (v.pourEnfantsNesAvant) conditions.push(`Concerne les enfants nés AVANT ${v.pourEnfantsNesAvant}.`);
-              if (v.pourEnfantsNesApres) conditions.push(`Concerne les enfants nés APRES ${v.pourEnfantsNesApres}.`);
+              if (v.pourEnfantsNesAvant) conditions.push(`Concerne les enfants nés avant ${v.pourEnfantsNesAvant}.`);
+              if (v.pourEnfantsNesApres) conditions.push(`Concerne les enfants nés après ${v.pourEnfantsNesApres}.`);
               return (
                 <div style={{ marginTop: 10 }}>
-                  {v.estObsolete && <span style={{ color: "red", fontWeight: "bold" }}>⚠ Ce vaccin est obsolète ! </span>}
-                  <strong>{v.nom}</strong> est injecté contre : {v.maladiesPrevenues}.<br/>
-                  La première prise est à {v.agePremiereVaccination} mois, la seconde {v.nbMoisPremierDelai} mois plus tard, et {delai2}.<br/>
-                  {conditions.join(" ")}
+                  {v.estObsolete && <span className="badge badge-danger">⚠ Obsolète</span>}
+                  <p><strong>{v.nom}</strong> est injecté contre : {v.maladiesPrevenues}.</p>
+                  <p>La première prise est à {v.agePremiereVaccination} mois, la seconde {v.nbMoisPremierDelai} mois plus tard, et {delai2}.</p>
+                  {conditions.length > 0 && <p>{conditions.join(" ")}</p>}
                 </div>
               );
             })()}

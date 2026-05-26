@@ -18,21 +18,16 @@ const Enfant = () => {
   const [mdpDirectrice, setMdpDirectrice] = useState("");
   const [statutVaccinal, setStatutVaccinal] = useState([]);
 
-  // Panneaux
   const [showModifier, setShowModifier] = useState(false);
   const [showChangerCreche, setShowChangerCreche] = useState(false);
 
-  // Champs modification
   const [editNom, setEditNom] = useState("");
   const [editPrenom, setEditPrenom] = useState("");
   const [editDate, setEditDate] = useState("");
   const [newCrecheNom, setNewCrecheNom] = useState("");
 
   useEffect(() => {
-    if (!user) {
-      navigate("/");
-      return;
-    }
+    if (!user) { navigate("/"); return; }
     fetchEnfant();
     fetchEnregistrements();
     fetchStatutVaccinal();
@@ -95,7 +90,6 @@ const Enfant = () => {
     }
   };
 
-  // ======== MODIFIER L'ENFANT ========
   const handleModifier = async () => {
     if (!mdpDirectrice) { alert("Veuillez entrer votre mot de passe."); return; }
     try {
@@ -110,20 +104,18 @@ const Enfant = () => {
     }
   };
 
-  // ======== DÉSACTIVER L'ENFANT ========
   const handleDisable = async () => {
     if (!mdpDirectrice) { alert("Veuillez entrer votre mot de passe."); return; }
     if (!window.confirm("Désactiver cet enfant ? Il n'apparaîtra plus dans les listes.")) return;
     try {
       await axios.put("/api/enfants/disable", { id: parseInt(id) }, { withCredentials: true });
       setMdpDirectrice("");
-      navigate(-1);
+      navigate("/creche/" + enfant.nomCreche);
     } catch (err) {
       alert(err.response?.data || "Erreur désactivation");
     }
   };
 
-  // ======== CHANGER DE CRÈCHE ========
   const handleChangeCreche = async () => {
     if (!newCrecheNom) { alert("Veuillez sélectionner une crèche"); return; }
     if (!mdpDirectrice) { alert("Veuillez entrer votre mot de passe."); return; }
@@ -139,7 +131,6 @@ const Enfant = () => {
     }
   };
 
-  // ======== ENREGISTREMENTS ========
   const handleOpenEditEv = (ev) => {
     setShowEditEv(ev.idVaccin + "-" + ev.dateVaccination);
     setEditEvVaccin(ev.idVaccin);
@@ -159,7 +150,7 @@ const Enfant = () => {
       setShowEditEv(null);
       setMdpDirectrice("");
       fetchEnregistrements();
-      fetchStatutVaccinal(); // rafraîchir le calendrier
+      fetchStatutVaccinal();
     } catch (err) {
       alert(err.response?.data || "Erreur modification");
     }
@@ -185,100 +176,88 @@ const Enfant = () => {
     }
   };
 
-  if (!enfant) return <p>Chargement...</p>;
+  if (!enfant) return <p className="text-secondary">Chargement...</p>;
 
   return (
-    <div style={{ maxWidth: "800px", margin: "auto", padding: "20px" }}>
-      <button onClick={() => navigate("/creche/" + enfant.nomCreche)}>
-        ← Retour à la crèche
-      </button>
+    <div className="page-container">
+      <div className="header-actions">
+        <button className="btn btn-secondary" onClick={() => navigate(-1)}>← Retour</button>
+      </div>
 
       <h1>{enfant.prenom} {enfant.nom}</h1>
-      <p>Né(e) le {new Date(enfant.dateDeNaissance).toLocaleDateString("fr-FR")}</p>
-      <p>Crèche : {enfant.nomCreche}</p>
+      <p className="text-secondary">
+        Né(e) le {new Date(enfant.dateDeNaissance).toLocaleDateString("fr-FR")} — Crèche : {enfant.nomCreche}
+      </p>
 
-      {/* Mot de passe */}
-      <div style={{ marginBottom: "20px" }}>
-        <label>Votre mot de passe : </label>
-        <input
-          type="password"
-          value={mdpDirectrice}
-          onChange={(e) => setMdpDirectrice(e.target.value)}
-          style={{ marginLeft: "10px" }}
-        />
+      <div className="form-group">
+        <label>Votre mot de passe</label>
+        <input type="password" className="form-input" value={mdpDirectrice} onChange={(e) => setMdpDirectrice(e.target.value)} />
       </div>
 
-      {/* Boutons d'action */}
-      <div style={{ marginBottom: "20px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
-        <button onClick={() => navigate("/ajout-enregistrement?creche=" + enfant.nomCreche + "&enfant=" + enfant.id)}>
+      <div className="btn-group" style={{ marginBottom: 20 }}>
+        <button className="btn btn-primary" onClick={() => navigate("/ajout-enregistrement?creche=" + enfant.nomCreche + "&enfant=" + enfant.id)}>
           ➕ Ajouter un enregistrement
         </button>
-        <button onClick={() => setShowModifier(!showModifier)}>✏️ Modifier</button>
-        <button onClick={() => setShowChangerCreche(!showChangerCreche)}>🏫 Changer de crèche</button>
-        <button onClick={handleDisable} style={{ color: "red" }}>❌ Désactiver</button>
+        <button className="btn btn-secondary" onClick={() => setShowModifier(!showModifier)}>✏️ Modifier</button>
+        <button className="btn btn-secondary" onClick={() => setShowChangerCreche(!showChangerCreche)}>🏫 Changer de crèche</button>
+        <button className="btn btn-danger" onClick={handleDisable}>❌ Désactiver</button>
       </div>
 
-      {/* Panneau modifier */}
       {showModifier && (
-        <div style={panelStyle}>
-          <div style={panelHeaderStyle}><span>Modifier l'enfant</span></div>
-          <div style={panelBodyStyle}>
-            <input placeholder="Nom" value={editNom} onChange={(e) => setEditNom(e.target.value)} />
-            <input placeholder="Prénom" value={editPrenom} onChange={(e) => setEditPrenom(e.target.value)} />
-            <input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
-            <button onClick={handleModifier}>Enregistrer</button>
+        <div className="card">
+          <div className="panel-header"><span>Modifier l'enfant</span></div>
+          <div className="panel-body">
+            <input className="form-input" placeholder="Nom" value={editNom} onChange={(e) => setEditNom(e.target.value)} />
+            <input className="form-input" placeholder="Prénom" value={editPrenom} onChange={(e) => setEditPrenom(e.target.value)} />
+            <input className="form-input" type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+            <button className="btn btn-primary" onClick={handleModifier}>Enregistrer</button>
           </div>
         </div>
       )}
 
-      {/* Panneau changer de crèche */}
       {showChangerCreche && (
-        <div style={panelStyle}>
-          <div style={panelHeaderStyle}><span>Changer de crèche</span></div>
-          <div style={panelBodyStyle}>
-            <select value={newCrecheNom} onChange={(e) => setNewCrecheNom(e.target.value)}>
+        <div className="card">
+          <div className="panel-header"><span>Changer de crèche</span></div>
+          <div className="panel-body">
+            <select className="form-select" value={newCrecheNom} onChange={(e) => setNewCrecheNom(e.target.value)}>
               <option value="">-- Choisir une crèche --</option>
               {creches.map(c => <option key={c.nom} value={c.nom}>{c.nom}</option>)}
             </select>
-            <button onClick={handleChangeCreche}>Transférer</button>
+            <button className="btn btn-primary" onClick={handleChangeCreche}>Transférer</button>
           </div>
         </div>
       )}
 
-      {/* Historique vaccinal */}
       <h2>Historique vaccinal</h2>
-      {enregistrements.length === 0 && <p>Aucun enregistrement.</p>}
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      {enregistrements.length === 0 && <p className="text-secondary">Aucun enregistrement.</p>}
+      <table className="table">
         <thead>
           <tr>
-            <th style={{ borderBottom: "1px solid #ccc", padding: "8px" }}>Vaccin</th>
-            <th style={{ borderBottom: "1px solid #ccc", padding: "8px" }}>Date</th>
-            <th style={{ borderBottom: "1px solid #ccc", padding: "8px" }}>Enregistré par</th>
-            <th></th>
+            <th>Vaccin</th><th>Date</th><th>Enregistré par</th><th></th>
           </tr>
         </thead>
         <tbody>
           {enregistrements.map((ev) => (
             <React.Fragment key={ev.idVaccin + "-" + ev.dateVaccination}>
               <tr>
-                <td style={{ padding: "8px" }}>{ev.nomVaccin}</td>
-                <td style={{ padding: "8px" }}>{new Date(ev.dateVaccination).toLocaleDateString("fr-FR")}</td>
-                <td style={{ padding: "8px" }}>{ev.prenomUtilisateur}</td>
-                <td style={{ padding: "8px" }}>
-                  <button onClick={() => handleOpenEditEv(ev)}>✏️</button>
-                  <button onClick={() => handleDeleteEv(ev.idVaccin, ev.dateVaccination)}>🗑️</button>
+                <td>{ev.nomVaccin}</td>
+                <td>{new Date(ev.dateVaccination).toLocaleDateString("fr-FR")}</td>
+                <td>{ev.prenomUtilisateur}</td>
+                <td>
+                  <button className="btn btn-sm btn-secondary" onClick={() => handleOpenEditEv(ev)}>✏️</button>
+                  <button className="btn btn-sm btn-danger" onClick={() => handleDeleteEv(ev.idVaccin, ev.dateVaccination)}>🗑️</button>
                 </td>
               </tr>
               {showEditEv === ev.idVaccin + "-" + ev.dateVaccination && (
                 <tr>
-                  <td colSpan="4" style={{ padding: "10px", background: "#f9f9f9" }}>
-                    <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                      <select value={editEvVaccin} onChange={(e) => setEditEvVaccin(e.target.value)}>
+                  <td colSpan="4">
+                    <div className="panel-body">
+                      <select className="form-select" value={editEvVaccin} onChange={(e) => setEditEvVaccin(e.target.value)}>
                         {vaccins.map(v => <option key={v.id} value={v.id}>{v.nom}</option>)}
                       </select>
-                      <input type="date" value={editEvDate} onChange={(e) => setEditEvDate(e.target.value)} />
-                      <button onClick={() => handleEditEv(ev.idVaccin, ev.dateVaccination)}>✅</button>
-                      <button onClick={() => setShowEditEv(null)}>❌</button>
+                      <input type="date" className="form-input" value={editEvDate} onChange={(e) => setEditEvDate(e.target.value)} />
+                      <button className="btn btn-sm btn-primary" onClick={() => handleEditEv(ev.idVaccin, ev.dateVaccination)}>✅</button>
+                      <button className="btn btn-sm btn-secondary" onClick={() => setShowEditEv(null)}>❌</button>
                     </div>
                   </td>
                 </tr>
@@ -288,37 +267,31 @@ const Enfant = () => {
         </tbody>
       </table>
 
-      {/* Calendrier vaccinal */}
-      <h2 style={{ marginTop: "30px" }}>Calendrier vaccinal</h2>
-      {statutVaccinal.length === 0 && <p>Chargement...</p>}
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <h2>Calendrier vaccinal</h2>
+      {statutVaccinal.length === 0 && <p className="text-secondary">Chargement...</p>}
+      <table className="table">
         <thead>
           <tr>
-            <th style={{ borderBottom: "1px solid #ccc", padding: "8px" }}>Vaccin</th>
-            <th style={{ borderBottom: "1px solid #ccc", padding: "8px" }}>Statut</th>
-            <th style={{ borderBottom: "1px solid #ccc", padding: "8px" }}>Doses</th>
-            <th style={{ borderBottom: "1px solid #ccc", padding: "8px" }}>Prochaine dose</th>
+            <th>Vaccin</th><th>Statut</th><th>Doses</th><th>Prochaine dose</th>
           </tr>
         </thead>
         <tbody>
           {statutVaccinal.map(s => {
             let couleur;
-            if (s.statut.startsWith("RETARD")) couleur = "red";
-            else if (s.statut === "COMPLET") couleur = "green";
-            else if (s.statut === "EN_COURS") couleur = "orange";
-            else couleur = "black";
+            if (s.statut.startsWith("RETARD")) couleur = "var(--danger)";
+            else if (s.statut === "COMPLET") couleur = "var(--success)";
+            else if (s.statut === "EN_COURS") couleur = "var(--info)";
+            else couleur = "var(--text)";
             let prochaine = null;
             if (s.dosesRecues === 0) prochaine = s.dateDose1Recommandee;
             else if (s.dosesRecues === 1) prochaine = s.dateDose2Recommandee;
             else if (s.dosesRecues === 2 && s.dateDose3Recommandee) prochaine = s.dateDose3Recommandee;
             return (
               <tr key={s.idVaccin}>
-                <td style={{ padding: "8px" }}>{s.nomVaccin}</td>
-                <td style={{ color: couleur, fontWeight: "bold", padding: "8px" }}>{s.statut}</td>
-                <td style={{ padding: "8px" }}>{s.dosesRecues}/{s.dosesRequises}</td>
-                <td style={{ padding: "8px" }}>
-                  {prochaine ? new Date(prochaine).toLocaleDateString("fr-FR") : s.statut === "COMPLET" ? "✅" : "-"}
-                </td>
+                <td>{s.nomVaccin}</td>
+                <td style={{ color: couleur, fontWeight: "bold" }}>{s.statut}</td>
+                <td>{s.dosesRecues}/{s.dosesRequises}</td>
+                <td>{prochaine ? new Date(prochaine).toLocaleDateString("fr-FR") : s.statut === "COMPLET" ? "✅" : "-"}</td>
               </tr>
             );
           })}
@@ -326,27 +299,6 @@ const Enfant = () => {
       </table>
     </div>
   );
-};
-
-// Styles
-const panelStyle = {
-  border: "1px solid #ccc",
-  borderRadius: "5px",
-  marginBottom: "10px",
-  marginTop: "15px",
-};
-
-const panelHeaderStyle = {
-  background: "#f0f0f0",
-  padding: "10px",
-  fontWeight: "bold",
-};
-
-const panelBodyStyle = {
-  padding: "10px",
-  display: "flex",
-  flexDirection: "column",
-  gap: "8px",
 };
 
 export default Enfant;

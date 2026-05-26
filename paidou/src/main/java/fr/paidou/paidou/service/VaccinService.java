@@ -91,6 +91,12 @@ public class VaccinService {
 
     public void deleteVaccinPhysique(Long id) {
         if (!securityUtils.isAdmin()) throw new SecurityException("Admin requis");
+        List<EnregistrementVaccination> evs = enregistrementRepo.findByIdIdVaccin(id);
+        if (!evs.isEmpty()) {
+            throw new IllegalArgumentException(
+                "Impossible de supprimer ce vaccin : il est utilisé dans " + evs.size() + " enregistrement(s)."
+            );
+        }
         vaccinRepo.deleteById(id);
     }
 

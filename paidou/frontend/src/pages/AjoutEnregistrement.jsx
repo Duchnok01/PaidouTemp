@@ -35,7 +35,7 @@ const AjoutEnregistrement = () => {
         if (enfantParam) {
           setSelectedEnfant(enfantParam);
           fetchVaccins(enfantParam);
-        } 
+        }
       }
     } catch (err) {
       console.error("Erreur chargement creches", err);
@@ -97,52 +97,55 @@ const AjoutEnregistrement = () => {
   };
 
   return (
-    <div style={{ maxWidth: "600px", margin: "auto", padding: "20px" }}>
-      <h1>Ajouter un enregistrement</h1>
-      
-      <button onClick={() => navigate(-1)} style={{ marginBottom: "15px" }}>
-          ← Retour
-      </button>
-
-      <div style={{ marginBottom: "15px" }}>
-        <label>Crèche :</label>
-        <select value={selectedCreche} onChange={(e) => handleCrecheChange(e.target.value)}>
-          <option value="">-- Choisir --</option>
-          {creches.map(c => <option key={c.nom} value={c.nom}>{c.nom}</option>)}
-        </select>
+    <div className="page-container">
+      <div className="header-actions">
+        <button className="btn btn-secondary" onClick={() => navigate(-1)}>← Retour</button>
+        <h1>Ajouter un enregistrement</h1>
       </div>
 
-      <div style={{ marginBottom: "15px" }}>
-        <label>Enfant :</label>
-        <select value={selectedEnfant} onChange={(e) => handleEnfantChange(e.target.value)} disabled={!selectedCreche}>
-          <option value="">-- Choisir --</option>
-          {enfants.map(e => <option key={e.id} value={e.id}>{e.nom} {e.prenom}</option>)}
-        </select>
-      </div>
+      <div className="card">
+        <div className="panel-body">
+          <div className="form-group">
+            <label>Crèche</label>
+            <select className="form-select" value={selectedCreche} onChange={(e) => handleCrecheChange(e.target.value)}>
+              <option value="">-- Choisir --</option>
+              {creches.map(c => <option key={c.nom} value={c.nom}>{c.nom}</option>)}
+            </select>
+          </div>
 
-      <div style={{ marginBottom: "15px" }}>
-        <label>Vaccin :</label>
-        <select value={selectedVaccin} onChange={(e) => setSelectedVaccin(e.target.value)} disabled={!selectedEnfant}>
-          <option value="">-- Choisir --</option>
-          {vaccins.map(v => (
-            <option key={v.id} value={v.id} disabled={v.complet}>
-              {v.nom} {v.complet ? `(complet ${v.dosesRecues}/${v.dosesRequises})` : `(${v.dosesRecues}/${v.dosesRequises})`}
-            </option>
-          ))}
-        </select>
-        {selectedEnfant && vaccins.length > 0 && vaccins.every(v => v.complet) && (
-          <p style={{ color: "green", marginTop: "5px" }}>
-            ✅ Tous les vaccins sont à jour pour cet enfant. Vous pouvez modifier un enregistrement existant depuis la fiche enfant.
-          </p>
-        )}
-      </div>
+          <div className="form-group">
+            <label>Enfant</label>
+            <select className="form-select" value={selectedEnfant} onChange={(e) => handleEnfantChange(e.target.value)} disabled={!selectedCreche}>
+              <option value="">-- Choisir --</option>
+              {enfants.map(e => <option key={e.id} value={e.id}>{e.nom} {e.prenom}</option>)}
+            </select>
+          </div>
 
-      <div style={{ marginBottom: "15px" }}>
-        <label>Date de vaccination :</label>
-        <input type="date" value={dateVaccination} onChange={(e) => setDateVaccination(e.target.value)} />
-      </div>
+          <div className="form-group">
+            <label>Vaccin</label>
+            <select className="form-select" value={selectedVaccin} onChange={(e) => setSelectedVaccin(e.target.value)} disabled={!selectedEnfant}>
+              <option value="">-- Choisir --</option>
+              {vaccins.map(v => (
+                <option key={v.id} value={v.id} disabled={v.complet}>
+                  {v.nom} {v.complet ? `(complet ${v.dosesRecues}/${v.dosesRequises})` : `(${v.dosesRecues}/${v.dosesRequises})`}
+                </option>
+              ))}
+            </select>
+            {selectedEnfant && vaccins.length > 0 && vaccins.every(v => v.complet) && (
+              <p className="success-message">
+                ✅ Tous les vaccins sont à jour pour cet enfant. Vous pouvez modifier un enregistrement existant depuis la fiche enfant.
+              </p>
+            )}
+          </div>
 
-      <button onClick={handleSubmit} style={{ padding: "10px 20px" }}>✅ Enregistrer</button>
+          <div className="form-group">
+            <label>Date de vaccination</label>
+            <input type="date" className="form-input" value={dateVaccination} onChange={(e) => setDateVaccination(e.target.value)} />
+          </div>
+
+          <button className="btn btn-primary btn-full" onClick={handleSubmit}>✅ Enregistrer</button>
+        </div>
+      </div>
     </div>
   );
 };

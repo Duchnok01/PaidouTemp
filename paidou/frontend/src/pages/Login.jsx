@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react"; 
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -9,7 +9,14 @@ const Login = () => {
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { user, login } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      navigate("/accueil");
+    }
+  }, [user, navigate]);
+
 
   const handleLogin = async () => {
     setError("");
@@ -38,16 +45,15 @@ const Login = () => {
         return;
       }
 
-      // Après login, récupérer l'id utilisateur
+      // Récupérer l'id utilisateur
       try {
         const meRes = await axios.get("/api/users/me", { withCredentials: true });
         login({ id: meRes.data.id, prenom: result[2], role: result[1] });
       } catch (err) {
-        // fallback : si /me échoue, on met quand même prenom/role
         login({ prenom: result[2], role: result[1] });
       }
 
-      // redirections
+      // Redirections
       if (status === "changer-mdp") {
         navigate("/changer-mdp");
       } else if (status === "admin") {
@@ -56,41 +62,48 @@ const Login = () => {
         navigate("/accueil");
       }
     } catch (err) {
-      const message = Array.isArray(err.response?.data) 
-      ? err.response.data[0] 
-      : err.response?.data || "Erreur lors de la connexion.";
+      const message = Array.isArray(err.response?.data)
+        ? err.response.data[0]
+        : err.response?.data || "Erreur lors de la connexion.";
       setError(message);
     }
   };
 
   return (
-    <div style={{ maxWidth: "400px", margin: "auto" }}>
-      <h2>Connexion</h2>
+    <div className="page-center">
+      <div className="card auth-card">
+        <h1 className="brand-title">Paidou</h1>
+        <p className="text-secondary">Suivi vaccinal des crèches</p>
 
-      <div style={{ marginBottom: "10px" }}>
-        <input
-          type="text"
-          placeholder="prenom"
-          value={prenom}
-          onChange={(e) => setPrenom(e.target.value)}
-        />
-        <span style={{ marginLeft: "8px" }}>@paidou.fr</span>
+        <div className="form-group">
+          <label>Prénom</label>
+          <div className="input-with-suffix">
+            <input
+              type="text"
+              placeholder="prenom"
+              value={prenom}
+              onChange={(e) => setPrenom(e.target.value)}
+            />
+            <span className="input-suffix">@paidou.fr</span>
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label>Mot de passe</label>
+          <input
+            type="password"
+            placeholder="mot de passe"
+            value={mdp}
+            onChange={(e) => setMdp(e.target.value)}
+          />
+        </div>
+
+        <button className="btn btn-primary btn-full" onClick={handleLogin}>
+          Se connecter
+        </button>
+
+        {error && <p className="error-message">{error}</p>}
       </div>
-
-      <div style={{ marginBottom: "10px" }}>
-        <input
-          type="password"
-          placeholder="mot de passe"
-          value={mdp}
-          onChange={(e) => setMdp(e.target.value)}
-        />
-      </div>
-
-      <button onClick={handleLogin}>Se connecter</button>
-
-      {error && (
-        <p style={{ color: "red", marginTop: "10px" }}>{error}</p>
-      )}
     </div>
   );
 };

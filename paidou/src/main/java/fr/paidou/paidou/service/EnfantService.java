@@ -137,14 +137,43 @@ public class EnfantService {
         LocalDate aujourdhui = LocalDate.now();
         int anneeNaissance = enfant.getDateDeNaissance().getYear();
         List<VaccinStatusDTO> result = new ArrayList<>();
+        
         for (Vaccin v : vaccins) {
             if (v.getPourEnfantsNesAvant() != null && anneeNaissance > v.getPourEnfantsNesAvant()) continue;
             if (v.getPourEnfantsNesApres() != null && anneeNaissance < v.getPourEnfantsNesApres()) continue;
-            LocalDate dose1 = enfant.getDateDeNaissance().plusMonths(v.getAgePremiereVaccination());
-            LocalDate dose2 = dose1.plusMonths(v.getNbMoisPremierDelai());
-            LocalDate dose3 = v.getNbMoisDeuxiemeDelai() != null ? dose2.plusMonths(v.getNbMoisDeuxiemeDelai()) : null;
-            long nbDosesRecues = enregistrements.stream()
-                    .filter(ev -> ev.getVaccin().getId().equals(v.getId())).count();
+            
+            // Dates de doses recommandées (basées sur la date de naissance)
+            LocalDate dose1Theorique = enfant.getDateDeNaissance().plusMonths(v.getAgePremiereVaccination());
+            LocalDate dose2Theorique = dose1Theorique.plusMonths(v.getNbMoisPremierDelai());
+            LocalDate dose3Theorique = v.getNbMoisDeuxiemeDelai() != null 
+                    ? dose2Theorique.plusMonths(v.getNbMoisDeuxiemeDelai()) : null;
+            
+            // Doses réellement reçues (triées par date)
+            List<LocalDate> datesReelles = enregistrements.stream()
+                    .filter(ev -> ev.getVaccin().getId().equals(v.getId()))
+                    .map(ev -> ev.getId().getDateVaccination())
+                    .sorted()
+                    .toList();
+            
+            long nbDosesRecues = datesReelles.size();
+            
+            // Ajuster les prochaines doses selon les dates réelles
+            LocalDate dose1 = dose1Theorique;
+            LocalDate dose2 = dose2Theorique;
+            LocalDate dose3 = dose3Theorique;
+            
+            if (!datesReelles.isEmpty()) {
+                LocalDate derniereReelle = datesReelles.get((int) nbDosesRecues - 1);
+                if (nbDosesRecues == 1) {
+                    // La 2ème dose est calculée à partir de la 1ère dose réelle
+                    dose2 = derniereReelle.plusMonths(v.getNbMoisPremierDelai());
+                    if (dose3 != null) dose3 = dose2.plusMonths(v.getNbMoisDeuxiemeDelai());
+                } else if (nbDosesRecues == 2 && dose3 != null) {
+                    // La 3ème dose est calculée à partir de la 2ème dose réelle
+                    dose3 = derniereReelle.plusMonths(v.getNbMoisDeuxiemeDelai());
+                }
+            }
+            
             String statut;
             if (nbDosesRecues >= (dose3 != null ? 3 : 2)) {
                 statut = "COMPLET";
@@ -157,6 +186,7 @@ public class EnfantService {
             } else {
                 statut = "EN_COURS";
             }
+            
             result.add(new VaccinStatusDTO(v.getId(), v.getNom(), nbDosesRecues,
                     dose3 != null ? 3 : 2, dose1, dose2, dose3, statut));
         }
@@ -189,7 +219,7 @@ public class EnfantService {
                     }
                 } else if (s.statut().equals("EN_COURS") && priorite < 2) {
                     LocalDate prochaine = s.dosesRecues() == 0 ? s.dateDose1Recommandee() :
-                                         s.dosesRecues() == 1 ? s.dateDose2Recommandee() : s.dateDose3Recommandee();
+                                        s.dosesRecues() == 1 ? s.dateDose2Recommandee() : s.dateDose3Recommandee();
                     if (prochaine != null) {
                         long joursRestants = ChronoUnit.DAYS.between(LocalDate.now(), prochaine);
                         if (joursRestants <= 14 && (plusUrgent == null || joursRestants < minJours)) {
@@ -205,16 +235,34 @@ public class EnfantService {
                 }
             }
             if (priorite == 0) priorite = 4;
+            
+            // Déterminer la date prévue selon le statut
+            LocalDate datePrevue = null;
+            if (plusUrgent != null) {
+                String statut = plusUrgent.statut();
+                long recues = plusUrgent.dosesRecues();
+                if (statut.equals("RETARD_DOSE1") || recues == 0) {
+                    datePrevue = plusUrgent.dateDose1Recommandee();
+                } else if (statut.equals("RETARD_DOSE2") || recues == 1) {
+                    datePrevue = plusUrgent.dateDose2Recommandee();
+                } else if (statut.equals("RETARD_DOSE3") || statut.equals("EN_COURS") && recues == 2) {
+                    datePrevue = plusUrgent.dateDose3Recommandee();
+                } else if (statut.equals("EN_COURS") && recues == 0) {
+                    datePrevue = plusUrgent.dateDose1Recommandee();
+                } else if (statut.equals("EN_COURS") && recues == 1) {
+                    datePrevue = plusUrgent.dateDose2Recommandee();
+                } else if (statut.equals("COMPLET")) {
+                    datePrevue = null;
+                }
+            }
+            
             result.add(new EnfantStatutGlobalDTO(
                     e.getId_enfant(), e.getNom(), e.getPrenom(),
                     e.getDateDeNaissance(),
                     priorite == 1 ? "RETARD" : (priorite == 2 ? "PROCHE" : (priorite == 3 ? "EN_COURS" : "COMPLET")),
                     plusUrgent != null ? plusUrgent.nomVaccin() : "",
                     plusUrgent != null ? minJours : 0,
-                    plusUrgent != null ? (priorite == 1 ? plusUrgent.dateDose1Recommandee() :
-                                        plusUrgent.dosesRecues()==0 ? plusUrgent.dateDose1Recommandee() :
-                                        plusUrgent.dosesRecues()==1 ? plusUrgent.dateDose2Recommandee() :
-                                        plusUrgent.dateDose3Recommandee()) : null
+                    datePrevue
             ));
         }
         result.sort(Comparator.comparingInt((EnfantStatutGlobalDTO d) -> {

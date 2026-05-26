@@ -7,7 +7,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Vérifier la session au chargement
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -24,13 +23,11 @@ export const AuthProvider = ({ children }) => {
 
   const login = (userData) => {
     setUser({
-        id: userData.id,
-        prenom: userData.prenom,
-        role: userData.role,
+      id: userData.id,
+      prenom: userData.prenom,
+      role: userData.role,
     });
-};
-
-  
+  };
 
   const logout = async () => {
     await axios.post("/api/users/logout", {}, { withCredentials: true });
