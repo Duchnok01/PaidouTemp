@@ -10,6 +10,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import fr.paidou.paidou.model.Creche;
 import fr.paidou.paidou.repository.CrecheRepository;
+import fr.paidou.paidou.service.LogService;
+import fr.paidou.paidou.security.SecurityUtils;
 
 
 
@@ -21,11 +23,14 @@ public class UserService {
     private final UserRepository userRepo;
     private final BCryptPasswordEncoder encoder;
     private final CrecheRepository crecheRepo;
+    private final LogService logService;
+    private final SecurityUtils securityUtils;
     
-    public UserService(UserRepository uRep, BCryptPasswordEncoder bcpe, CrecheRepository crecheRepo) {
+    public UserService(UserRepository uRep, BCryptPasswordEncoder bcpe, CrecheRepository crecheRepo, LogService logService, SecurityUtils securityUtils) {
         this.userRepo = uRep;
         this.encoder = bcpe;
         this.crecheRepo = crecheRepo;
+        logService.log("SUPPRIMER_USER", securityUtils.getCurrentUser().getPrenom(), prenom);
     }
 
 
@@ -42,6 +47,8 @@ public class UserService {
         String mdp = UUID.randomUUID().toString();
         newUser.setMdp(encoder.encode(mdp));
         userRepo.save(newUser);
+        logService.log("CREER_USER", securityUtils.getCurrentUser().getPrenom(), prenom);
+        logService.log("RESET_MDP", securityUtils.getCurrentUser().getPrenom(), prenom);
         return mdp;
     }
 
@@ -67,7 +74,8 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
         user.setPrenom(nvPrenom.toLowerCase());
         userRepo.save(user);
-    }  
+        logService.log("RENOMMER_USER", securityUtils.getCurrentUser().getPrenom(), prenom + " → " + nvPrenom);
+    }
 
 
 
@@ -80,7 +88,8 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
         user.setEstParti(true);
         userRepo.save(user);
-    }  
+        logService.log("DESACTIVER_USER", securityUtils.getCurrentUser().getPrenom(), prenom);
+    }
 
 
     public List<User> getAllUsers() {
