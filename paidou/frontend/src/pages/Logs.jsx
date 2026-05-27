@@ -30,14 +30,6 @@ const Logs = () => {
   };
 
   useEffect(() => {
-    const fetchLogs = async () => {
-      try {
-        const res = await axios.get('/api/logs', { withCredentials: true });
-        setLogs(res.data);
-      } catch (err) {
-        console.error('Erreur chargement logs', err);
-      }
-    };
 
     fetchLogs();
   }, []);
