@@ -6,6 +6,15 @@ const Logs = () => {
   const { user } = useAuth();
   const [logs, setLogs] = useState([]);
 
+  const fetchLogs = async () => {
+    try {
+      const res = await axios.get('/api/logs', { withCredentials: true });
+      setLogs(res.data);
+    } catch (err) {
+      console.error('Erreur chargement logs', err);
+    }
+  };
+
   useEffect(() => {
     const fetchLogs = async () => {
       try {
@@ -26,6 +35,7 @@ const Logs = () => {
         {logs.map(log => (
           <li key={log.id}>
             <strong>{log.timestamp}</strong> - {log.user} a effectué l'action : {log.action}
+            {log.details && <em>({log.details})</em>}
             <button onClick={() => handleUndo(log)}>Annuler</button>
           </li>
         ))}
@@ -42,6 +52,7 @@ const handleUndo = async (log) => {
   try {
     await axios.post('/api/logs/undo', { logId: log.id }, { withCredentials: true });
     alert('Action annulée avec succès');
+    fetchLogs();
   } catch (err) {
     console.error('Erreur annulation action', err);
   }
