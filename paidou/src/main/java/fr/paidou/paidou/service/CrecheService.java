@@ -42,6 +42,14 @@ public class CrecheService {
         logService.log("SUPPRIMER_CRECHE", securityUtils.getCurrentUser().getPrenom(), nom);
     }
 
+    public void rouvrirCreche(String nom) {
+        Creche creche = crecheRepo.findById(nom.toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("Crèche introuvable"));
+        creche.setEstFerme(false);
+        crecheRepo.save(creche);
+        logService.log("ROUVRIR_CRECHE", securityUtils.getCurrentUser().getPrenom(), nom);
+    }
+
     // Créer
     public void createCreche(String nom, String directeurPrenom) {
         if (!securityUtils.isAdmin()) {

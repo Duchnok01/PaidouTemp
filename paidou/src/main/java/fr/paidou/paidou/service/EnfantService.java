@@ -49,6 +49,14 @@ public class EnfantService {
         logService.log("TRANSFERER_TOUS_ENFANTS", securityUtils.getCurrentUser().getPrenom(), fromCreche + " → " + toCreche);
     }
 
+    public void reactiverEnfant(Long id) {
+        Enfant enfant = enfantRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
+        enfant.setEstParti(false);
+        enfantRepo.save(enfant);
+        logService.log("REACTIVER_ENFANT", securityUtils.getCurrentUser().getPrenom(), String.valueOf(id));
+    }
+
     private void verifierAuthorisationPourCreche(String nomCreche) {
         User current = securityUtils.getCurrentUser();
         if (!securityUtils.isAdmin()) {

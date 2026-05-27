@@ -105,7 +105,15 @@ public class UserService {
         user.setMdp(encoder.encode(passwd));
         user.setDoitChangerMdp(false);
         userRepo.save(user);
-    } 
+    }
+
+    public void reactiverUser(String prenom) {
+        User user = userRepo.findByPrenom(prenom.toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
+        user.setEstParti(false);
+        userRepo.save(user);
+        logService.log("REACTIVER_USER", securityUtils.getCurrentUser().getPrenom(), prenom);
+    }
 
 
     public Boolean verifyPassword(String prenom, String passwd) // vérifie si le mot de passe est correct

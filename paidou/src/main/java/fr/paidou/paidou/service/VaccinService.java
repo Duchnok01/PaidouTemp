@@ -38,6 +38,14 @@ public class VaccinService {
         logService.log("SUPPRIMER_VACCIN", securityUtils.getCurrentUser().getPrenom(), String.valueOf(id));
     }
 
+    public void reactiverVaccin(Long id) {
+        Vaccin vaccin = vaccinRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
+        vaccin.setEstObsolete(false);
+        vaccinRepo.save(vaccin);
+        logService.log("REACTIVER_VACCIN", securityUtils.getCurrentUser().getPrenom(), String.valueOf(id));
+    }
+
     public void createVaccin(String nom, String listeMaladies, Integer pourEnfantsNesAvant,
                              Integer pourEnfantsNesApres, Integer agePremiereVaccination,
                              Integer nbMoisPremierDelai, Integer nbMoisDeuxiemeDelai) {
