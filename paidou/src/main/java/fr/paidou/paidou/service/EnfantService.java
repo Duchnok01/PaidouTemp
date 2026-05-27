@@ -11,6 +11,7 @@ import fr.paidou.paidou.repository.CrecheRepository;
 import fr.paidou.paidou.repository.EnfantRepository;
 import fr.paidou.paidou.repository.EnregistrementVaccinationRepository;
 import fr.paidou.paidou.security.SecurityUtils;
+import fr.paidou.paidou.service.LogService;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -29,13 +30,23 @@ public class EnfantService {
     private final VaccinService vaccinService;
     private final EnregistrementVaccinationRepository enregistrementRepo;
 
+    private final LogService logService;
+
     public EnfantService(CrecheRepository cRep, EnfantRepository eRep, SecurityUtils securityUtils,
-                         EnregistrementVaccinationRepository evRep, VaccinService vaccinService) {
+                         EnregistrementVaccinationRepository evRep, VaccinService vaccinService,
+                         LogService logService) {
         this.crecheRepo = cRep;
         this.enfantRepo = eRep;
         this.securityUtils = securityUtils;
         this.enregistrementRepo = evRep;
         this.vaccinService = vaccinService;
+        this.logService = logService;
+        logService.log("CREER_ENFANT", securityUtils.getCurrentUser().getPrenom(), prenom + " " + nom + " (crèche: " + nomCreche + ")");
+        logService.log("SUPPRIMER_ENFANT", securityUtils.getCurrentUser().getPrenom(), String.valueOf(id));
+        logService.log("DESACTIVER_ENFANT", securityUtils.getCurrentUser().getPrenom(), String.valueOf(id));
+        logService.log("TRANSFERER_ENFANT", securityUtils.getCurrentUser().getPrenom(), "id=" + id + " → " + nomCreche);
+        logService.log("RECTIFIER_ENFANT", securityUtils.getCurrentUser().getPrenom(), String.valueOf(id));
+        logService.log("TRANSFERER_TOUS_ENFANTS", securityUtils.getCurrentUser().getPrenom(), fromCreche + " → " + toCreche);
     }
 
     private void verifierAuthorisationPourCreche(String nomCreche) {

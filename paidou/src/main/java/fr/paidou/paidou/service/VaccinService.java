@@ -8,6 +8,7 @@ import fr.paidou.paidou.repository.EnfantRepository;
 import fr.paidou.paidou.repository.EnregistrementVaccinationRepository;
 import fr.paidou.paidou.repository.VaccinRepository;
 import fr.paidou.paidou.security.SecurityUtils;
+import fr.paidou.paidou.service.LogService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,12 +23,19 @@ public class VaccinService {
     private final EnfantRepository enfantRepo;
     private final EnregistrementVaccinationRepository enregistrementRepo;
 
+    private final LogService logService;
+
     public VaccinService(VaccinRepository vRep, SecurityUtils securityUtils,
-                         EnfantRepository eRep, EnregistrementVaccinationRepository evRepo) {
+                         EnfantRepository eRep, EnregistrementVaccinationRepository evRepo,
+                         LogService logService) {
         this.vaccinRepo = vRep;
         this.securityUtils = securityUtils;
         this.enfantRepo = eRep;
         this.enregistrementRepo = evRepo;
+        this.logService = logService;
+        logService.log("CREER_VACCIN", securityUtils.getCurrentUser().getPrenom(), nom);
+        logService.log("RENDRE_OBSOLETE_VACCIN", securityUtils.getCurrentUser().getPrenom(), String.valueOf(id));
+        logService.log("SUPPRIMER_VACCIN", securityUtils.getCurrentUser().getPrenom(), String.valueOf(id));
     }
 
     public void createVaccin(String nom, String listeMaladies, Integer pourEnfantsNesAvant,
