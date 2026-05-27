@@ -15,6 +15,20 @@ const Logs = () => {
     }
   };
 
+  const handleUndo = async (log) => {
+    if (log.action === 'DELETE_ENFANT') {
+      alert("Impossible d'annuler la suppression définitive d'un enfant.");
+      return;
+    }
+    try {
+      await axios.post('/api/logs/undo', { logId: log.id }, { withCredentials: true });
+      alert('Action annulée avec succès');
+      fetchLogs();
+    } catch (err) {
+      console.error('Erreur annulation action', err);
+    }
+  };
+
   useEffect(() => {
     const fetchLogs = async () => {
       try {
@@ -44,18 +58,5 @@ const Logs = () => {
   );
 };
 
-const handleUndo = async (log) => {
-  if (log.action === 'DELETE_ENFANT') {
-    alert("Impossible d'annuler la suppression définitive d'un enfant.");
-    return;
-  }
-  try {
-    await axios.post('/api/logs/undo', { logId: log.id }, { withCredentials: true });
-    alert('Action annulée avec succès');
-    fetchLogs();
-  } catch (err) {
-    console.error('Erreur annulation action', err);
-  }
-};
 
 export default Logs;
