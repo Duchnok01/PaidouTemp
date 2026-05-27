@@ -15,13 +15,14 @@ public class SomeService {
 
     public void someAction(String user) {
         // Logique de l'action
+        // Exemple : effectuer une action spécifique
 
         // Enregistrement de l'action dans les logs
         Log log = new Log();
         log.setAction("SOME_ACTION");
         log.setUser(user);
         log.setTimestamp(LocalDateTime.now());
-        log.setDetails("Détails de l'action");
+        log.setDetails("Détails de l'action effectuée par " + user);
         logRepository.save(log);
     }
 }
