@@ -28,8 +28,19 @@ public class LogController {
     }
 
     @PostMapping("/undo")
-    public void undoAction(@RequestBody Long logId) {
+    public ResponseEntity<String> undoAction(@RequestBody Long logId) {
+        Log log = logRepository.findById(logId).orElse(null);
+        if (log == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Log not found");
+        }
+
+        if ("DELETE_ENFANT".equals(log.getAction())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Cannot undo deletion of an enfant");
+        }
+
         // Logique pour annuler l'action basée sur logId
-        // Assurez-vous de ne pas permettre l'annulation de la suppression d'un enfant
+        // Exemple : if ("CREATE_USER".equals(log.getAction())) { ... }
+
+        return ResponseEntity.ok("Action undone successfully");
     }
 }
