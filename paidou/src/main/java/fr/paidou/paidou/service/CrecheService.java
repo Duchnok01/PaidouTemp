@@ -8,6 +8,7 @@ import fr.paidou.paidou.model.User;
 import fr.paidou.paidou.repository.CrecheRepository;
 import fr.paidou.paidou.repository.EnfantRepository;
 import fr.paidou.paidou.repository.EnregistrementVaccinationRepository;
+import fr.paidou.paidou.service.LogService;
 import fr.paidou.paidou.repository.UserRepository;
 import fr.paidou.paidou.security.SecurityUtils;
 import org.springframework.stereotype.Service;
@@ -23,20 +24,29 @@ public class CrecheService {
     private final EnregistrementVaccinationRepository enregistrementRepo;
     private final SecurityUtils securityUtils;
 
+    private final LogService logService;
+
     public CrecheService(CrecheRepository cRep, UserRepository uRep,
                          EnfantRepository eRep, EnregistrementVaccinationRepository evRepo,
-                         SecurityUtils securityUtils) {
+                         SecurityUtils securityUtils, LogService logService) {
         this.crecheRepo = cRep;
         this.userRepo = uRep;
         this.enfantRepo = eRep;
         this.enregistrementRepo = evRepo;
         this.securityUtils = securityUtils;
+        this.logService = logService;
+        logService.log("CREER_CRECHE", securityUtils.getCurrentUser().getPrenom(), nom);
+        logService.log("FERMER_CRECHE", securityUtils.getCurrentUser().getPrenom(), nom);
+        logService.log("CHANGER_DIRECTEUR", securityUtils.getCurrentUser().getPrenom(), nomCreche + " → " + nouveauDirecteurPrenom);
+        logService.log("TRANSFERER_ENFANTS_CRECHE", securityUtils.getCurrentUser().getPrenom(), from + " → " + to);
+        logService.log("SUPPRIMER_CRECHE", securityUtils.getCurrentUser().getPrenom(), nom);
     }
 
     // Créer
     public void createCreche(String nom, String directeurPrenom) {
         if (!securityUtils.isAdmin()) {
             throw new SecurityException("Seul un administrateur peut créer une crèche");
+            logService.log("RENOMMER_CRECHE", securityUtils.getCurrentUser().getPrenom(), ancienNom + " → " + nouveauNom);
         }
         String nomNormalized = nom.toLowerCase().trim();
         if (crecheRepo.findById(nomNormalized).isPresent()) {
