@@ -11,7 +11,6 @@ import fr.paidou.paidou.repository.CrecheRepository;
 import fr.paidou.paidou.repository.EnfantRepository;
 import fr.paidou.paidou.repository.EnregistrementVaccinationRepository;
 import fr.paidou.paidou.security.SecurityUtils;
-import fr.paidou.paidou.service.LogService;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -29,7 +28,6 @@ public class EnfantService {
     private final SecurityUtils securityUtils;
     private final VaccinService vaccinService;
     private final EnregistrementVaccinationRepository enregistrementRepo;
-
     private final LogService logService;
 
     public EnfantService(CrecheRepository cRep, EnfantRepository eRep, SecurityUtils securityUtils,
@@ -41,12 +39,6 @@ public class EnfantService {
         this.enregistrementRepo = evRep;
         this.vaccinService = vaccinService;
         this.logService = logService;
-        logService.log("CREER_ENFANT", securityUtils.getCurrentUser().getPrenom(), prenom + " " + nom + " (crèche: " + nomCreche + ")");
-        logService.log("SUPPRIMER_ENFANT", securityUtils.getCurrentUser().getPrenom(), String.valueOf(id));
-        logService.log("DESACTIVER_ENFANT", securityUtils.getCurrentUser().getPrenom(), String.valueOf(id));
-        logService.log("TRANSFERER_ENFANT", securityUtils.getCurrentUser().getPrenom(), "id=" + id + " → " + nomCreche);
-        logService.log("RECTIFIER_ENFANT", securityUtils.getCurrentUser().getPrenom(), String.valueOf(id));
-        logService.log("TRANSFERER_TOUS_ENFANTS", securityUtils.getCurrentUser().getPrenom(), fromCreche + " → " + toCreche);
     }
 
     public void reactiverEnfant(Long id) {
@@ -54,7 +46,10 @@ public class EnfantService {
                 .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
         enfant.setEstParti(false);
         enfantRepo.save(enfant);
-        logService.log("REACTIVER_ENFANT", securityUtils.getCurrentUser().getPrenom(), String.valueOf(id));
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("REACTIVER_ENFANT", currentUser, enfant.getCreche(), enfant,
+                "id=" + id + ", prenom=" + enfant.getPrenom() + ", nom=" + enfant.getNom());
     }
 
     private void verifierAuthorisationPourCreche(String nomCreche) {
@@ -78,14 +73,32 @@ public class EnfantService {
         child.setDateDeNaissance(birth);
         child.setCreche(c);
         enfantRepo.save(child);
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("CREER_ENFANT", currentUser, c, child,
+                "prenom=" + prenom + ", nom=" + nom + ", dateNaissance=" + birth);
     }
 
     public void deleteEnfantPhysique(Long id) {
         Enfant enfant = enfantRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
-        List<EnregistrementVaccination> evs = enregistrementRepo.findByIdIdEnfant(id);
-        enregistrementRepo.deleteAll(evs);
-        enfantRepo.delete(enfant);
+
+        // Anonymiser l'enfant au lieu de le supprimer physiquement (RGPD)
+        String ancienPrenom = enfant.getPrenom();
+        String ancienNom = enfant.getNom();
+        LocalDate ancienneDate = enfant.getDateDeNaissance();
+
+        enfant.setPrenom("<enfant supprimé>");
+        enfant.setNom("<anonymisé>");
+        enfant.setDateDeNaissance(LocalDate.of(1970, 1, 1));
+        enfant.setEstParti(true);
+        enfantRepo.save(enfant);
+
+        // Les enregistrements restent liés à l'enfant anonymisé
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("SUPPRIMER_ENFANT", currentUser, enfant.getCreche(), enfant,
+                "ancienPrenom=" + ancienPrenom + ", ancienNom=" + ancienNom + ", ancienneDate=" + ancienneDate);
     }
 
     public List<Enfant> getAllEnfantsByCreche(String nomCreche) {
@@ -97,20 +110,37 @@ public class EnfantService {
         Enfant child = enfantRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
         verifierAuthorisationPourCreche(child.getCreche().getNom());
-        Creche c = crecheRepo.findById(nomCreche.toLowerCase())
+        Creche ancienneCreche = child.getCreche();
+        Creche nouvelleCreche = crecheRepo.findById(nomCreche.toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException("Crèche cible introuvable"));
-        child.setCreche(c);
+        child.setCreche(nouvelleCreche);
         enfantRepo.save(child);
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("TRANSFERER_ENFANT", currentUser, nouvelleCreche, child,
+                "de " + ancienneCreche.getNom() + " vers " + nomCreche
+                + ", enfant=" + child.getPrenom() + " " + child.getNom());
     }
 
     public void rectifierInfos(Long id, String nom, String prenom, LocalDate birth) {
         Enfant child = enfantRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
         verifierAuthorisationPourCreche(child.getCreche().getNom());
+
+        // Sauvegarder les anciennes valeurs AVANT modification
+        String ancienNom = child.getNom();
+        String ancienPrenom = child.getPrenom();
+        LocalDate ancienneDate = child.getDateDeNaissance();
+
         child.setPrenom(prenom);
         child.setNom(nom);
         child.setDateDeNaissance(birth);
         enfantRepo.save(child);
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("RECTIFIER_ENFANT", currentUser, child.getCreche(), child,
+                "ancienNom=" + ancienNom + ", ancienPrenom=" + ancienPrenom + ", ancienneDate=" + ancienneDate
+                + ", nouveauNom=" + nom + ", nouveauPrenom=" + prenom + ", nouvelleDate=" + birth);
     }
 
     public void disableChildAccount(Long id) {
@@ -119,6 +149,10 @@ public class EnfantService {
         verifierAuthorisationPourCreche(child.getCreche().getNom());
         child.setEstParti(true);
         enfantRepo.save(child);
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("DESACTIVER_ENFANT", currentUser, child.getCreche(), child,
+                "id=" + id + ", prenom=" + child.getPrenom() + ", nom=" + child.getNom());
     }
 
     public void transferAllEnfants(String fromCreche, String toCreche) {
@@ -144,6 +178,10 @@ public class EnfantService {
             ev.setCreche(crecheCible);
             enregistrementRepo.save(ev);
         }
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("TRANSFERER_TOUS_ENFANTS", currentUser, crecheSource,
+                fromNorm + " -> " + toNorm);
     }
 
     // ======== STATUT VACCINAL ========
@@ -156,43 +194,38 @@ public class EnfantService {
         LocalDate aujourdhui = LocalDate.now();
         int anneeNaissance = enfant.getDateDeNaissance().getYear();
         List<VaccinStatusDTO> result = new ArrayList<>();
-        
+
         for (Vaccin v : vaccins) {
             if (v.getPourEnfantsNesAvant() != null && anneeNaissance > v.getPourEnfantsNesAvant()) continue;
             if (v.getPourEnfantsNesApres() != null && anneeNaissance < v.getPourEnfantsNesApres()) continue;
-            
-            // Dates de doses recommandées (basées sur la date de naissance)
+
             LocalDate dose1Theorique = enfant.getDateDeNaissance().plusMonths(v.getAgePremiereVaccination());
             LocalDate dose2Theorique = dose1Theorique.plusMonths(v.getNbMoisPremierDelai());
-            LocalDate dose3Theorique = v.getNbMoisDeuxiemeDelai() != null 
+            LocalDate dose3Theorique = v.getNbMoisDeuxiemeDelai() != null
                     ? dose2Theorique.plusMonths(v.getNbMoisDeuxiemeDelai()) : null;
-            
-            // Doses réellement reçues (triées par date)
+
             List<LocalDate> datesReelles = enregistrements.stream()
                     .filter(ev -> ev.getVaccin().getId().equals(v.getId()))
                     .map(ev -> ev.getId().getDateVaccination())
                     .sorted()
                     .toList();
-            
+
             long nbDosesRecues = datesReelles.size();
-            
-            // Ajuster les prochaines doses selon les dates réelles
+
             LocalDate dose1 = dose1Theorique;
             LocalDate dose2 = dose2Theorique;
             LocalDate dose3 = dose3Theorique;
-            
+
             if (!datesReelles.isEmpty()) {
                 LocalDate derniereReelle = datesReelles.get((int) nbDosesRecues - 1);
                 if (nbDosesRecues == 1) {
-                    // La 2ème dose est calculée à partir de la 1ère dose réelle
                     dose2 = derniereReelle.plusMonths(v.getNbMoisPremierDelai());
                     if (dose3 != null) dose3 = dose2.plusMonths(v.getNbMoisDeuxiemeDelai());
                 } else if (nbDosesRecues == 2 && dose3 != null) {
-                    // La 3ème dose est calculée à partir de la 2ème dose réelle
                     dose3 = derniereReelle.plusMonths(v.getNbMoisDeuxiemeDelai());
                 }
             }
-            
+
             String statut;
             if (nbDosesRecues >= (dose3 != null ? 3 : 2)) {
                 statut = "COMPLET";
@@ -205,7 +238,7 @@ public class EnfantService {
             } else {
                 statut = "EN_COURS";
             }
-            
+
             result.add(new VaccinStatusDTO(v.getId(), v.getNom(), nbDosesRecues,
                     dose3 != null ? 3 : 2, dose1, dose2, dose3, statut));
         }
@@ -254,8 +287,7 @@ public class EnfantService {
                 }
             }
             if (priorite == 0) priorite = 4;
-            
-            // Déterminer la date prévue selon le statut
+
             LocalDate datePrevue = null;
             if (plusUrgent != null) {
                 String statut = plusUrgent.statut();
@@ -274,7 +306,7 @@ public class EnfantService {
                     datePrevue = null;
                 }
             }
-            
+
             result.add(new EnfantStatutGlobalDTO(
                     e.getId_enfant(), e.getNom(), e.getPrenom(),
                     e.getDateDeNaissance(),

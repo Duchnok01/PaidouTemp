@@ -7,6 +7,7 @@ import Enfant from "./pages/Enfant";
 import AjoutEnregistrement from "./pages/AjoutEnregistrement";
 import Admin from "./pages/Admin";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import Logs from "./pages/Logs";
 
 function App() {
   return (
@@ -41,6 +42,11 @@ function AppContent() {
             </div>
             <div className="nav-right">
               <span className="nav-user">{user.prenom} ({user.role})</span>
+              {(user.role === "admin" || user.role === "directrice") && (
+                  <button className="btn btn-sm btn-secondary" onClick={() => navigate("/logs")}>
+                      📋 Journal
+                  </button>
+              )}
               <button className="btn btn-sm btn-logout" onClick={handleLogout}>Déconnexion</button>
             </div>
           </nav>
@@ -64,6 +70,7 @@ function AppContent() {
         <Route path="/enfant/:id" element={<Enfant />} />
         <Route path="/ajout-enregistrement" element={<AjoutEnregistrement />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/logs" element={<Logs />} />
       </Routes>
     </>
   );

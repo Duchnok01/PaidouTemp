@@ -8,34 +8,26 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-import fr.paidou.paidou.model.Creche;
 import fr.paidou.paidou.repository.CrecheRepository;
-import fr.paidou.paidou.service.LogService;
 import fr.paidou.paidou.security.SecurityUtils;
-
-
 
 @Service
 public class UserService {
-   
-   
-   
+
     private final UserRepository userRepo;
     private final BCryptPasswordEncoder encoder;
     private final CrecheRepository crecheRepo;
     private final LogService logService;
     private final SecurityUtils securityUtils;
-    
-    public UserService(UserRepository uRep, BCryptPasswordEncoder bcpe, CrecheRepository crecheRepo, LogService logService, SecurityUtils securityUtils) {
+
+    public UserService(UserRepository uRep, BCryptPasswordEncoder bcpe, CrecheRepository crecheRepo,
+                       LogService logService, SecurityUtils securityUtils) {
         this.userRepo = uRep;
         this.encoder = bcpe;
         this.crecheRepo = crecheRepo;
-        logService.log("SUPPRIMER_USER", securityUtils.getCurrentUser().getPrenom(), prenom);
+        this.logService = logService;
+        this.securityUtils = securityUtils;
     }
-
-
-
-
 
     public String createUser(String prenom) {
         String prenomNormalized = prenom.toLowerCase();
@@ -47,11 +39,11 @@ public class UserService {
         String mdp = UUID.randomUUID().toString();
         newUser.setMdp(encoder.encode(mdp));
         userRepo.save(newUser);
-        logService.log("CREER_USER", securityUtils.getCurrentUser().getPrenom(), prenom);
-        logService.log("RESET_MDP", securityUtils.getCurrentUser().getPrenom(), prenom);
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("CREER_USER", currentUser, "prenom=" + prenomNormalized);
         return mdp;
     }
-
 
     public User getUserByPrenom(String prenom) {
         return userRepo.findByPrenom(prenom.toLowerCase())
@@ -65,46 +57,45 @@ public class UserService {
         user.setMdp(encoder.encode(mdp));
         user.setDoitChangerMdp(true);
         userRepo.save(user);
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("RESET_MDP", currentUser, "prenom=" + prenom);
         return mdp;
     }
 
-    public void fixNameTypo(String prenom, String nvPrenom) // édite les info utilisateurs
-    {
+    public void fixNameTypo(String prenom, String nvPrenom) {
         User user = userRepo.findByPrenom(prenom.toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
         user.setPrenom(nvPrenom.toLowerCase());
         userRepo.save(user);
-        logService.log("RENOMMER_USER", securityUtils.getCurrentUser().getPrenom(), prenom + " → " + nvPrenom);
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("RENOMMER_USER", currentUser, prenom + " -> " + nvPrenom);
     }
 
-
-
-
-
-
-    public void disableUserAccount(String prenom) // desactive un compte directrice (supprime ses acces sans perdre l'information de son passage)
-    {
+    public void disableUserAccount(String prenom) {
         User user = userRepo.findByPrenom(prenom.toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
         user.setEstParti(true);
         userRepo.save(user);
-        logService.log("DESACTIVER_USER", securityUtils.getCurrentUser().getPrenom(), prenom);
-    }
 
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("DESACTIVER_USER", currentUser, "prenom=" + prenom);
+    }
 
     public List<User> getAllUsers() {
         return userRepo.findAll();
     }
 
-
-
-    public void setPassword(String prenom, String passwd) // édite les info utilisateurs
-    {
+    public void setPassword(String prenom, String passwd) {
         User user = userRepo.findByPrenom(prenom.toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
         user.setMdp(encoder.encode(passwd));
         user.setDoitChangerMdp(false);
         userRepo.save(user);
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("CHANGER_MDP", currentUser, "prenom=" + prenom);
     }
 
     public void reactiverUser(String prenom) {
@@ -112,15 +103,15 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
         user.setEstParti(false);
         userRepo.save(user);
-        logService.log("REACTIVER_USER", securityUtils.getCurrentUser().getPrenom(), prenom);
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("REACTIVER_USER", currentUser, "prenom=" + prenom);
     }
 
-
-    public Boolean verifyPassword(String prenom, String passwd) // vérifie si le mot de passe est correct
-    {
+    public Boolean verifyPassword(String prenom, String passwd) {
         try {
-        User user = userRepo.findByPrenom(prenom.toLowerCase())
-                .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
+            User user = userRepo.findByPrenom(prenom.toLowerCase())
+                    .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
             return encoder.matches(passwd, user.getMdp());
         } catch (Exception e) {
             System.out.println("Erreur lors de la vérification du mot de passe: " + e.getMessage());
@@ -128,30 +119,19 @@ public class UserService {
         }
     }
 
-
-
-    public String[] getRedirectInfo(String prenom) { // renvoie un tableau de string contenant la page vers laquelle rediriger, le role de l'utilisateur, et son prenom 
-        
+    public String[] getRedirectInfo(String prenom) {
         User user = this.getUserByPrenom(prenom.toLowerCase());
-
-        return new String[] {user.isDoitChangerMdp()?"changer-mdp":user.getRole().equals("directrice")?"accueil":user.getRole(), user.getRole(), user.getPrenom()};  
-        
-
+        return new String[]{
+            user.isDoitChangerMdp() ? "changer-mdp" : user.getRole().equals("directrice") ? "accueil" : user.getRole(),
+            user.getRole(),
+            user.getPrenom()
+        };
     }
-
-
-
-
-
-
-
-
 
     public void deleteUser(String prenom) {
         User user = userRepo.findByPrenom(prenom.toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException("User introuvable"));
-        
-        // Vérifier si le user dirige une ou plusieurs crèches
+
         List<Creche> creches = crecheRepo.findByDirecteurId(user.getId());
         if (!creches.isEmpty()) {
             throw new IllegalArgumentException(
@@ -159,21 +139,10 @@ public class UserService {
                 creches.stream().map(Creche::getNom).collect(java.util.stream.Collectors.joining(", "))
             );
         }
-        
+
         userRepo.delete(user);
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("SUPPRIMER_USER", currentUser, "prenom=" + prenom);
     }
-
-
-
-
-
-
-
-
-
-
-    
-
-
-
 }

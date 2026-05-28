@@ -4,11 +4,11 @@ import fr.paidou.paidou.controller.VaccinController.VaccinPourEnfantDTO;
 import fr.paidou.paidou.model.Enfant;
 import fr.paidou.paidou.model.EnregistrementVaccination;
 import fr.paidou.paidou.model.Vaccin;
+import fr.paidou.paidou.model.User;
 import fr.paidou.paidou.repository.EnfantRepository;
 import fr.paidou.paidou.repository.EnregistrementVaccinationRepository;
 import fr.paidou.paidou.repository.VaccinRepository;
 import fr.paidou.paidou.security.SecurityUtils;
-import fr.paidou.paidou.service.LogService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +22,6 @@ public class VaccinService {
     private final SecurityUtils securityUtils;
     private final EnfantRepository enfantRepo;
     private final EnregistrementVaccinationRepository enregistrementRepo;
-
     private final LogService logService;
 
     public VaccinService(VaccinRepository vRep, SecurityUtils securityUtils,
@@ -33,9 +32,6 @@ public class VaccinService {
         this.enfantRepo = eRep;
         this.enregistrementRepo = evRepo;
         this.logService = logService;
-        logService.log("CREER_VACCIN", securityUtils.getCurrentUser().getPrenom(), nom);
-        logService.log("RENDRE_OBSOLETE_VACCIN", securityUtils.getCurrentUser().getPrenom(), String.valueOf(id));
-        logService.log("SUPPRIMER_VACCIN", securityUtils.getCurrentUser().getPrenom(), String.valueOf(id));
     }
 
     public void reactiverVaccin(Long id) {
@@ -43,7 +39,9 @@ public class VaccinService {
                 .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
         vaccin.setEstObsolete(false);
         vaccinRepo.save(vaccin);
-        logService.log("REACTIVER_VACCIN", securityUtils.getCurrentUser().getPrenom(), String.valueOf(id));
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("REACTIVER_VACCIN", currentUser, vaccin, "id=" + id + ", nom=" + vaccin.getNom());
     }
 
     public void createVaccin(String nom, String listeMaladies, Integer pourEnfantsNesAvant,
@@ -65,6 +63,9 @@ public class VaccinService {
         newV.setNbMoisPremierDelai(nbMoisPremierDelai);
         newV.setNbMoisDeuxiemeDelai(nbMoisDeuxiemeDelai);
         vaccinRepo.save(newV);
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("CREER_VACCIN", currentUser, newV, "nom=" + nom);
     }
 
     public List<Vaccin> getAllVaccins() {
@@ -83,16 +84,37 @@ public class VaccinService {
         if (!securityUtils.isAdmin()) {
             throw new SecurityException("Seul un administrateur peut modifier un vaccin");
         }
-        Vaccin newV = vaccinRepo.findById(id)
+        Vaccin vaccin = vaccinRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
-        newV.setNom(nom);
-        newV.setMaladiesPrevenues(listeMaladies);
-        newV.setPourEnfantsNesAvant(pourEnfantsNesAvant);
-        newV.setPourEnfantsNesApres(pourEnfantsNesApres);
-        newV.setAgePremiereVaccination(agePremiereVaccination);
-        newV.setNbMoisPremierDelai(nbMoisPremierDelai);
-        newV.setNbMoisDeuxiemeDelai(nbMoisDeuxiemeDelai);
-        vaccinRepo.save(newV);
+
+        // Sauvegarder les anciennes valeurs pour le log
+        String ancienNom = vaccin.getNom();
+        String ancienMaladies = vaccin.getMaladiesPrevenues();
+        Integer ancienAvant = vaccin.getPourEnfantsNesAvant();
+        Integer ancienApres = vaccin.getPourEnfantsNesApres();
+        Integer ancienAge = vaccin.getAgePremiereVaccination();
+        Integer ancienDelai1 = vaccin.getNbMoisPremierDelai();
+        Integer ancienDelai2 = vaccin.getNbMoisDeuxiemeDelai();
+
+        vaccin.setNom(nom);
+        vaccin.setMaladiesPrevenues(listeMaladies);
+        vaccin.setPourEnfantsNesAvant(pourEnfantsNesAvant);
+        vaccin.setPourEnfantsNesApres(pourEnfantsNesApres);
+        vaccin.setAgePremiereVaccination(agePremiereVaccination);
+        vaccin.setNbMoisPremierDelai(nbMoisPremierDelai);
+        vaccin.setNbMoisDeuxiemeDelai(nbMoisDeuxiemeDelai);
+        vaccinRepo.save(vaccin);
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("MODIFIER_VACCIN", currentUser, vaccin,
+                "id=" + id
+                + ", ancienNom=" + ancienNom + ", nouveauNom=" + nom
+                + ", ancienMaladies=" + ancienMaladies + ", nouvellesMaladies=" + listeMaladies
+                + ", ancienAvant=" + ancienAvant + ", nouveauAvant=" + pourEnfantsNesAvant
+                + ", ancienApres=" + ancienApres + ", nouveauApres=" + pourEnfantsNesApres
+                + ", ancienAge=" + ancienAge + ", nouvelAge=" + agePremiereVaccination
+                + ", ancienDelai1=" + ancienDelai1 + ", nouveauDelai1=" + nbMoisPremierDelai
+                + ", ancienDelai2=" + ancienDelai2 + ", nouveauDelai2=" + nbMoisDeuxiemeDelai);
     }
 
     public void rendreObsolete(Long id) {
@@ -103,6 +125,9 @@ public class VaccinService {
                 .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
         vaccin.setEstObsolete(true);
         vaccinRepo.save(vaccin);
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("RENDRE_OBSOLETE_VACCIN", currentUser, vaccin, "id=" + id + ", nom=" + vaccin.getNom());
     }
 
     public void deleteVaccinPhysique(Long id) {
@@ -113,7 +138,11 @@ public class VaccinService {
                 "Impossible de supprimer ce vaccin : il est utilisé dans " + evs.size() + " enregistrement(s)."
             );
         }
+        Vaccin vaccin = vaccinRepo.findById(id).orElse(null);
         vaccinRepo.deleteById(id);
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("SUPPRIMER_VACCIN", currentUser, vaccin, "id=" + id + (vaccin != null ? ", nom=" + vaccin.getNom() : ""));
     }
 
     public Vaccin getVaccinById(Long id) {
@@ -124,7 +153,7 @@ public class VaccinService {
     public List<VaccinPourEnfantDTO> getVaccinsPourEnfant(Long enfantId) {
         Enfant enfant = enfantRepo.findById(enfantId)
                 .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
-        List<Vaccin> vaccins = getAllVaccins(); // non obsolètes
+        List<Vaccin> vaccins = getAllVaccins();
         List<EnregistrementVaccination> enregistrements = enregistrementRepo.findByIdIdEnfant(enfantId);
         int annee = enfant.getDateDeNaissance().getYear();
         List<VaccinPourEnfantDTO> result = new ArrayList<>();

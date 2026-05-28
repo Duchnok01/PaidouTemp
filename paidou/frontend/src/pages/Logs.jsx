@@ -21,34 +21,51 @@ const Logs = () => {
       return;
     }
     try {
-      await axios.post('/api/logs/undo', { logId: log.id }, { withCredentials: true });
+      await axios.post('/api/logs/undo', log.id, { withCredentials: true });
       alert('Action annulée avec succès');
       fetchLogs();
     } catch (err) {
-      console.error('Erreur annulation action', err);
+      const message = err.response?.data || "Erreur lors de l'annulation";
+      alert(message);
     }
   };
 
   useEffect(() => {
-
     fetchLogs();
   }, []);
+
+  const formatDate = (dateStr) => {
+    return new Date(dateStr).toLocaleString("fr-FR");
+  };
+
+  const isUndoable = (log) => {
+    // Actions annulables (admin peut tout, directrice seulement certaines)
+    const undoableActions = [
+      "DESACTIVER_USER", "DESACTIVER_ENFANT", "FERMER_CRECHE",
+      "RENDRE_OBSOLETE_VACCIN", "CHANGER_DIRECTEUR", "RECTIFIER_ENFANT",
+      "TRANSFERER_ENFANT", "TRANSFERER_TOUS_ENFANTS", "CREER_VACCIN",
+      "MODIFIER_VACCIN", "AJOUTER_ENREGISTREMENT"
+    ];
+    return undoableActions.includes(log.action);
+  };
 
   return (
     <div className="page-container">
       <h1>Journal des actions</h1>
+      {logs.length === 0 && <p className="text-secondary">Aucune entrée.</p>}
       <ul>
         {logs.map(log => (
           <li key={log.id}>
-            <strong>{log.timestamp}</strong> - {log.user} a effectué l'action : {log.action}
-            {log.details && <em>({log.details})</em>}
-            <button onClick={() => handleUndo(log)}>Annuler</button>
+            <strong>{formatDate(log.timestamp)}</strong> - {log.user?.prenom || "?"} a effectué l'action : {log.action}
+            {log.details && <em> ({log.details})</em>}
+            {isUndoable(log) && (
+              <button onClick={() => handleUndo(log)}>Annuler</button>
+            )}
           </li>
         ))}
       </ul>
     </div>
   );
 };
-
 
 export default Logs;

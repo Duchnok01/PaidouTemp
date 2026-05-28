@@ -18,6 +18,7 @@ public class EnregistrementVaccinationService {
     private final CrecheRepository crecheRepo;
     private final UserRepository userRepo;
     private final SecurityUtils securityUtils;
+    private final LogService logService;
 
     public EnregistrementVaccinationService(
             EnregistrementVaccinationRepository enregistrementRepo,
@@ -25,18 +26,17 @@ public class EnregistrementVaccinationService {
             VaccinRepository vaccinRepo,
             CrecheRepository crecheRepo,
             UserRepository userRepo,
-            SecurityUtils securityUtils) {
+            SecurityUtils securityUtils,
+            LogService logService) {
         this.enregistrementRepo = enregistrementRepo;
         this.enfantRepo = enfantRepo;
         this.vaccinRepo = vaccinRepo;
         this.crecheRepo = crecheRepo;
         this.userRepo = userRepo;
         this.securityUtils = securityUtils;
+        this.logService = logService;
     }
 
-    // =========================
-    // CREATE
-    // =========================
     public EnregistrementVaccination createEnregistrement(
             Long idEnfant,
             Long idVaccin,
@@ -52,7 +52,6 @@ public class EnregistrementVaccinationService {
         Vaccin vaccin = vaccinRepo.findById(idVaccin)
                 .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
 
-        // Validation des dates
         if (dateVaccination.isAfter(LocalDate.now())) {
             throw new IllegalArgumentException("La date de vaccination ne peut pas être dans le futur.");
         }
@@ -86,12 +85,15 @@ public class EnregistrementVaccinationService {
         ev.setCreche(creche);
         ev.setUser(user);
 
-        return enregistrementRepo.save(ev);
+        EnregistrementVaccination saved = enregistrementRepo.save(ev);
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("AJOUTER_ENREGISTREMENT", currentUser, creche, enfant, vaccin,
+                "date=" + dateVaccination + ", user=" + user.getPrenom());
+
+        return saved;
     }
 
-    // =========================
-    // EDIT
-    // =========================
     public EnregistrementVaccination editEnregistrement(
             Long idEnfant,
             Long idVaccin,
@@ -112,7 +114,6 @@ public class EnregistrementVaccinationService {
         Vaccin newVaccin = vaccinRepo.findById(newIdVaccin)
                 .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
 
-        // Optionnel : même validation de dates que pour la création
         if (nouvelleDate.isAfter(LocalDate.now())) {
             throw new IllegalArgumentException("La date de vaccination ne peut pas être dans le futur.");
         }
@@ -134,12 +135,17 @@ public class EnregistrementVaccinationService {
         nouveau.setCreche(ancien.getCreche());
         nouveau.setUser(ancien.getUser());
 
-        return enregistrementRepo.save(nouveau);
+        EnregistrementVaccination saved = enregistrementRepo.save(nouveau);
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("MODIFIER_ENREGISTREMENT", currentUser, ancien.getCreche(), ancien.getEnfant(), newVaccin,
+                "ancien: vaccin=" + idVaccin + ", date=" + ancienneDate
+                + " | nouveau: vaccin=" + newIdVaccin + ", date=" + nouvelleDate
+                + ", user=" + ancien.getUser().getPrenom());
+
+        return saved;
     }
 
-    // =========================
-    // DELETE
-    // =========================
     public void deleteEnregistrement(
             Long idEnfant,
             Long idVaccin,
@@ -155,12 +161,17 @@ public class EnregistrementVaccinationService {
 
         verifierAuthorisationPourCreche(enregistrement.getCreche().getNom());
 
-        enregistrementRepo.delete(enregistrement);
-    }
+        Creche creche = enregistrement.getCreche();
+        Enfant enfant = enregistrement.getEnfant();
+        Vaccin vaccin = enregistrement.getVaccin();
+        String userPrenom = enregistrement.getUser().getPrenom();
 
-    // =========================
-    // LECTURE
-    // =========================
+        enregistrementRepo.delete(enregistrement);
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("SUPPRIMER_ENREGISTREMENT", currentUser, creche, enfant, vaccin,
+                "date=" + dateVaccination + ", user=" + userPrenom);
+    }
 
     public List<EnregistrementVaccination> getEnregistrementsByEnfant(Long idEnfant) {
         Enfant enfant = enfantRepo.findById(idEnfant)
@@ -174,9 +185,6 @@ public class EnregistrementVaccinationService {
         return enregistrementRepo.findByCrecheNom(nomCreche);
     }
 
-    // =========================
-    // Vérification d'autorisation par crèche
-    // =========================
     private void verifierAuthorisationPourCreche(String nomCreche) {
         User current = securityUtils.getCurrentUser();
         if (!securityUtils.isAdmin()) {

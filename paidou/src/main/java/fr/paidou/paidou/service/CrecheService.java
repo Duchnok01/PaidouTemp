@@ -8,9 +8,9 @@ import fr.paidou.paidou.model.User;
 import fr.paidou.paidou.repository.CrecheRepository;
 import fr.paidou.paidou.repository.EnfantRepository;
 import fr.paidou.paidou.repository.EnregistrementVaccinationRepository;
-import fr.paidou.paidou.service.LogService;
 import fr.paidou.paidou.repository.UserRepository;
 import fr.paidou.paidou.security.SecurityUtils;
+
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,7 +23,6 @@ public class CrecheService {
     private final EnfantRepository enfantRepo;
     private final EnregistrementVaccinationRepository enregistrementRepo;
     private final SecurityUtils securityUtils;
-
     private final LogService logService;
 
     public CrecheService(CrecheRepository cRep, UserRepository uRep,
@@ -35,11 +34,6 @@ public class CrecheService {
         this.enregistrementRepo = evRepo;
         this.securityUtils = securityUtils;
         this.logService = logService;
-        logService.log("CREER_CRECHE", securityUtils.getCurrentUser().getPrenom(), nom);
-        logService.log("FERMER_CRECHE", securityUtils.getCurrentUser().getPrenom(), nom);
-        logService.log("CHANGER_DIRECTEUR", securityUtils.getCurrentUser().getPrenom(), nomCreche + " → " + nouveauDirecteurPrenom);
-        logService.log("TRANSFERER_ENFANTS_CRECHE", securityUtils.getCurrentUser().getPrenom(), from + " → " + to);
-        logService.log("SUPPRIMER_CRECHE", securityUtils.getCurrentUser().getPrenom(), nom);
     }
 
     public void rouvrirCreche(String nom) {
@@ -47,14 +41,14 @@ public class CrecheService {
                 .orElseThrow(() -> new IllegalArgumentException("Crèche introuvable"));
         creche.setEstFerme(false);
         crecheRepo.save(creche);
-        logService.log("ROUVRIR_CRECHE", securityUtils.getCurrentUser().getPrenom(), nom);
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("ROUVRIR_CRECHE", currentUser, creche, "nom=" + nom);
     }
 
-    // Créer
     public void createCreche(String nom, String directeurPrenom) {
         if (!securityUtils.isAdmin()) {
             throw new SecurityException("Seul un administrateur peut créer une crèche");
-            logService.log("RENOMMER_CRECHE", securityUtils.getCurrentUser().getPrenom(), ancienNom + " → " + nouveauNom);
         }
         String nomNormalized = nom.toLowerCase().trim();
         if (crecheRepo.findById(nomNormalized).isPresent()) {
@@ -66,9 +60,12 @@ public class CrecheService {
                 .orElseThrow(() -> new IllegalArgumentException("Directeur introuvable"));
         newCreche.setDirecteur(dir);
         crecheRepo.save(newCreche);
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("CREER_CRECHE", currentUser, newCreche,
+                "nom=" + nomNormalized + ", directeur=" + directeurPrenom);
     }
 
-    // Liste admin (avec infos)
     public List<CrecheSummaryDTO> getAllCrechesWithInfos() {
         return crecheRepo.findAll().stream()
                 .map(c -> new CrecheSummaryDTO(
@@ -79,7 +76,6 @@ public class CrecheService {
                 .toList();
     }
 
-    // Liste directrice (ses crèches avec infos)
     public List<CrecheSummaryDTO> getMesCrechesWithInfos() {
         User currentUser = securityUtils.getCurrentUser();
         return crecheRepo.findByDirecteurId(currentUser.getId()).stream()
@@ -91,7 +87,6 @@ public class CrecheService {
                 .toList();
     }
 
-    // Changer directeur
     public void changeDirecteur(String nomCreche, String nouveauDirecteurPrenom) {
         if (!securityUtils.isAdmin()) {
             throw new SecurityException("Seul un administrateur peut changer le directeur d'une crèche");
@@ -100,11 +95,16 @@ public class CrecheService {
                 .orElseThrow(() -> new IllegalArgumentException("Crèche introuvable"));
         User newDir = userRepo.findByPrenom(nouveauDirecteurPrenom.toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException("Nouveau directeur introuvable"));
+
+        String ancienDirecteurPrenom = c.getDirecteur().getPrenom();
         c.setDirecteur(newDir);
         crecheRepo.save(c);
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("CHANGER_DIRECTEUR", currentUser, c,
+                ancienDirecteurPrenom + " -> " + nouveauDirecteurPrenom);
     }
 
-    // Renommer (déjà existant, conservé)
     public void renameCreche(String ancienNom, String nouveauNom) {
         if (!securityUtils.isAdmin()) {
             throw new SecurityException("Seul un administrateur peut renommer une crèche");
@@ -122,6 +122,7 @@ public class CrecheService {
             newCreche.setDirecteur(creche.getDirecteur());
             newCreche.setEstFerme(creche.isEstFerme());
             crecheRepo.save(newCreche);
+
             // Transférer les enfants
             List<Enfant> enfants = enfantRepo.findByCrecheNom(ancienNomNorm);
             for (Enfant e : enfants) {
@@ -135,10 +136,13 @@ public class CrecheService {
                 enregistrementRepo.save(ev);
             }
             crecheRepo.delete(creche);
+
+            User currentUser = securityUtils.getCurrentUser();
+            logService.log("RENOMMER_CRECHE", currentUser, newCreche,
+                    ancienNomNorm + " -> " + nouveauNomNorm);
         }
     }
 
-    // Fermer une crèche
     public void fermerCreche(String nom) {
         if (!securityUtils.isAdmin()) {
             throw new SecurityException("Seul un administrateur peut fermer une crèche");
@@ -147,9 +151,11 @@ public class CrecheService {
                 .orElseThrow(() -> new IllegalArgumentException("Crèche introuvable"));
         c.setEstFerme(true);
         crecheRepo.save(c);
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("FERMER_CRECHE", currentUser, c, "nom=" + nom);
     }
 
-    // Transférer tous les enfants d'une crèche vers une autre
     public void transfererTousEnfants(String fromCreche, String toCreche) {
         if (!securityUtils.isAdmin()) {
             throw new SecurityException("Seul un administrateur peut transférer des enfants");
@@ -159,8 +165,10 @@ public class CrecheService {
         if (from.equals(to)) {
             throw new IllegalArgumentException("Impossible de transférer vers la même crèche");
         }
-        Creche source = crecheRepo.findById(from).orElseThrow(() -> new IllegalArgumentException("Crèche source introuvable"));
-        Creche cible = crecheRepo.findById(to).orElseThrow(() -> new IllegalArgumentException("Crèche cible introuvable"));
+        Creche source = crecheRepo.findById(from)
+                .orElseThrow(() -> new IllegalArgumentException("Crèche source introuvable"));
+        Creche cible = crecheRepo.findById(to)
+                .orElseThrow(() -> new IllegalArgumentException("Crèche cible introuvable"));
         List<Enfant> enfants = enfantRepo.findByCrecheNom(from);
         for (Enfant e : enfants) {
             e.setCreche(cible);
@@ -171,9 +179,12 @@ public class CrecheService {
             ev.setCreche(cible);
             enregistrementRepo.save(ev);
         }
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("TRANSFERER_ENFANTS_CRECHE", currentUser, source,
+                from + " -> " + to);
     }
 
-    // Supprimer définitivement (si vide)
     public void deleteCreche(String nom) {
         if (!securityUtils.isAdmin()) {
             throw new SecurityException("Seul un administrateur peut supprimer une crèche");
@@ -182,11 +193,16 @@ public class CrecheService {
         Creche creche = crecheRepo.findById(nomNorm)
                 .orElseThrow(() -> new IllegalArgumentException("Crèche introuvable"));
         if (!enfantRepo.findByCrecheNom(nomNorm).isEmpty()) {
-            throw new IllegalArgumentException("Impossible de supprimer : la crèche contient encore des enfants. Transférez-les d'abord.");
+            throw new IllegalArgumentException(
+                "Impossible de supprimer : la crèche contient encore des enfants. Transférez-les d'abord.");
         }
         if (!enregistrementRepo.findByCrecheNom(nomNorm).isEmpty()) {
-            throw new IllegalArgumentException("Impossible de supprimer : la crèche a des enregistrements de vaccination.");
+            throw new IllegalArgumentException(
+                "Impossible de supprimer : la crèche a des enregistrements de vaccination.");
         }
         crecheRepo.delete(creche);
+
+        User currentUser = securityUtils.getCurrentUser();
+        logService.log("SUPPRIMER_CRECHE", currentUser, creche, "nom=" + nomNorm);
     }
 }

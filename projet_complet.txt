@@ -1,0 +1,2601 @@
+===== paidou/src/main/java/fr/paidou/paidou/model/Enfant.java =====
+package fr.paidou.paidou.model;
+
+import java.time.LocalDate;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.Data;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+
+@Data
+@Entity
+@Table(name = "enfants")
+public class Enfant {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id_enfant;
+
+    @Column(nullable = false)
+    private String prenom;
+
+    @Column(nullable = false)
+    private String nom;
+
+    @Column(nullable = false)
+    private LocalDate dateDeNaissance;
+    
+    @ManyToOne
+    @JoinColumn(name = "nom_creche", nullable = false)
+    private Creche creche;
+    
+    @Column(nullable = false)
+    private boolean estParti = false;
+
+}===== paidou/src/main/java/fr/paidou/paidou/model/Creche.java =====
+package fr.paidou.paidou.model;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.Data;
+
+@Data
+@Entity
+@Table(name = "creches")
+public class Creche {
+
+    @Id
+    private String nom;
+
+    @ManyToOne
+    @JoinColumn(name = "id_directeur", nullable = false)
+    private User directeur;
+
+    @Column(nullable = false)
+    private boolean estFerme = false;
+}===== paidou/src/main/java/fr/paidou/paidou/model/EnregistrementVaccination.java =====
+package fr.paidou.paidou.model;
+
+import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.Entity;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.Data;
+
+@Data
+@Entity
+@Table(name = "enregistrement_vaccinations")
+public class EnregistrementVaccination {
+
+    @EmbeddedId
+    private EnregistrementVaccinationId id; // id de l'enregistrement de vaccination
+
+    @ManyToOne
+    @MapsId("idEnfant") // "idEnfant" = le nom du champ dans EnregistrementVaccinationId
+    @JoinColumn(name = "id_enfant")
+    private Enfant enfant;
+
+    @ManyToOne
+    @MapsId("idVaccin")
+    @JoinColumn(name = "id_vaccin")
+    private Vaccin vaccin;
+
+    @ManyToOne
+    @JoinColumn(name = "id_creche", nullable = false)
+    private Creche creche;
+
+    @ManyToOne
+    @JoinColumn(name = "id_user", nullable = false)
+    private User user;
+    
+
+    
+
+
+}===== paidou/src/main/java/fr/paidou/paidou/model/User.java =====
+package fr.paidou.paidou.model;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.Data;
+
+@Data
+@Entity
+@Table(name = "users")
+public class User {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true)
+    private String prenom;
+
+    @Column(nullable = false)
+    private String mdp;
+
+    @Column(nullable = false)
+    private boolean estParti = false;
+
+    @Column(nullable = false)
+    private boolean doitChangerMdp = true;
+
+    @Column(nullable = false)
+    private String role = "directrice";
+
+}===== paidou/src/main/java/fr/paidou/paidou/model/Vaccin.java =====
+package fr.paidou.paidou.model;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.Data;
+
+@Data
+@Entity
+@Table(name = "vaccins")
+public class Vaccin {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private String nom; // nom du vaccin
+
+    @Column(nullable = false)
+    private String maladiesPrevenues; // liste de maladies prevenues par le vaccin, séparées par des virgules
+
+    @Column(nullable = true)
+    private Integer pourEnfantsNesAvant; //Certains vaccins sont uniquement pour les enfants nés avant une certaine date
+
+    @Column(nullable = true)
+    private Integer pourEnfantsNesApres; //Certains vaccins sont uniquement pour les enfants nés après une certaine date
+
+    @Column(nullable = false)
+    private Integer agePremiereVaccination; // age de la premiere vaccination
+
+    @Column(nullable = false)
+    private Integer nbMoisPremierDelai; // nombre de mois entre la premiere et la deuxieme prise
+
+    @Column(nullable = true)
+    private Integer nbMoisDeuxiemeDelai; // nombre de mois entre la deuxieme et la troisieme prise, si il y en a une
+
+    @Column(nullable = false)
+    private boolean estObsolete = false;
+
+}===== paidou/src/main/java/fr/paidou/paidou/model/Log.java =====
+package fr.paidou.paidou.model;
+
+import jakarta.persistence.*;
+import lombok.Data;
+import java.time.LocalDateTime;
+
+@Data
+@Entity
+@Table(name = "logs")
+public class Log {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String action;
+
+    private String user;
+
+    private LocalDateTime timestamp;
+
+    private String details;
+}
+===== paidou/src/main/java/fr/paidou/paidou/model/EnregistrementVaccinationId.java =====
+package fr.paidou.paidou.model;
+
+import java.io.Serializable;
+import java.time.LocalDate;
+import jakarta.persistence.Embeddable;
+import lombok.Data;
+
+@Data
+@Embeddable
+public class EnregistrementVaccinationId implements Serializable {
+    private Long idEnfant;
+    private Long idVaccin;
+    private LocalDate dateVaccination;
+}===== paidou/src/main/java/fr/paidou/paidou/service/VaccinService.java =====
+package fr.paidou.paidou.service;
+
+import fr.paidou.paidou.controller.VaccinController.VaccinPourEnfantDTO;
+import fr.paidou.paidou.model.Enfant;
+import fr.paidou.paidou.model.EnregistrementVaccination;
+import fr.paidou.paidou.model.Vaccin;
+import fr.paidou.paidou.repository.EnfantRepository;
+import fr.paidou.paidou.repository.EnregistrementVaccinationRepository;
+import fr.paidou.paidou.repository.VaccinRepository;
+import fr.paidou.paidou.security.SecurityUtils;
+import fr.paidou.paidou.service.LogService;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public class VaccinService {
+
+    private final VaccinRepository vaccinRepo;
+    private final SecurityUtils securityUtils;
+    private final EnfantRepository enfantRepo;
+    private final EnregistrementVaccinationRepository enregistrementRepo;
+
+    private final LogService logService;
+
+    public VaccinService(VaccinRepository vRep, SecurityUtils securityUtils,
+                         EnfantRepository eRep, EnregistrementVaccinationRepository evRepo,
+                         LogService logService) {
+        this.vaccinRepo = vRep;
+        this.securityUtils = securityUtils;
+        this.enfantRepo = eRep;
+        this.enregistrementRepo = evRepo;
+        this.logService = logService;
+    }
+
+    public void reactiverVaccin(Long id) {
+        Vaccin vaccin = vaccinRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
+        vaccin.setEstObsolete(false);
+        vaccinRepo.save(vaccin);
+        logService.log("REACTIVER_VACCIN", securityUtils.getCurrentUser().getPrenom(), String.valueOf(id));
+    }
+
+    public void createVaccin(String nom, String listeMaladies, Integer pourEnfantsNesAvant,
+                             Integer pourEnfantsNesApres, Integer agePremiereVaccination,
+                             Integer nbMoisPremierDelai, Integer nbMoisDeuxiemeDelai) {
+        if (!securityUtils.isAdmin()) {
+            throw new SecurityException("Seul un administrateur peut créer un vaccin");
+        }
+        if (vaccinRepo.findByNom(nom.toLowerCase()).isPresent()) {
+            throw new IllegalArgumentException("Un vaccin avec ce nom existe déjà");
+        }
+
+        Vaccin newV = new Vaccin();
+        newV.setNom(nom);
+        newV.setMaladiesPrevenues(listeMaladies);
+        newV.setPourEnfantsNesAvant(pourEnfantsNesAvant);
+        newV.setPourEnfantsNesApres(pourEnfantsNesApres);
+        newV.setAgePremiereVaccination(agePremiereVaccination);
+        newV.setNbMoisPremierDelai(nbMoisPremierDelai);
+        newV.setNbMoisDeuxiemeDelai(nbMoisDeuxiemeDelai);
+        vaccinRepo.save(newV);
+        logService.log("CREER_VACCIN", securityUtils.getCurrentUser().getPrenom(), nom);
+    }
+
+    public List<Vaccin> getAllVaccins() {
+        return vaccinRepo.findAll().stream()
+                .filter(v -> !v.isEstObsolete())
+                .toList();
+    }
+
+    public List<Vaccin> getAllVaccinsAdmin() {
+        return vaccinRepo.findAll();
+    }
+
+    public void editVaccin(Long id, String nom, String listeMaladies, Integer pourEnfantsNesAvant,
+                           Integer pourEnfantsNesApres, Integer agePremiereVaccination,
+                           Integer nbMoisPremierDelai, Integer nbMoisDeuxiemeDelai) {
+        if (!securityUtils.isAdmin()) {
+            throw new SecurityException("Seul un administrateur peut modifier un vaccin");
+        }
+        Vaccin newV = vaccinRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
+        newV.setNom(nom);
+        newV.setMaladiesPrevenues(listeMaladies);
+        newV.setPourEnfantsNesAvant(pourEnfantsNesAvant);
+        newV.setPourEnfantsNesApres(pourEnfantsNesApres);
+        newV.setAgePremiereVaccination(agePremiereVaccination);
+        newV.setNbMoisPremierDelai(nbMoisPremierDelai);
+        newV.setNbMoisDeuxiemeDelai(nbMoisDeuxiemeDelai);
+        vaccinRepo.save(newV);
+    }
+
+    public void rendreObsolete(Long id) {
+        if (!securityUtils.isAdmin()) {
+            throw new SecurityException("Seul un administrateur peut rendre un vaccin obsolète");
+        }
+        Vaccin vaccin = vaccinRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
+        vaccin.setEstObsolete(true);
+        vaccinRepo.save(vaccin);
+        logService.log("RENDRE_OBSOLETE_VACCIN", securityUtils.getCurrentUser().getPrenom(), String.valueOf(id));
+    }
+
+    public void deleteVaccinPhysique(Long id) {
+        if (!securityUtils.isAdmin()) throw new SecurityException("Admin requis");
+        List<EnregistrementVaccination> evs = enregistrementRepo.findByIdIdVaccin(id);
+        if (!evs.isEmpty()) {
+            throw new IllegalArgumentException(
+                "Impossible de supprimer ce vaccin : il est utilisé dans " + evs.size() + " enregistrement(s)."
+            );
+        }
+        vaccinRepo.deleteById(id);
+        logService.log("SUPPRIMER_VACCIN", securityUtils.getCurrentUser().getPrenom(), String.valueOf(id));
+    }
+
+    public Vaccin getVaccinById(Long id) {
+        return vaccinRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
+    }
+
+    public List<VaccinPourEnfantDTO> getVaccinsPourEnfant(Long enfantId) {
+        Enfant enfant = enfantRepo.findById(enfantId)
+                .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
+        List<Vaccin> vaccins = getAllVaccins(); // non obsolètes
+        List<EnregistrementVaccination> enregistrements = enregistrementRepo.findByIdIdEnfant(enfantId);
+        int annee = enfant.getDateDeNaissance().getYear();
+        List<VaccinPourEnfantDTO> result = new ArrayList<>();
+        for (Vaccin v : vaccins) {
+            if (v.getPourEnfantsNesAvant() != null && annee > v.getPourEnfantsNesAvant()) continue;
+            if (v.getPourEnfantsNesApres() != null && annee < v.getPourEnfantsNesApres()) continue;
+            long recues = enregistrements.stream().filter(ev -> ev.getVaccin().getId().equals(v.getId())).count();
+            int requises = v.getNbMoisDeuxiemeDelai() != null ? 3 : 2;
+            boolean complet = recues >= requises;
+            result.add(new VaccinPourEnfantDTO(v.getId(), v.getNom(), recues, requises, complet));
+        }
+        return result;
+    }
+}
+===== paidou/src/main/java/fr/paidou/paidou/service/LogService.java =====
+package fr.paidou.paidou.service;
+
+import fr.paidou.paidou.model.Log;
+import fr.paidou.paidou.repository.LogRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+
+@Service
+public class LogService {
+
+    @Autowired
+    private LogRepository logRepository;
+
+    public void log(String action, String user, String details) {
+        Log log = new Log();
+        log.setAction(action);
+        log.setUser(user);
+        log.setTimestamp(LocalDateTime.now());
+        log.setDetails(details);
+        logRepository.save(log);
+    }
+}
+===== paidou/src/main/java/fr/paidou/paidou/service/EnregistrementVaccinationService.java =====
+package fr.paidou.paidou.service;
+
+import fr.paidou.paidou.model.*;
+import fr.paidou.paidou.repository.*;
+import fr.paidou.paidou.security.SecurityUtils;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class EnregistrementVaccinationService {
+
+    private final EnregistrementVaccinationRepository enregistrementRepo;
+    private final EnfantRepository enfantRepo;
+    private final VaccinRepository vaccinRepo;
+    private final CrecheRepository crecheRepo;
+    private final UserRepository userRepo;
+    private final SecurityUtils securityUtils;
+
+    public EnregistrementVaccinationService(
+            EnregistrementVaccinationRepository enregistrementRepo,
+            EnfantRepository enfantRepo,
+            VaccinRepository vaccinRepo,
+            CrecheRepository crecheRepo,
+            UserRepository userRepo,
+            SecurityUtils securityUtils) {
+        this.enregistrementRepo = enregistrementRepo;
+        this.enfantRepo = enfantRepo;
+        this.vaccinRepo = vaccinRepo;
+        this.crecheRepo = crecheRepo;
+        this.userRepo = userRepo;
+        this.securityUtils = securityUtils;
+    }
+
+    // =========================
+    // CREATE
+    // =========================
+    public EnregistrementVaccination createEnregistrement(
+            Long idEnfant,
+            Long idVaccin,
+            LocalDate dateVaccination,
+            String nomCreche,
+            Long idUser) {
+
+        verifierAuthorisationPourCreche(nomCreche);
+
+        Enfant enfant = enfantRepo.findById(idEnfant)
+                .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
+
+        Vaccin vaccin = vaccinRepo.findById(idVaccin)
+                .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
+
+        // Validation des dates
+        if (dateVaccination.isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("La date de vaccination ne peut pas être dans le futur.");
+        }
+        if (dateVaccination.isBefore(enfant.getDateDeNaissance())) {
+            throw new IllegalArgumentException("La date de vaccination ne peut pas être avant la naissance de l'enfant.");
+        }
+        List<EnregistrementVaccination> existants = enregistrementRepo.findByIdIdEnfant(idEnfant);
+        Optional<LocalDate> derniere = existants.stream()
+                .filter(ev -> ev.getVaccin().getId().equals(idVaccin))
+                .map(ev -> ev.getId().getDateVaccination())
+                .max(LocalDate::compareTo);
+        if (derniere.isPresent() && dateVaccination.isBefore(derniere.get())) {
+            throw new IllegalArgumentException("La date ne peut pas être antérieure à la dose précédente (" + derniere.get() + ").");
+        }
+
+        Creche creche = crecheRepo.findById(nomCreche)
+                .orElseThrow(() -> new IllegalArgumentException("Crèche introuvable"));
+
+        User user = userRepo.findById(idUser)
+                .orElseThrow(() -> new IllegalArgumentException("User introuvable"));
+
+        EnregistrementVaccinationId id = new EnregistrementVaccinationId();
+        id.setIdEnfant(idEnfant);
+        id.setIdVaccin(idVaccin);
+        id.setDateVaccination(dateVaccination);
+
+        EnregistrementVaccination ev = new EnregistrementVaccination();
+        ev.setId(id);
+        ev.setEnfant(enfant);
+        ev.setVaccin(vaccin);
+        ev.setCreche(creche);
+        ev.setUser(user);
+
+        return enregistrementRepo.save(ev);
+    }
+
+    // =========================
+    // EDIT
+    // =========================
+    public EnregistrementVaccination editEnregistrement(
+            Long idEnfant,
+            Long idVaccin,
+            LocalDate ancienneDate,
+            Long newIdVaccin,
+            LocalDate nouvelleDate) {
+
+        EnregistrementVaccinationId oldId = new EnregistrementVaccinationId();
+        oldId.setIdEnfant(idEnfant);
+        oldId.setIdVaccin(idVaccin);
+        oldId.setDateVaccination(ancienneDate);
+
+        EnregistrementVaccination ancien = enregistrementRepo.findById(oldId)
+                .orElseThrow(() -> new IllegalArgumentException("Enregistrement introuvable"));
+
+        verifierAuthorisationPourCreche(ancien.getCreche().getNom());
+
+        Vaccin newVaccin = vaccinRepo.findById(newIdVaccin)
+                .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
+
+        // Optionnel : même validation de dates que pour la création
+        if (nouvelleDate.isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("La date de vaccination ne peut pas être dans le futur.");
+        }
+        if (nouvelleDate.isBefore(ancien.getEnfant().getDateDeNaissance())) {
+            throw new IllegalArgumentException("La date de vaccination ne peut pas être avant la naissance de l'enfant.");
+        }
+
+        enregistrementRepo.delete(ancien);
+
+        EnregistrementVaccinationId newId = new EnregistrementVaccinationId();
+        newId.setIdEnfant(idEnfant);
+        newId.setIdVaccin(newIdVaccin);
+        newId.setDateVaccination(nouvelleDate);
+
+        EnregistrementVaccination nouveau = new EnregistrementVaccination();
+        nouveau.setId(newId);
+        nouveau.setEnfant(ancien.getEnfant());
+        nouveau.setVaccin(newVaccin);
+        nouveau.setCreche(ancien.getCreche());
+        nouveau.setUser(ancien.getUser());
+
+        return enregistrementRepo.save(nouveau);
+    }
+
+    // =========================
+    // DELETE
+    // =========================
+    public void deleteEnregistrement(
+            Long idEnfant,
+            Long idVaccin,
+            LocalDate dateVaccination) {
+
+        EnregistrementVaccinationId id = new EnregistrementVaccinationId();
+        id.setIdEnfant(idEnfant);
+        id.setIdVaccin(idVaccin);
+        id.setDateVaccination(dateVaccination);
+
+        EnregistrementVaccination enregistrement = enregistrementRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Enregistrement introuvable"));
+
+        verifierAuthorisationPourCreche(enregistrement.getCreche().getNom());
+
+        enregistrementRepo.delete(enregistrement);
+    }
+
+    // =========================
+    // LECTURE
+    // =========================
+
+    public List<EnregistrementVaccination> getEnregistrementsByEnfant(Long idEnfant) {
+        Enfant enfant = enfantRepo.findById(idEnfant)
+                .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
+        verifierAuthorisationPourCreche(enfant.getCreche().getNom());
+        return enregistrementRepo.findByIdIdEnfant(idEnfant);
+    }
+
+    public List<EnregistrementVaccination> getEnregistrementsByCreche(String nomCreche) {
+        verifierAuthorisationPourCreche(nomCreche);
+        return enregistrementRepo.findByCrecheNom(nomCreche);
+    }
+
+    // =========================
+    // Vérification d'autorisation par crèche
+    // =========================
+    private void verifierAuthorisationPourCreche(String nomCreche) {
+        User current = securityUtils.getCurrentUser();
+        if (!securityUtils.isAdmin()) {
+            Creche creche = crecheRepo.findById(nomCreche)
+                    .orElseThrow(() -> new IllegalArgumentException("Crèche introuvable"));
+            if (!creche.getDirecteur().getId().equals(current.getId())) {
+                throw new SecurityException("Vous n'êtes pas autorisé à modifier cette crèche");
+            }
+        }
+    }
+}===== paidou/src/main/java/fr/paidou/paidou/service/UserService.java =====
+package fr.paidou.paidou.service;
+
+import fr.paidou.paidou.model.Creche;
+import fr.paidou.paidou.model.User;
+import fr.paidou.paidou.repository.UserRepository;
+
+import java.util.List;
+import java.util.UUID;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+import fr.paidou.paidou.model.Creche;
+import fr.paidou.paidou.repository.CrecheRepository;
+import fr.paidou.paidou.service.LogService;
+import fr.paidou.paidou.security.SecurityUtils;
+
+
+
+@Service
+public class UserService {
+   
+   
+   
+    private final UserRepository userRepo;
+    private final BCryptPasswordEncoder encoder;
+    private final CrecheRepository crecheRepo;
+    private final LogService logService;
+    private final SecurityUtils securityUtils;
+    
+    public UserService(UserRepository uRep, BCryptPasswordEncoder bcpe, CrecheRepository crecheRepo, LogService logService, SecurityUtils securityUtils) {
+        this.userRepo = uRep;
+        this.encoder = bcpe;
+        this.crecheRepo = crecheRepo;
+    }
+
+
+
+
+
+    public String createUser(String prenom) {
+        String prenomNormalized = prenom.toLowerCase();
+        if (userRepo.findByPrenom(prenomNormalized).isPresent()) {
+            throw new IllegalArgumentException("Ce prénom existe déjà dans la liste des directions.");
+        }
+        User newUser = new User();
+        newUser.setPrenom(prenomNormalized);
+        String mdp = UUID.randomUUID().toString();
+        newUser.setMdp(encoder.encode(mdp));
+        userRepo.save(newUser);
+        logService.log("CREER_USER", securityUtils.getCurrentUser().getPrenom(), prenom);
+        logService.log("RESET_MDP", securityUtils.getCurrentUser().getPrenom(), prenom);
+        return mdp;
+    }
+
+
+    public User getUserByPrenom(String prenom) {
+        return userRepo.findByPrenom(prenom.toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
+    }
+
+    public String resetPassword(String prenom) {
+        User user = userRepo.findByPrenom(prenom.toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
+        String mdp = UUID.randomUUID().toString();
+        user.setMdp(encoder.encode(mdp));
+        user.setDoitChangerMdp(true);
+        userRepo.save(user);
+        return mdp;
+    }
+
+    public void fixNameTypo(String prenom, String nvPrenom) // édite les info utilisateurs
+    {
+        User user = userRepo.findByPrenom(prenom.toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
+        user.setPrenom(nvPrenom.toLowerCase());
+        userRepo.save(user);
+        logService.log("RENOMMER_USER", securityUtils.getCurrentUser().getPrenom(), prenom + " → " + nvPrenom);
+    }
+
+
+
+
+
+
+    public void disableUserAccount(String prenom) // desactive un compte directrice (supprime ses acces sans perdre l'information de son passage)
+    {
+        User user = userRepo.findByPrenom(prenom.toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
+        user.setEstParti(true);
+        userRepo.save(user);
+        logService.log("DESACTIVER_USER", securityUtils.getCurrentUser().getPrenom(), prenom);
+    }
+
+
+    public List<User> getAllUsers() {
+        return userRepo.findAll();
+    }
+
+
+
+    public void setPassword(String prenom, String passwd) // édite les info utilisateurs
+    {
+        User user = userRepo.findByPrenom(prenom.toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
+        user.setMdp(encoder.encode(passwd));
+        user.setDoitChangerMdp(false);
+        userRepo.save(user);
+    }
+
+    public void reactiverUser(String prenom) {
+        User user = userRepo.findByPrenom(prenom.toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
+        user.setEstParti(false);
+        userRepo.save(user);
+        logService.log("REACTIVER_USER", securityUtils.getCurrentUser().getPrenom(), prenom);
+    }
+
+
+    public Boolean verifyPassword(String prenom, String passwd) // vérifie si le mot de passe est correct
+    {
+        try {
+        User user = userRepo.findByPrenom(prenom.toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
+            return encoder.matches(passwd, user.getMdp());
+        } catch (Exception e) {
+            System.out.println("Erreur lors de la vérification du mot de passe: " + e.getMessage());
+            return null;
+        }
+    }
+
+
+
+    public String[] getRedirectInfo(String prenom) { // renvoie un tableau de string contenant la page vers laquelle rediriger, le role de l'utilisateur, et son prenom 
+        
+        User user = this.getUserByPrenom(prenom.toLowerCase());
+
+        return new String[] {user.isDoitChangerMdp()?"changer-mdp":user.getRole().equals("directrice")?"accueil":user.getRole(), user.getRole(), user.getPrenom()};  
+        
+
+    }
+
+
+
+
+
+
+
+
+
+    public void deleteUser(String prenom) {
+        User user = userRepo.findByPrenom(prenom.toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("User introuvable"));
+        
+        // Vérifier si le user dirige une ou plusieurs crèches
+        List<Creche> creches = crecheRepo.findByDirecteurId(user.getId());
+        if (!creches.isEmpty()) {
+            throw new IllegalArgumentException(
+                "Impossible de supprimer " + prenom + " : elle dirige encore la/les crèche(s) " +
+                creches.stream().map(Creche::getNom).collect(java.util.stream.Collectors.joining(", "))
+            );
+        }
+        
+        userRepo.delete(user);
+        logService.log("SUPPRIMER_USER", securityUtils.getCurrentUser().getPrenom(), prenom);
+    }
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+}
+===== paidou/src/main/java/fr/paidou/paidou/service/CrecheService.java =====
+package fr.paidou.paidou.service;
+
+import fr.paidou.paidou.controller.CrecheController.CrecheSummaryDTO;
+import fr.paidou.paidou.model.Creche;
+import fr.paidou.paidou.model.Enfant;
+import fr.paidou.paidou.model.EnregistrementVaccination;
+import fr.paidou.paidou.model.User;
+import fr.paidou.paidou.repository.CrecheRepository;
+import fr.paidou.paidou.repository.EnfantRepository;
+import fr.paidou.paidou.repository.EnregistrementVaccinationRepository;
+import fr.paidou.paidou.service.LogService;
+import fr.paidou.paidou.repository.UserRepository;
+import fr.paidou.paidou.security.SecurityUtils;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class CrecheService {
+
+    private final CrecheRepository crecheRepo;
+    private final UserRepository userRepo;
+    private final EnfantRepository enfantRepo;
+    private final EnregistrementVaccinationRepository enregistrementRepo;
+    private final SecurityUtils securityUtils;
+
+    private final LogService logService;
+
+    public CrecheService(CrecheRepository cRep, UserRepository uRep,
+                         EnfantRepository eRep, EnregistrementVaccinationRepository evRepo,
+                         SecurityUtils securityUtils, LogService logService) {
+        this.crecheRepo = cRep;
+        this.userRepo = uRep;
+        this.enfantRepo = eRep;
+        this.enregistrementRepo = evRepo;
+        this.securityUtils = securityUtils;
+        this.logService = logService;
+    }
+
+    public void rouvrirCreche(String nom) {
+        Creche creche = crecheRepo.findById(nom.toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("Crèche introuvable"));
+        creche.setEstFerme(false);
+        crecheRepo.save(creche);
+        logService.log("ROUVRIR_CRECHE", securityUtils.getCurrentUser().getPrenom(), nom);
+    }
+
+    // Créer
+    public void createCreche(String nom, String directeurPrenom) {
+        if (!securityUtils.isAdmin()) {
+            throw new SecurityException("Seul un administrateur peut créer une crèche");
+        }
+        String nomNormalized = nom.toLowerCase().trim();
+        if (crecheRepo.findById(nomNormalized).isPresent()) {
+            throw new IllegalArgumentException("Une crèche avec ce nom existe déjà");
+        }
+        Creche newCreche = new Creche();
+        newCreche.setNom(nomNormalized);
+        User dir = userRepo.findByPrenom(directeurPrenom.toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("Directeur introuvable"));
+        newCreche.setDirecteur(dir);
+        crecheRepo.save(newCreche);
+        logService.log("CREER_CRECHE", securityUtils.getCurrentUser().getPrenom(), nomNormalized);
+    }
+
+    // Liste admin (avec infos)
+    public List<CrecheSummaryDTO> getAllCrechesWithInfos() {
+        return crecheRepo.findAll().stream()
+                .map(c -> new CrecheSummaryDTO(
+                        c.getNom(),
+                        c.getDirecteur().getPrenom(),
+                        c.isEstFerme(),
+                        enfantRepo.countByCrecheNom(c.getNom())))
+                .toList();
+    }
+
+    // Liste directrice (ses crèches avec infos)
+    public List<CrecheSummaryDTO> getMesCrechesWithInfos() {
+        User currentUser = securityUtils.getCurrentUser();
+        return crecheRepo.findByDirecteurId(currentUser.getId()).stream()
+                .map(c -> new CrecheSummaryDTO(
+                        c.getNom(),
+                        c.getDirecteur().getPrenom(),
+                        c.isEstFerme(),
+                        enfantRepo.countByCrecheNom(c.getNom())))
+                .toList();
+    }
+
+    // Changer directeur
+    public void changeDirecteur(String nomCreche, String nouveauDirecteurPrenom) {
+        if (!securityUtils.isAdmin()) {
+            throw new SecurityException("Seul un administrateur peut changer le directeur d'une crèche");
+        }
+        Creche c = crecheRepo.findById(nomCreche.toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("Crèche introuvable"));
+        User newDir = userRepo.findByPrenom(nouveauDirecteurPrenom.toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("Nouveau directeur introuvable"));
+        c.setDirecteur(newDir);
+        crecheRepo.save(c);
+        logService.log("CHANGER_DIRECTEUR", securityUtils.getCurrentUser().getPrenom(), nomCreche + " → " + nouveauDirecteurPrenom);
+    }
+
+    // Renommer (déjà existant, conservé)
+    public void renameCreche(String ancienNom, String nouveauNom) {
+        if (!securityUtils.isAdmin()) {
+            throw new SecurityException("Seul un administrateur peut renommer une crèche");
+        }
+        String ancienNomNorm = ancienNom.toLowerCase();
+        String nouveauNomNorm = nouveauNom.toLowerCase().trim();
+        Creche creche = crecheRepo.findById(ancienNomNorm)
+                .orElseThrow(() -> new IllegalArgumentException("Crèche introuvable"));
+        if (!ancienNomNorm.equals(nouveauNomNorm) && crecheRepo.findById(nouveauNomNorm).isPresent()) {
+            throw new IllegalArgumentException("Une crèche avec ce nom existe déjà");
+        }
+        if (!ancienNomNorm.equals(nouveauNomNorm)) {
+            Creche newCreche = new Creche();
+            newCreche.setNom(nouveauNomNorm);
+            newCreche.setDirecteur(creche.getDirecteur());
+            newCreche.setEstFerme(creche.isEstFerme());
+            crecheRepo.save(newCreche);
+            // Transférer les enfants
+            List<Enfant> enfants = enfantRepo.findByCrecheNom(ancienNomNorm);
+            for (Enfant e : enfants) {
+                e.setCreche(newCreche);
+                enfantRepo.save(e);
+            }
+            // Transférer les enregistrements
+            List<EnregistrementVaccination> evs = enregistrementRepo.findByCrecheNom(ancienNomNorm);
+            for (EnregistrementVaccination ev : evs) {
+                ev.setCreche(newCreche);
+                enregistrementRepo.save(ev);
+            }
+            crecheRepo.delete(creche);
+        }
+    }
+
+    // Fermer une crèche
+    public void fermerCreche(String nom) {
+        if (!securityUtils.isAdmin()) {
+            throw new SecurityException("Seul un administrateur peut fermer une crèche");
+        }
+        Creche c = crecheRepo.findById(nom.toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("Crèche introuvable"));
+        c.setEstFerme(true);
+        crecheRepo.save(c);
+        logService.log("FERMER_CRECHE", securityUtils.getCurrentUser().getPrenom(), nom);
+    }
+
+    // Transférer tous les enfants d'une crèche vers une autre
+    public void transfererTousEnfants(String fromCreche, String toCreche) {
+        if (!securityUtils.isAdmin()) {
+            throw new SecurityException("Seul un administrateur peut transférer des enfants");
+        }
+        String from = fromCreche.toLowerCase();
+        String to = toCreche.toLowerCase();
+        if (from.equals(to)) {
+            throw new IllegalArgumentException("Impossible de transférer vers la même crèche");
+        }
+        Creche source = crecheRepo.findById(from).orElseThrow(() -> new IllegalArgumentException("Crèche source introuvable"));
+        Creche cible = crecheRepo.findById(to).orElseThrow(() -> new IllegalArgumentException("Crèche cible introuvable"));
+        List<Enfant> enfants = enfantRepo.findByCrecheNom(from);
+        for (Enfant e : enfants) {
+            e.setCreche(cible);
+            enfantRepo.save(e);
+        }
+        List<EnregistrementVaccination> evs = enregistrementRepo.findByCrecheNom(from);
+        for (EnregistrementVaccination ev : evs) {
+            ev.setCreche(cible);
+            enregistrementRepo.save(ev);
+        }
+        logService.log("TRANSFERER_ENFANTS_CRECHE", securityUtils.getCurrentUser().getPrenom(), from + " → " + to);
+    }
+
+    // Supprimer définitivement (si vide)
+    public void deleteCreche(String nom) {
+        if (!securityUtils.isAdmin()) {
+            throw new SecurityException("Seul un administrateur peut supprimer une crèche");
+        }
+        String nomNorm = nom.toLowerCase();
+        Creche creche = crecheRepo.findById(nomNorm)
+                .orElseThrow(() -> new IllegalArgumentException("Crèche introuvable"));
+        if (!enfantRepo.findByCrecheNom(nomNorm).isEmpty()) {
+            throw new IllegalArgumentException("Impossible de supprimer : la crèche contient encore des enfants. Transférez-les d'abord.");
+        }
+        if (!enregistrementRepo.findByCrecheNom(nomNorm).isEmpty()) {
+            throw new IllegalArgumentException("Impossible de supprimer : la crèche a des enregistrements de vaccination.");
+        }
+        crecheRepo.delete(creche);
+        logService.log("SUPPRIMER_CRECHE", securityUtils.getCurrentUser().getPrenom(), nomNorm);
+    }
+}
+===== paidou/src/main/java/fr/paidou/paidou/service/EnfantService.java =====
+package fr.paidou.paidou.service;
+
+import fr.paidou.paidou.controller.EnfantController.EnfantStatutGlobalDTO;
+import fr.paidou.paidou.controller.EnfantController.VaccinStatusDTO;
+import fr.paidou.paidou.model.Creche;
+import fr.paidou.paidou.model.Enfant;
+import fr.paidou.paidou.model.EnregistrementVaccination;
+import fr.paidou.paidou.model.Vaccin;
+import fr.paidou.paidou.model.User;
+import fr.paidou.paidou.repository.CrecheRepository;
+import fr.paidou.paidou.repository.EnfantRepository;
+import fr.paidou.paidou.repository.EnregistrementVaccinationRepository;
+import fr.paidou.paidou.security.SecurityUtils;
+import fr.paidou.paidou.service.LogService;
+
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public class EnfantService {
+
+    private final CrecheRepository crecheRepo;
+    private final EnfantRepository enfantRepo;
+    private final SecurityUtils securityUtils;
+    private final VaccinService vaccinService;
+    private final EnregistrementVaccinationRepository enregistrementRepo;
+
+    private final LogService logService;
+
+    public EnfantService(CrecheRepository cRep, EnfantRepository eRep, SecurityUtils securityUtils,
+                         EnregistrementVaccinationRepository evRep, VaccinService vaccinService,
+                         LogService logService) {
+        this.crecheRepo = cRep;
+        this.enfantRepo = eRep;
+        this.securityUtils = securityUtils;
+        this.enregistrementRepo = evRep;
+        this.vaccinService = vaccinService;
+        this.logService = logService;
+    }
+
+    public void reactiverEnfant(Long id) {
+        Enfant enfant = enfantRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
+        enfant.setEstParti(false);
+        enfantRepo.save(enfant);
+        logService.log("REACTIVER_ENFANT", securityUtils.getCurrentUser().getPrenom(), String.valueOf(id));
+    }
+
+    private void verifierAuthorisationPourCreche(String nomCreche) {
+        User current = securityUtils.getCurrentUser();
+        if (!securityUtils.isAdmin()) {
+            Creche creche = crecheRepo.findById(nomCreche)
+                    .orElseThrow(() -> new IllegalArgumentException("Crèche introuvable"));
+            if (!creche.getDirecteur().getId().equals(current.getId())) {
+                throw new SecurityException("Vous ne pouvez pas modifier des enfants de cette crèche");
+            }
+        }
+    }
+
+    public void createEnfant(String nom, String prenom, LocalDate birth, String nomCreche) {
+        verifierAuthorisationPourCreche(nomCreche);
+        Creche c = crecheRepo.findById(nomCreche)
+                .orElseThrow(() -> new IllegalArgumentException("Crèche introuvable"));
+        Enfant child = new Enfant();
+        child.setPrenom(prenom);
+        child.setNom(nom);
+        child.setDateDeNaissance(birth);
+        child.setCreche(c);
+        enfantRepo.save(child);
+        logService.log("CREER_ENFANT", securityUtils.getCurrentUser().getPrenom(), prenom + " " + nom + " (crèche: " + nomCreche + ")");
+    }
+
+    public void deleteEnfantPhysique(Long id) {
+        Enfant enfant = enfantRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
+        List<EnregistrementVaccination> evs = enregistrementRepo.findByIdIdEnfant(id);
+        enregistrementRepo.deleteAll(evs);
+        enfantRepo.delete(enfant);
+        logService.log("SUPPRIMER_ENFANT", securityUtils.getCurrentUser().getPrenom(), String.valueOf(id));
+    }
+
+    public List<Enfant> getAllEnfantsByCreche(String nomCreche) {
+        verifierAuthorisationPourCreche(nomCreche);
+        return enfantRepo.findByCrecheNom(nomCreche);
+    }
+
+    public void changeCreche(Long id, String nomCreche) {
+        Enfant child = enfantRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
+        verifierAuthorisationPourCreche(child.getCreche().getNom());
+        Creche c = crecheRepo.findById(nomCreche.toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("Crèche cible introuvable"));
+        child.setCreche(c);
+        enfantRepo.save(child);
+    }
+
+    public void rectifierInfos(Long id, String nom, String prenom, LocalDate birth) {
+        Enfant child = enfantRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
+        verifierAuthorisationPourCreche(child.getCreche().getNom());
+        child.setPrenom(prenom);
+        child.setNom(nom);
+        child.setDateDeNaissance(birth);
+        enfantRepo.save(child);
+        logService.log("RECTIFIER_ENFANT", securityUtils.getCurrentUser().getPrenom(), String.valueOf(id));
+    }
+
+    public void disableChildAccount(Long id) {
+        Enfant child = enfantRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
+        verifierAuthorisationPourCreche(child.getCreche().getNom());
+        child.setEstParti(true);
+        enfantRepo.save(child);
+        logService.log("DESACTIVER_ENFANT", securityUtils.getCurrentUser().getPrenom(), String.valueOf(id));
+    }
+
+    public void transferAllEnfants(String fromCreche, String toCreche) {
+        if (!securityUtils.isAdmin()) {
+            throw new SecurityException("Seul un administrateur peut transférer des enfants");
+        }
+        String fromNorm = fromCreche.toLowerCase();
+        String toNorm = toCreche.toLowerCase();
+        if (fromNorm.equals(toNorm)) {
+            throw new IllegalArgumentException("Impossible de transférer vers la même crèche");
+        }
+        Creche crecheSource = crecheRepo.findById(fromNorm)
+                .orElseThrow(() -> new IllegalArgumentException("Crèche source introuvable"));
+        Creche crecheCible = crecheRepo.findById(toNorm)
+                .orElseThrow(() -> new IllegalArgumentException("Crèche cible introuvable"));
+        List<Enfant> enfants = enfantRepo.findByCrecheNom(fromNorm);
+        for (Enfant enfant : enfants) {
+            enfant.setCreche(crecheCible);
+            enfantRepo.save(enfant);
+        }
+        List<EnregistrementVaccination> evs = enregistrementRepo.findByCrecheNom(fromNorm);
+        for (EnregistrementVaccination ev : evs) {
+            ev.setCreche(crecheCible);
+            enregistrementRepo.save(ev);
+        }
+        logService.log("TRANSFERER_TOUS_ENFANTS", securityUtils.getCurrentUser().getPrenom(), fromNorm + " → " + toNorm);
+    }
+
+    // ======== STATUT VACCINAL ========
+
+    public List<VaccinStatusDTO> getStatutVaccinal(Long enfantId) {
+        Enfant enfant = enfantRepo.findById(enfantId)
+                .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
+        List<Vaccin> vaccins = vaccinService.getAllVaccins();
+        List<EnregistrementVaccination> enregistrements = enregistrementRepo.findByIdIdEnfant(enfantId);
+        LocalDate aujourdhui = LocalDate.now();
+        int anneeNaissance = enfant.getDateDeNaissance().getYear();
+        List<VaccinStatusDTO> result = new ArrayList<>();
+        
+        for (Vaccin v : vaccins) {
+            if (v.getPourEnfantsNesAvant() != null && anneeNaissance > v.getPourEnfantsNesAvant()) continue;
+            if (v.getPourEnfantsNesApres() != null && anneeNaissance < v.getPourEnfantsNesApres()) continue;
+            
+            // Dates de doses recommandées (basées sur la date de naissance)
+            LocalDate dose1Theorique = enfant.getDateDeNaissance().plusMonths(v.getAgePremiereVaccination());
+            LocalDate dose2Theorique = dose1Theorique.plusMonths(v.getNbMoisPremierDelai());
+            LocalDate dose3Theorique = v.getNbMoisDeuxiemeDelai() != null 
+                    ? dose2Theorique.plusMonths(v.getNbMoisDeuxiemeDelai()) : null;
+            
+            // Doses réellement reçues (triées par date)
+            List<LocalDate> datesReelles = enregistrements.stream()
+                    .filter(ev -> ev.getVaccin().getId().equals(v.getId()))
+                    .map(ev -> ev.getId().getDateVaccination())
+                    .sorted()
+                    .toList();
+            
+            long nbDosesRecues = datesReelles.size();
+            
+            // Ajuster les prochaines doses selon les dates réelles
+            LocalDate dose1 = dose1Theorique;
+            LocalDate dose2 = dose2Theorique;
+            LocalDate dose3 = dose3Theorique;
+            
+            if (!datesReelles.isEmpty()) {
+                LocalDate derniereReelle = datesReelles.get((int) nbDosesRecues - 1);
+                if (nbDosesRecues == 1) {
+                    // La 2ème dose est calculée à partir de la 1ère dose réelle
+                    dose2 = derniereReelle.plusMonths(v.getNbMoisPremierDelai());
+                    if (dose3 != null) dose3 = dose2.plusMonths(v.getNbMoisDeuxiemeDelai());
+                } else if (nbDosesRecues == 2 && dose3 != null) {
+                    // La 3ème dose est calculée à partir de la 2ème dose réelle
+                    dose3 = derniereReelle.plusMonths(v.getNbMoisDeuxiemeDelai());
+                }
+            }
+            
+            String statut;
+            if (nbDosesRecues >= (dose3 != null ? 3 : 2)) {
+                statut = "COMPLET";
+            } else if (nbDosesRecues == 1 && dose2.isBefore(aujourdhui)) {
+                statut = "RETARD_DOSE2";
+            } else if (nbDosesRecues == 2 && dose3 != null && dose3.isBefore(aujourdhui)) {
+                statut = "RETARD_DOSE3";
+            } else if (nbDosesRecues == 0 && dose1.isBefore(aujourdhui)) {
+                statut = "RETARD_DOSE1";
+            } else {
+                statut = "EN_COURS";
+            }
+            
+            result.add(new VaccinStatusDTO(v.getId(), v.getNom(), nbDosesRecues,
+                    dose3 != null ? 3 : 2, dose1, dose2, dose3, statut));
+        }
+        return result;
+    }
+
+    public List<EnfantStatutGlobalDTO> getStatutsVaccinauxParCreche(String nomCreche) {
+        verifierAuthorisationPourCreche(nomCreche);
+        List<Enfant> enfants = enfantRepo.findByCrecheNom(nomCreche).stream()
+                .filter(e -> !e.isEstParti()).toList();
+        List<EnfantStatutGlobalDTO> result = new ArrayList<>();
+        for (Enfant e : enfants) {
+            List<VaccinStatusDTO> statuts = getStatutVaccinal(e.getId_enfant());
+            VaccinStatusDTO plusUrgent = null;
+            int priorite = 0;
+            long minJours = Long.MAX_VALUE;
+            for (VaccinStatusDTO s : statuts) {
+                if (s.statut().startsWith("RETARD")) {
+                    LocalDate dateDue = switch (s.statut()) {
+                        case "RETARD_DOSE1" -> s.dateDose1Recommandee();
+                        case "RETARD_DOSE2" -> s.dateDose2Recommandee();
+                        case "RETARD_DOSE3" -> s.dateDose3Recommandee();
+                        default -> null;
+                    };
+                    long joursRetard = ChronoUnit.DAYS.between(dateDue, LocalDate.now());
+                    if (plusUrgent == null || !plusUrgent.statut().startsWith("RETARD") || joursRetard > minJours) {
+                        plusUrgent = s;
+                        minJours = joursRetard;
+                        priorite = 1;
+                    }
+                } else if (s.statut().equals("EN_COURS") && priorite < 2) {
+                    LocalDate prochaine = s.dosesRecues() == 0 ? s.dateDose1Recommandee() :
+                                        s.dosesRecues() == 1 ? s.dateDose2Recommandee() : s.dateDose3Recommandee();
+                    if (prochaine != null) {
+                        long joursRestants = ChronoUnit.DAYS.between(LocalDate.now(), prochaine);
+                        if (joursRestants <= 14 && (plusUrgent == null || joursRestants < minJours)) {
+                            plusUrgent = s;
+                            minJours = joursRestants;
+                            priorite = 2;
+                        } else if (priorite == 0) {
+                            plusUrgent = s;
+                            minJours = joursRestants;
+                            priorite = 3;
+                        }
+                    }
+                }
+            }
+            if (priorite == 0) priorite = 4;
+            
+            // Déterminer la date prévue selon le statut
+            LocalDate datePrevue = null;
+            if (plusUrgent != null) {
+                String statut = plusUrgent.statut();
+                long recues = plusUrgent.dosesRecues();
+                if (statut.equals("RETARD_DOSE1") || recues == 0) {
+                    datePrevue = plusUrgent.dateDose1Recommandee();
+                } else if (statut.equals("RETARD_DOSE2") || recues == 1) {
+                    datePrevue = plusUrgent.dateDose2Recommandee();
+                } else if (statut.equals("RETARD_DOSE3") || statut.equals("EN_COURS") && recues == 2) {
+                    datePrevue = plusUrgent.dateDose3Recommandee();
+                } else if (statut.equals("EN_COURS") && recues == 0) {
+                    datePrevue = plusUrgent.dateDose1Recommandee();
+                } else if (statut.equals("EN_COURS") && recues == 1) {
+                    datePrevue = plusUrgent.dateDose2Recommandee();
+                } else if (statut.equals("COMPLET")) {
+                    datePrevue = null;
+                }
+            }
+            
+            result.add(new EnfantStatutGlobalDTO(
+                    e.getId_enfant(), e.getNom(), e.getPrenom(),
+                    e.getDateDeNaissance(),
+                    priorite == 1 ? "RETARD" : (priorite == 2 ? "PROCHE" : (priorite == 3 ? "EN_COURS" : "COMPLET")),
+                    plusUrgent != null ? plusUrgent.nomVaccin() : "",
+                    plusUrgent != null ? minJours : 0,
+                    datePrevue
+            ));
+        }
+        result.sort(Comparator.comparingInt((EnfantStatutGlobalDTO d) -> {
+            if (d.statut().equals("RETARD")) return 0;
+            if (d.statut().equals("PROCHE")) return 1;
+            if (d.statut().equals("EN_COURS")) return 2;
+            return 3;
+        }).thenComparingLong(d -> d.statut().equals("RETARD") ? -d.jours() : d.jours()));
+        return result;
+    }
+
+    // ======== LECTURE ========
+
+    public List<Enfant> getEnfantsByCreche(String nomCreche) {
+        verifierAuthorisationPourCreche(nomCreche);
+        return enfantRepo.findByCrecheNom(nomCreche).stream()
+                .filter(e -> !e.isEstParti())
+                .toList();
+    }
+
+    public Enfant getEnfantById(Long id) {
+        Enfant enfant = enfantRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
+        verifierAuthorisationPourCreche(enfant.getCreche().getNom());
+        return enfant;
+    }
+}
+===== paidou/src/main/java/fr/paidou/paidou/security/PaidouUserDetailsService.java =====
+package fr.paidou.paidou.security;
+
+import fr.paidou.paidou.model.User;
+import fr.paidou.paidou.repository.UserRepository;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+
+@Service
+public class PaidouUserDetailsService implements UserDetailsService {
+
+    private final UserRepository userRepository;
+
+    // Injection par constructeur
+    public PaidouUserDetailsService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String prenom) throws UsernameNotFoundException {
+
+        User user = userRepository.findByPrenom(prenom)
+                .orElseThrow(() -> new UsernameNotFoundException("Utilisateur introuvable"));
+
+        if (user.isEstParti()) {
+            throw new UsernameNotFoundException("Utilisateur désactivé");
+        }
+
+        return org.springframework.security.core.userdetails.User
+                .withUsername(user.getPrenom())
+                .password(user.getMdp())
+                .roles(user.getRole())
+                .build();
+    }
+}===== paidou/src/main/java/fr/paidou/paidou/security/SecurityUtils.java =====
+package fr.paidou.paidou.security;
+
+import fr.paidou.paidou.model.User;
+import fr.paidou.paidou.repository.UserRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+
+@Component
+public class SecurityUtils {
+
+    private final UserRepository userRepository;
+
+    public SecurityUtils(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    // Renvoie l'utilisateur connecté
+    public User getCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new SecurityException("Aucun utilisateur connecté");
+        }
+        String prenom = auth.getName();
+        User user = userRepository.findByPrenom(prenom)
+                .orElseThrow(() -> new IllegalStateException("Utilisateur connecté introuvable en base"));
+        if (user.isEstParti()) {
+            throw new SecurityException("Compte désactivé");
+        }
+        return user;
+    }
+
+    
+
+    // Vérifie si l'utilisateur actuel est ADMIN
+    public boolean isAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getAuthorities().stream()
+        .anyMatch(a -> a.getAuthority().equalsIgnoreCase("ROLE_admin"));
+    }
+}===== paidou/src/main/java/fr/paidou/paidou/security/SecurityConfig.java =====
+package fr.paidou.paidou.security;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+
+import java.util.List;
+
+@Configuration
+public class SecurityConfig {
+
+    private final PaidouUserDetailsService userDetailsService;
+
+    public SecurityConfig(PaidouUserDetailsService userDetailsService) {
+        this.userDetailsService = userDetailsService;
+    }
+
+    @Bean
+    public BCryptPasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder());
+        return new org.springframework.security.authentication.ProviderManager(provider);
+    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+            .cors(cors -> cors.configurationSource(request -> {
+                CorsConfiguration config = new CorsConfiguration();
+                config.setAllowedOrigins(List.of("http://localhost:5173"));
+                config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                config.setAllowedHeaders(List.of("*"));
+                config.setAllowCredentials(true);
+                return config;
+            }))
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(session -> 
+                session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+            )
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/users/login", "/users/create").permitAll()
+                .anyRequest().authenticated()
+            );
+
+        return http.build();
+    }
+}===== paidou/src/main/java/fr/paidou/paidou/PaidouApplication.java =====
+package fr.paidou.paidou;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class PaidouApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(PaidouApplication.class, args);
+	}
+
+}
+===== paidou/src/main/java/fr/paidou/paidou/controller/CrecheController.java =====
+package fr.paidou.paidou.controller;
+
+import fr.paidou.paidou.security.SecurityUtils;
+import fr.paidou.paidou.service.CrecheService;
+import fr.paidou.paidou.service.UserService;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/creches")
+public class CrecheController {
+
+    private final CrecheService crecheService;
+    private final SecurityUtils securityUtils;
+    private final UserService userService;
+
+    public CrecheController(CrecheService crecheService, SecurityUtils securityUtils, UserService userService) {
+        this.crecheService = crecheService;
+        this.securityUtils = securityUtils;
+        this.userService = userService;
+    }
+
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> createCreche(@RequestBody CreateCrecheRequest request) {
+        try {
+            crecheService.createCreche(request.nom(), request.directeur());
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping
+    public ResponseEntity<List<CrecheSummaryDTO>> getAllCreches() {
+        try {
+            if (!securityUtils.isAdmin()) {
+                return ResponseEntity.status(403).build();
+            }
+            return ResponseEntity.ok(crecheService.getAllCrechesWithInfos());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    @GetMapping("/mes-creches")
+    public ResponseEntity<List<CrecheSummaryDTO>> getMesCreches() {
+        try {
+            return ResponseEntity.ok(crecheService.getMesCrechesWithInfos());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    @PutMapping("/change-directeur")
+    public ResponseEntity<?> changeDirecteur(@RequestBody ChangeDirecteurRequest request) {
+        try {
+            crecheService.changeDirecteur(request.nom(), request.directeur());
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/rename")
+    public ResponseEntity<?> renameCreche(@RequestBody Map<String, String> request) {
+        try {
+            if (!securityUtils.isAdmin()) return ResponseEntity.status(403).build();
+            String ancienNom = request.get("ancienNom");
+            String nouveauNom = request.get("nouveauNom");
+            String mdpAdmin = request.get("mdpAdmin");
+            if (!userService.verifyPassword(securityUtils.getCurrentUser().getPrenom(), mdpAdmin)) {
+                return ResponseEntity.status(403).body("Mot de passe admin incorrect");
+            }
+            crecheService.renameCreche(ancienNom, nouveauNom);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/fermer")
+    public ResponseEntity<?> fermerCreche(@RequestBody Map<String, String> request) {
+        try {
+            if (!securityUtils.isAdmin()) return ResponseEntity.status(403).build();
+            String nom = request.get("nom");
+            String mdpAdmin = request.get("mdpAdmin");
+            if (!userService.verifyPassword(securityUtils.getCurrentUser().getPrenom(), mdpAdmin)) {
+                return ResponseEntity.status(403).body("Mot de passe admin incorrect");
+            }
+            crecheService.fermerCreche(nom);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
+
+
+    @GetMapping("/toutes")
+    public ResponseEntity<List<CrecheSummaryDTO>> getToutesLesCreches() {
+        try {
+            return ResponseEntity.ok(crecheService.getAllCrechesWithInfos());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    @PutMapping("/transferer-enfants")
+    public ResponseEntity<?> transfererEnfants(@RequestBody Map<String, String> request) {
+        try {
+            if (!securityUtils.isAdmin()) return ResponseEntity.status(403).build();
+            String from = request.get("from");
+            String to = request.get("to");
+            String mdpAdmin = request.get("mdpAdmin");
+            if (!userService.verifyPassword(securityUtils.getCurrentUser().getPrenom(), mdpAdmin)) {
+                return ResponseEntity.status(403).body("Mot de passe admin incorrect");
+            }
+            crecheService.transfererTousEnfants(from, to);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<?> deleteCreche(@RequestBody Map<String, String> request) {
+        try {
+            if (!securityUtils.isAdmin()) return ResponseEntity.status(403).build();
+            String nom = request.get("nom");
+            String mdpAdmin = request.get("mdpAdmin");
+            if (!userService.verifyPassword(securityUtils.getCurrentUser().getPrenom(), mdpAdmin)) {
+                return ResponseEntity.status(403).body("Mot de passe admin incorrect");
+            }
+            crecheService.deleteCreche(nom);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    public record CreateCrecheRequest(String nom, String directeur) {}
+    public record ChangeDirecteurRequest(String nom, String directeur) {}
+    public record CrecheSummaryDTO(String nom, String directeurPrenom, boolean estFerme, long nbEnfants) {}
+}===== paidou/src/main/java/fr/paidou/paidou/controller/EnregistrementVaccinationController.java =====
+package fr.paidou.paidou.controller;
+
+import fr.paidou.paidou.model.EnregistrementVaccination;
+import fr.paidou.paidou.service.EnregistrementVaccinationService;
+
+import java.time.LocalDate;
+import java.util.List;
+
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+//@CrossOrigin(origins = "http://localhost:5173")
+@RestController
+@RequestMapping("/enregistrements-vaccination")
+public class EnregistrementVaccinationController {
+
+    private final EnregistrementVaccinationService enregistrementService;
+
+    public EnregistrementVaccinationController(EnregistrementVaccinationService enregistrementService) {
+        this.enregistrementService = enregistrementService;
+    }
+
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Void> createEnregistrement(@RequestBody CreateEnregistrementRequest request) {
+        enregistrementService.createEnregistrement(
+                request.idEnfant(),
+                request.idVaccin(),
+                request.dateVaccination(),
+                request.nomCreche(),
+                request.idUser()
+        );
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/edit")
+    public ResponseEntity<Void> editEnregistrement(@RequestBody EditEnregistrementRequest request) {
+        enregistrementService.editEnregistrement(
+                request.idEnfant(),
+                request.idVaccin(),
+                request.ancienneDate(),
+                request.newIdVaccin(),
+                request.nouvelleDate()
+        );
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping
+    public ResponseEntity<Void> deleteEnregistrement(@RequestBody DeleteEnregistrementRequest request) {
+        enregistrementService.deleteEnregistrement(
+                request.idEnfant(),
+                request.idVaccin(),
+                request.dateVaccination()
+        );
+        return ResponseEntity.ok().build();
+    }
+
+    // ======== LECTURE ========
+
+    @GetMapping
+    public ResponseEntity<List<EnregistrementSummaryDTO>> getEnregistrements(
+            @RequestParam(required = false) Long idEnfant,
+            @RequestParam(required = false) String nomCreche) {
+        try {
+            List<EnregistrementVaccination> enregistrements;
+
+            if (idEnfant != null) {
+                enregistrements = enregistrementService.getEnregistrementsByEnfant(idEnfant);
+            } else if (nomCreche != null) {
+                enregistrements = enregistrementService.getEnregistrementsByCreche(nomCreche);
+            } else {
+                return ResponseEntity.badRequest().build();
+            }
+
+            List<EnregistrementSummaryDTO> dtos = enregistrements.stream()
+                    .map(ev -> new EnregistrementSummaryDTO(
+                            ev.getEnfant().getId_enfant(),
+                            ev.getEnfant().getPrenom(),
+                            ev.getEnfant().getNom(),
+                            ev.getVaccin().getId(),
+                            ev.getVaccin().getNom(),
+                            ev.getId().getDateVaccination(),
+                            ev.getUser().getPrenom()
+                    ))
+                    .toList();
+            return ResponseEntity.ok(dtos);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    // ======== DTOs ========
+
+    public record CreateEnregistrementRequest(
+            Long idEnfant,
+            Long idVaccin,
+            LocalDate dateVaccination,
+            String nomCreche,
+            Long idUser
+    ) {}
+
+    public record EditEnregistrementRequest(
+            Long idEnfant,
+            Long idVaccin,
+            LocalDate ancienneDate,
+            Long newIdVaccin,
+            LocalDate nouvelleDate
+    ) {}
+
+    public record DeleteEnregistrementRequest(
+            Long idEnfant,
+            Long idVaccin,
+            LocalDate dateVaccination
+    ) {}
+
+    public record EnregistrementSummaryDTO(
+            Long idEnfant,
+            String prenomEnfant,
+            String nomEnfant,
+            Long idVaccin,
+            String nomVaccin,
+            LocalDate dateVaccination,
+            String prenomUtilisateur
+    ) {}
+}===== paidou/src/main/java/fr/paidou/paidou/controller/LogController.java =====
+package fr.paidou.paidou.controller;
+
+import fr.paidou.paidou.model.Log;
+import fr.paidou.paidou.repository.LogRepository;
+import fr.paidou.paidou.security.SecurityUtils;
+import fr.paidou.paidou.service.CrecheService;
+import fr.paidou.paidou.service.EnfantService;
+import fr.paidou.paidou.service.UserService;
+import fr.paidou.paidou.service.VaccinService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/logs")
+public class LogController {
+
+    private final LogRepository logRepository;
+    private final SecurityUtils securityUtils;
+    private final UserService userService;
+    private final CrecheService crecheService;
+    private final EnfantService enfantService;
+    private final VaccinService vaccinService;
+
+    @Autowired
+    public LogController(LogRepository logRepository, SecurityUtils securityUtils,
+                         UserService userService, CrecheService crecheService,
+                         EnfantService enfantService, VaccinService vaccinService) {
+        this.logRepository = logRepository;
+        this.securityUtils = securityUtils;
+        this.userService = userService;
+        this.crecheService = crecheService;
+        this.enfantService = enfantService;
+        this.vaccinService = vaccinService;
+    }
+
+    @GetMapping
+    public List<Log> getLogs(Authentication authentication) {
+        if (securityUtils.isAdmin()) {
+            return logRepository.findAll();
+        } else {
+            return logRepository.findByUser(authentication.getName());
+        }
+    }
+
+    @PostMapping("/undo")
+    public ResponseEntity<String> undoAction(@RequestBody Long logId) {
+        if (!securityUtils.isAdmin()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Accès réservé à l'administrateur");
+        }
+
+        Log log = logRepository.findById(logId).orElse(null);
+        if (log == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Log introuvable");
+        }
+
+        try {
+            switch (log.getAction()) {
+                case "DESACTIVER_USER":
+                    userService.reactiverUser(log.getDetails());
+                    break;
+                case "DESACTIVER_ENFANT":
+                    enfantService.reactiverEnfant(Long.parseLong(log.getDetails()));
+                    break;
+                case "FERMER_CRECHE":
+                    crecheService.rouvrirCreche(log.getDetails());
+                    break;
+                case "RENDRE_OBSOLETE_VACCIN":
+                    vaccinService.reactiverVaccin(Long.parseLong(log.getDetails()));
+                    break;
+                default:
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Action non annulable : " + log.getAction());
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+
+        return ResponseEntity.ok("Action annulée : " + log.getAction());
+    }
+}
+===== paidou/src/main/java/fr/paidou/paidou/controller/VaccinController.java =====
+package fr.paidou.paidou.controller;
+
+import fr.paidou.paidou.model.Vaccin;
+import fr.paidou.paidou.security.SecurityUtils;
+import fr.paidou.paidou.service.UserService;
+import fr.paidou.paidou.service.VaccinService;
+
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+//@CrossOrigin(origins = "http://localhost:5173")
+@RestController
+@RequestMapping("/vaccins")
+public class VaccinController {
+
+    private final VaccinService vaccinService;
+    private final UserService userService;
+    private final SecurityUtils securityUtils; 
+
+    public VaccinController(VaccinService vaccinService, SecurityUtils securityUtils, UserService userService) {
+        this.vaccinService = vaccinService;
+        this.userService = userService;
+        this.securityUtils = securityUtils;
+    }
+
+    
+
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> createVaccin(@RequestBody CreateVaccinRequest request) {
+        
+        try
+        {
+            vaccinService.createVaccin(
+                request.nom(),
+                request.listeMaladies(),
+                request.pourEnfantsNesAvant(),
+                request.pourEnfantsNesApres(),
+                request.agePremiereVaccination(),
+                request.nbMoisPremierDelai(),
+                request.nbMoisDeuxiemeDelai()
+            );
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());            
+        }
+    }
+
+    @PutMapping("/edit")
+    public ResponseEntity<Void> editVaccin(@RequestBody EditVaccinRequest request) {
+        vaccinService.editVaccin(
+                request.id(),
+                request.nom(),
+                request.listeMaladies(),
+                request.pourEnfantsNesAvant(),
+                request.pourEnfantsNesApres(),
+                request.agePremiereVaccination(),
+                request.nbMoisPremierDelai(),
+                request.nbMoisDeuxiemeDelai()
+        );
+        return ResponseEntity.ok().build();
+    }
+
+
+
+    @GetMapping
+    public ResponseEntity<List<VaccinSummaryDTO>> getAllVaccins(
+            @RequestParam(required = false, defaultValue = "false") boolean inclureObsoletes) {
+        try {
+            List<Vaccin> vaccins = inclureObsoletes 
+                ? vaccinService.getAllVaccinsAdmin() 
+                : vaccinService.getAllVaccins();
+            List<VaccinSummaryDTO> dtos = vaccins.stream()
+                    .map(v -> new VaccinSummaryDTO(
+                        v.getId(), v.getNom(), v.getMaladiesPrevenues(),
+                        v.getPourEnfantsNesAvant(), v.getPourEnfantsNesApres(),
+                        v.getAgePremiereVaccination(), v.getNbMoisPremierDelai(),
+                        v.getNbMoisDeuxiemeDelai(), v.isEstObsolete()
+                    ))
+                    .toList();
+            return ResponseEntity.ok(dtos);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+
+
+    
+
+
+
+    @PutMapping("/rendre-obsolete")
+    public ResponseEntity<?> rendreObsolete(@RequestBody Map<String, String> request) {
+        try {
+            if (!securityUtils.isAdmin()) {
+                return ResponseEntity.status(403).build();
+            }
+            Long id = Long.parseLong(request.get("id"));
+            String mdpAdmin = request.get("mdpAdmin");
+            if (!userService.verifyPassword(securityUtils.getCurrentUser().getPrenom(), mdpAdmin)) {
+                return ResponseEntity.status(403).body("Mot de passe admin incorrect");
+            }
+            vaccinService.rendreObsolete(id);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<?> deleteVaccin(@RequestBody Map<String, String> request) {
+        try {
+            if (!securityUtils.isAdmin()) return ResponseEntity.status(403).build();
+            Long id = Long.parseLong(request.get("id"));
+            String mdpAdmin = request.get("mdpAdmin");
+            if (!userService.verifyPassword(securityUtils.getCurrentUser().getPrenom(), mdpAdmin))
+                return ResponseEntity.status(403).body("Mot de passe admin incorrect");
+            vaccinService.deleteVaccinPhysique(id);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/pour-enfant/{id}")
+    public ResponseEntity<List<VaccinPourEnfantDTO>> getVaccinsPourEnfant(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(vaccinService.getVaccinsPourEnfant(id));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+
+
+
+
+
+
+
+    // ================= DTOs =================
+
+    public record CreateVaccinRequest(
+            String nom,
+            String listeMaladies,
+            Integer pourEnfantsNesAvant,
+            Integer pourEnfantsNesApres,
+            Integer agePremiereVaccination,
+            Integer nbMoisPremierDelai,
+            Integer nbMoisDeuxiemeDelai
+    ) {}
+
+    public record EditVaccinRequest(
+            Long id,
+            String nom,
+            String listeMaladies,
+            Integer pourEnfantsNesAvant,
+            Integer pourEnfantsNesApres,
+            Integer agePremiereVaccination,
+            Integer nbMoisPremierDelai,
+            Integer nbMoisDeuxiemeDelai
+    ) {}
+
+    public record VaccinSummaryDTO(
+        Long id,
+        String nom,
+        String maladiesPrevenues,
+        Integer pourEnfantsNesAvant,
+        Integer pourEnfantsNesApres,
+        Integer agePremiereVaccination,
+        Integer nbMoisPremierDelai,
+        Integer nbMoisDeuxiemeDelai,
+        boolean estObsolete
+    ) {}
+
+
+
+
+    public record VaccinPourEnfantDTO(Long id, String nom, long dosesRecues, int dosesRequises, boolean complet) {}
+
+
+
+
+
+
+
+}===== paidou/src/main/java/fr/paidou/paidou/controller/UserController.java =====
+package fr.paidou.paidou.controller;
+
+import fr.paidou.paidou.model.User;
+import fr.paidou.paidou.security.SecurityUtils;
+import fr.paidou.paidou.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/users")
+//@CrossOrigin(origins = "http://localhost:5173")
+public class UserController {
+
+    private final UserService userService;
+    private final AuthenticationManager authenticationManager;
+    private final SecurityUtils securityUtils; 
+
+    public UserController(  UserService userService,
+                            AuthenticationManager authenticationManager,
+                            SecurityUtils securityUtils
+                        ) 
+    {  
+        this.userService = userService;
+        this.authenticationManager = authenticationManager;
+        this.securityUtils = securityUtils; 
+    }
+
+    // DTO login (record)
+    public record LoginRequest(String prenom, String mdp) {}
+
+    @PostMapping("/create")
+    public ResponseEntity<String> createUser(@RequestParam String prenom) {
+        try {
+            String mdp = userService.createUser(prenom);
+            return ResponseEntity.ok("Utilisateur créé. Mot de passe : " + mdp);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<String[]> login(@RequestBody LoginRequest requestDto,
+                                        HttpServletRequest request) {
+
+        try {
+            // 1. Création du token
+            UsernamePasswordAuthenticationToken token =
+                    new UsernamePasswordAuthenticationToken(
+                            requestDto.prenom().toLowerCase(),
+                            requestDto.mdp()
+                    );
+
+            // 2. Authentification via Spring Security
+            Authentication auth = authenticationManager.authenticate(token);
+
+            // 3. Stockage dans le SecurityContext
+            SecurityContext context = SecurityContextHolder.createEmptyContext();
+            context.setAuthentication(auth);
+            SecurityContextHolder.setContext(context);
+
+            // 4. Stockage en session HTTP (CRITIQUE)
+            HttpSession session = request.getSession(true);
+            session.setAttribute(
+                    HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                    context
+            );
+
+            // 5. Logique métier (redirect info)
+            String[] result = userService.getRedirectInfo(requestDto.prenom());
+
+            return ResponseEntity.ok(result);
+
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(401)
+                    .body(new String[]{"Identifiants incorrects"});
+        }
+    }
+
+
+    @PutMapping("/set-password")
+    public ResponseEntity<?> setPassword(@RequestBody SetPasswordRequest dto,
+                                        Authentication authentication) {
+        try {
+            if (dto.nouveauMdp() == null || dto.nouveauMdp().isBlank()) {
+                return ResponseEntity.badRequest().body("Le mot de passe ne peut pas être vide");
+            }
+            if (dto.nouveauMdp().length() < 8) {
+                return ResponseEntity.badRequest().body("Le mot de passe doit contenir au moins 8 caractères");
+            }
+            String prenom = authentication.getName();
+            userService.setPassword(prenom, dto.nouveauMdp());
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Erreur serveur");
+        }
+    }
+
+    @PutMapping("/fix-name")
+    public ResponseEntity<String> fixName(@RequestParam String ancienPrenom, @RequestParam String nouveauPrenom) {
+        try {
+            if (!securityUtils.isAdmin()) {
+                return ResponseEntity.status(403).build();
+            }
+            userService.fixNameTypo(ancienPrenom, nouveauPrenom);
+            return ResponseEntity.ok("Prénom corrigé");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
+    @PutMapping("/disable")
+    public ResponseEntity<?> disableUser(@RequestBody Map<String, String> request) {
+        try {
+            if (!securityUtils.isAdmin()) {
+                return ResponseEntity.status(403).build();
+            }
+            userService.disableUserAccount(request.get("prenom"));
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/me")
+        public ResponseEntity<UserSummaryDTO> getCurrentUser(Authentication authentication) {
+            if (authentication == null || !authentication.isAuthenticated()) {
+                return ResponseEntity.status(401).build();
+            }
+            User user = userService.getUserByPrenom(authentication.getName().toLowerCase());
+            return ResponseEntity.ok(new UserSummaryDTO(user.getId(), user.getPrenom(), user.getRole(), user.isEstParti()));
+    }
+
+
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        SecurityContextHolder.clearContext();
+        return ResponseEntity.ok().build();
+    }
+
+
+
+
+    @GetMapping
+    public ResponseEntity<List<UserSummaryDTO>> getAllUsers() {
+        try {
+            if (!securityUtils.isAdmin()) {
+                return ResponseEntity.status(403).build();
+            }
+            List<UserSummaryDTO> users = userService.getAllUsers().stream()
+                    .map(u -> new UserSummaryDTO(u.getId(), u.getPrenom(), u.getRole(), u.isEstParti()))
+                    .toList();
+            return ResponseEntity.ok(users);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+
+
+
+    @PutMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
+        try {
+            if (!securityUtils.isAdmin()) {
+                return ResponseEntity.status(403).build();
+            }
+            String prenom = request.get("prenom");
+            String nouveauMdp = userService.resetPassword(prenom);
+            return ResponseEntity.ok("Mot de passe réinitialisé. Nouveau mot de passe : " + nouveauMdp);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
+
+
+
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<?> deleteUser(@RequestBody Map<String, String> request) {
+        try {
+            if (!securityUtils.isAdmin()) {
+                return ResponseEntity.status(403).build();
+            }
+            String prenom = request.get("prenom");
+            String mdpAdmin = request.get("mdpAdmin");
+            if (!userService.verifyPassword(securityUtils.getCurrentUser().getPrenom(), mdpAdmin)) {
+                return ResponseEntity.status(403).body("Mot de passe admin incorrect");
+            }
+            userService.deleteUser(prenom);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // DTO
+    public record SetPasswordRequest(String nouveauMdp) {}
+    
+    public record UserSummaryDTO(Long id, String prenom, String role, boolean estParti) {}
+
+
+
+}===== paidou/src/main/java/fr/paidou/paidou/controller/EnfantController.java =====
+package fr.paidou.paidou.controller;
+
+import fr.paidou.paidou.service.EnfantService;
+import fr.paidou.paidou.model.Enfant;
+
+import java.time.LocalDate;
+import java.util.List;
+
+import fr.paidou.paidou.security.SecurityUtils;
+import fr.paidou.paidou.service.UserService;
+import java.util.Map;
+
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+//@CrossOrigin(origins = "http://localhost:5173")
+@RestController
+@RequestMapping("/enfants")
+public class EnfantController {
+
+    private final EnfantService enfantService;
+    
+    private final SecurityUtils securityUtils;
+    private final UserService userService;
+    
+    public EnfantController(EnfantService enfantService, SecurityUtils securityUtils, UserService userService) {
+        this.enfantService = enfantService;
+        this.securityUtils = securityUtils;
+        this.userService = userService;
+    }
+
+   
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> createEnfant(@RequestBody CreateEnfantRequest request) {
+        try {
+            enfantService.createEnfant(
+                request.nom(),
+                request.prenom(),
+                request.dateDeNaissance(),
+                request.nomCreche()
+        );
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    
+    @DeleteMapping("/delete")
+    public ResponseEntity<?> deleteEnfant(@RequestBody Map<String, String> request) {
+        try {
+            if (!securityUtils.isAdmin()) return ResponseEntity.status(403).build();
+            Long id = Long.parseLong(request.get("id"));
+            String mdp = request.get("mdpAdmin");
+            if (!userService.verifyPassword(securityUtils.getCurrentUser().getPrenom(), mdp))
+                return ResponseEntity.status(403).body("Mot de passe admin incorrect");
+            enfantService.deleteEnfantPhysique(id);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
+
+
+    @GetMapping("/all")
+    public ResponseEntity<List<EnfantSummaryDTO>> getAllEnfantsByCreche(@RequestParam String nomCreche) {
+        try {
+            List<EnfantSummaryDTO> enfants = enfantService.getAllEnfantsByCreche(nomCreche).stream()
+                    .map(e -> new EnfantSummaryDTO(
+                            e.getId_enfant(),
+                            e.getNom(),
+                            e.getPrenom(),
+                            e.getDateDeNaissance(),
+                            e.getCreche().getNom()
+                    ))
+                    .toList();
+            return ResponseEntity.ok(enfants);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+
+    @PutMapping("/change-creche")
+    public ResponseEntity<Void> changeCreche(@RequestBody ChangeCrecheRequest request) {
+        enfantService.changeCreche(request.id(), request.nomCreche());
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/rectifier")
+    public ResponseEntity<Void> rectifierInfos(@RequestBody RectifierInfosRequest request) {
+        enfantService.rectifierInfos(
+                request.id(),
+                request.nom(),
+                request.prenom(),
+                request.dateDeNaissance()
+        );
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/disable")
+    public ResponseEntity<Void> disableChild(@RequestBody DisableChildRequest request) {
+        enfantService.disableChildAccount(request.id());
+        return ResponseEntity.ok().build();
+    }
+
+
+
+    @PutMapping("/transfer-all")
+    public ResponseEntity<?> transferAllEnfants(@RequestBody Map<String, String> request) {
+        try {
+            if (!securityUtils.isAdmin()) {
+                return ResponseEntity.status(403).build();
+            }
+            String from = request.get("from");
+            String to = request.get("to");
+            String mdpAdmin = request.get("mdpAdmin");
+            if (!userService.verifyPassword(securityUtils.getCurrentUser().getPrenom(), mdpAdmin)) {
+                return ResponseEntity.status(403).body("Mot de passe admin incorrect");
+            }
+            enfantService.transferAllEnfants(from, to);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // ======== LECTURE ========
+
+    @GetMapping
+    public ResponseEntity<List<EnfantSummaryDTO>> getEnfantsByCreche(@RequestParam String nomCreche) {
+        try {
+            List<EnfantSummaryDTO> enfants = enfantService.getEnfantsByCreche(nomCreche).stream()
+                    .map(e -> new EnfantSummaryDTO(
+                            e.getId_enfant(),
+                            e.getNom(),
+                            e.getPrenom(),
+                            e.getDateDeNaissance(),
+                            e.getCreche().getNom()
+                    ))
+                    .toList();
+            return ResponseEntity.ok(enfants);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<EnfantDetailDTO> getEnfantById(@PathVariable Long id) {
+        try {
+            Enfant enfant = enfantService.getEnfantById(id);
+            EnfantDetailDTO dto = new EnfantDetailDTO(
+                    enfant.getId_enfant(),
+                    enfant.getNom(),
+                    enfant.getPrenom(),
+                    enfant.getDateDeNaissance(),
+                    enfant.getCreche().getNom()
+            );
+            return ResponseEntity.ok(dto);
+        } catch (Exception e) {
+            e.printStackTrace(); // <-- ajoute cette ligne
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+
+
+    @GetMapping("/{id}/statut-vaccinal")
+    public ResponseEntity<List<VaccinStatusDTO>> getStatutVaccinal(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(enfantService.getStatutVaccinal(id));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+    
+    @GetMapping("/statuts-vaccinaux")
+    public ResponseEntity<List<EnfantStatutGlobalDTO>> getStatutsVaccinaux(@RequestParam String nomCreche) {
+        try {
+            return ResponseEntity.ok(enfantService.getStatutsVaccinauxParCreche(nomCreche));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+
+
+
+
+    
+
+
+
+
+
+
+
+    // ======== DTOs ========
+
+    public record CreateEnfantRequest(
+            String nom,
+            String prenom,
+            LocalDate dateDeNaissance,
+            String nomCreche
+    ) {}
+
+    public record ChangeCrecheRequest(Long id, String nomCreche) {}
+
+    public record RectifierInfosRequest(
+            Long id,
+            String nom,
+            String prenom,
+            LocalDate dateDeNaissance
+    ) {}
+
+    public record DisableChildRequest(Long id) {}
+
+    public record EnfantSummaryDTO(
+            Long id,
+            String nom,
+            String prenom,
+            LocalDate dateDeNaissance,
+            String nomCreche
+    ) {}
+
+    public record EnfantDetailDTO(
+            Long id,
+            String nom,
+            String prenom,
+            LocalDate dateDeNaissance,
+            String nomCreche
+    ) {}
+
+
+
+
+
+
+    public record VaccinStatusDTO(
+        Long idVaccin, String nomVaccin, long dosesRecues, int dosesRequises,
+        LocalDate dateDose1Recommandee, LocalDate dateDose2Recommandee, LocalDate dateDose3Recommandee,
+        String statut
+    ) {}
+    
+    public record EnfantStatutGlobalDTO(
+        Long id, String nom, String prenom, LocalDate dateDeNaissance,
+        String statut, String nomVaccin, long jours, LocalDate datePrevue
+    ) {}
+
+
+
+
+
+
+
+
+
+
+}===== paidou/src/main/java/fr/paidou/paidou/repository/VaccinRepository.java =====
+package fr.paidou.paidou.repository;
+
+import fr.paidou.paidou.model.Vaccin;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface VaccinRepository extends JpaRepository<Vaccin, Long> {
+
+    Optional<Vaccin> findByNom(String nom);
+
+    List<Vaccin> findByNomContainingIgnoreCase(String nom);
+
+    List<Vaccin> findByAgePremiereVaccinationLessThanEqual(Integer ageEnMois);
+
+    List<Vaccin> findByPourEnfantsNesAvant(Integer annee);
+
+    List<Vaccin> findByPourEnfantsNesApres(Integer annee);
+
+}===== paidou/src/main/java/fr/paidou/paidou/repository/EnregistrementVaccinationRepository.java =====
+package fr.paidou.paidou.repository;
+
+import fr.paidou.paidou.model.EnregistrementVaccination;
+import fr.paidou.paidou.model.EnregistrementVaccinationId;
+import java.time.LocalDate;
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface EnregistrementVaccinationRepository extends JpaRepository<EnregistrementVaccination, EnregistrementVaccinationId> {
+
+    List<EnregistrementVaccination> findByIdIdEnfant(Long idEnfant);
+
+    List<EnregistrementVaccination> findByIdIdVaccin(Long idVaccin);
+
+    List<EnregistrementVaccination> findByIdDateVaccinationBefore(LocalDate dateVaccination);
+
+    List<EnregistrementVaccination> findByIdDateVaccinationAfter(LocalDate dateVaccination);
+
+    List<EnregistrementVaccination> findByCrecheNom(String nomCreche);
+
+    List<EnregistrementVaccination> findByUserId(Long idUser);
+}===== paidou/src/main/java/fr/paidou/paidou/repository/UserRepository.java =====
+package fr.paidou.paidou.repository;
+
+import fr.paidou.paidou.model.User;
+import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface UserRepository extends JpaRepository<User, Long> {
+    Optional<User> findByPrenom(String prenom);
+}===== paidou/src/main/java/fr/paidou/paidou/repository/CrecheRepository.java =====
+package fr.paidou.paidou.repository;
+
+import fr.paidou.paidou.model.Creche;
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface CrecheRepository extends JpaRepository<Creche, String> {
+    List<Creche> findByDirecteurId(Long id);    
+}===== paidou/src/main/java/fr/paidou/paidou/repository/LogRepository.java =====
+package fr.paidou.paidou.repository;
+
+import fr.paidou.paidou.model.Log;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface LogRepository extends JpaRepository<Log, Long> {
+    List<Log> findByUser(String user);
+}
+===== paidou/src/main/java/fr/paidou/paidou/repository/EnfantRepository.java =====
+package fr.paidou.paidou.repository;
+
+import fr.paidou.paidou.model.Enfant;
+import java.time.LocalDate;
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface EnfantRepository extends JpaRepository<Enfant, Long> {
+    List<Enfant> findByPrenom(String prenom); 
+    List<Enfant> findByNom(String nom);    
+    List<Enfant> findByDateDeNaissanceBefore(LocalDate date);
+    List<Enfant> findByDateDeNaissanceAfter(LocalDate date);      
+    List<Enfant> findByEstParti(boolean estParti);    
+    List<Enfant> findByCrecheNom(String nomCreche);
+    long countByCrecheNom(String nomCreche);
+}
