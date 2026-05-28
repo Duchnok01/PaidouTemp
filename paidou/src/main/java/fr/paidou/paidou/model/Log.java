@@ -16,21 +16,17 @@ public class Log {
     @Column(nullable = false)
     private String action;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_user", nullable = false)
-    private User user;
+    @Column(name = "id_user")
+    private Long userId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "nom_creche")
-    private Creche creche;
+    @Column(name = "nom_creche")
+    private String crecheNom;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_enfant")
-    private Enfant enfant;
+    @Column(name = "id_enfant")
+    private Long enfantId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_vaccin")
-    private Vaccin vaccin;
+    @Column(name = "id_vaccin")
+    private Long vaccinId;
 
     @Column(nullable = false)
     private LocalDateTime timestamp;

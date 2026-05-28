@@ -5,11 +5,13 @@ import fr.paidou.paidou.controller.EnfantController.VaccinStatusDTO;
 import fr.paidou.paidou.model.Creche;
 import fr.paidou.paidou.model.Enfant;
 import fr.paidou.paidou.model.EnregistrementVaccination;
-import fr.paidou.paidou.model.Vaccin;
+import fr.paidou.paidou.model.Log;
 import fr.paidou.paidou.model.User;
+import fr.paidou.paidou.model.Vaccin;
 import fr.paidou.paidou.repository.CrecheRepository;
 import fr.paidou.paidou.repository.EnfantRepository;
 import fr.paidou.paidou.repository.EnregistrementVaccinationRepository;
+import fr.paidou.paidou.repository.LogRepository;
 import fr.paidou.paidou.security.SecurityUtils;
 
 import java.time.LocalDate;
@@ -29,16 +31,18 @@ public class EnfantService {
     private final VaccinService vaccinService;
     private final EnregistrementVaccinationRepository enregistrementRepo;
     private final LogService logService;
+    private final LogRepository logRepository;
 
     public EnfantService(CrecheRepository cRep, EnfantRepository eRep, SecurityUtils securityUtils,
                          EnregistrementVaccinationRepository evRep, VaccinService vaccinService,
-                         LogService logService) {
+                         LogService logService, LogRepository logRepository) {
         this.crecheRepo = cRep;
         this.enfantRepo = eRep;
         this.securityUtils = securityUtils;
         this.enregistrementRepo = evRep;
         this.vaccinService = vaccinService;
         this.logService = logService;
+        this.logRepository = logRepository;
     }
 
     public void reactiverEnfant(Long id) {
@@ -83,7 +87,6 @@ public class EnfantService {
         Enfant enfant = enfantRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
 
-        // Anonymiser l'enfant au lieu de le supprimer physiquement (RGPD)
         String ancienPrenom = enfant.getPrenom();
         String ancienNom = enfant.getNom();
         LocalDate ancienneDate = enfant.getDateDeNaissance();
@@ -94,7 +97,18 @@ public class EnfantService {
         enfant.setEstParti(true);
         enfantRepo.save(enfant);
 
-        // Les enregistrements restent liés à l'enfant anonymisé
+        // Anonymisation des logs liés à cet enfant
+        List<Log> logs = logRepository.findByEnfantId(id);
+        for (Log log : logs) {
+            String details = log.getDetails();
+            if (details != null) {
+                details = details.replace(ancienPrenom, "<anonymisé>")
+                                 .replace(ancienNom, "<anonymisé>")
+                                 .replace(ancienneDate.toString(), "1970-01-01");
+                log.setDetails(details);
+                logRepository.save(log);
+            }
+        }
 
         User currentUser = securityUtils.getCurrentUser();
         logService.log("SUPPRIMER_ENFANT", currentUser, enfant.getCreche(), enfant,
@@ -127,7 +141,6 @@ public class EnfantService {
                 .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
         verifierAuthorisationPourCreche(child.getCreche().getNom());
 
-        // Sauvegarder les anciennes valeurs AVANT modification
         String ancienNom = child.getNom();
         String ancienPrenom = child.getPrenom();
         LocalDate ancienneDate = child.getDateDeNaissance();
@@ -185,7 +198,7 @@ public class EnfantService {
     }
 
     // ======== STATUT VACCINAL ========
-
+    // (inchangé)
     public List<VaccinStatusDTO> getStatutVaccinal(Long enfantId) {
         Enfant enfant = enfantRepo.findById(enfantId)
                 .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));

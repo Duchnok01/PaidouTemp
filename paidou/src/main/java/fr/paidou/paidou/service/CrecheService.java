@@ -200,9 +200,9 @@ public class CrecheService {
             throw new IllegalArgumentException(
                 "Impossible de supprimer : la crèche a des enregistrements de vaccination.");
         }
-        crecheRepo.delete(creche);
-
         User currentUser = securityUtils.getCurrentUser();
         logService.log("SUPPRIMER_CRECHE", currentUser, creche, "nom=" + nomNorm);
+        crecheRepo.delete(creche);
+
     }
 }

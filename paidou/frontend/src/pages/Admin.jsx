@@ -409,13 +409,6 @@ const fetchEnfantsForUltraDelete = async (nomCreche) => {
               </select>
               <button className="btn btn-sm btn-primary" onClick={handleTransferEnfants}>Transférer</button>
             </Section>
-            <Section title="Supprimer une directrice">
-              <select className="form-select" value={delUserSelect} onChange={e => setDelUserSelect(e.target.value)}>
-                <option value="">-- Directrice --</option>
-                {users.filter(u => u.role === "directrice").map(u => <option key={u.id} value={u.prenom}>{u.prenom}</option>)}
-              </select>
-              <button className="btn btn-sm btn-danger" onClick={handleDeleteUserZone}>Supprimer</button>
-            </Section>
             <Section title="Modifier un vaccin">
               <select className="form-select" value={editVaccinId} onChange={e => {
                 setEditVaccinId(e.target.value);
@@ -466,7 +459,7 @@ const fetchEnfantsForUltraDelete = async (nomCreche) => {
               </select>
               <button className="btn btn-sm btn-danger" onClick={handleUltraDeleteCreche}>Supprimer</button>
             </Section>
-            <Section title="Supprimer un utilisateur (définitif)">
+            <Section title="Supprimer une directrice (définitif)">
               <select className="form-select" value={ultraDelUser} onChange={e => setUltraDelUser(e.target.value)}>
                 <option value="">-- Utilisateur --</option>
                 {users.filter(u => u.role !== "admin").map(u => <option key={u.id} value={u.prenom}>{u.prenom} ({u.role})</option>)}
