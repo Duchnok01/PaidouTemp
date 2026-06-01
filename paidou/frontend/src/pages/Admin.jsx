@@ -266,17 +266,18 @@ const fetchEnfantsForUltraDelete = async (nomCreche) => {
   };
 
   const handleUltraDeleteEnfant = async () => {
-      const mdp = getUltraMdp(); if (!mdp) return;
-      if (!window.confirm("SUPPRIMER DÉFINITIVEMENT cet enfant et tous ses enregistrements ?")) return;
-      try {
-          await axios.delete("/api/enfants/delete", {
-              data: { id: parseInt(ultraDelEnfant), mdpAdmin: mdp },
-              withCredentials: true
-          });
-          alert("Enfant supprimé définitivement.");
-          setUltraDelEnfantCreche(""); setUltraDelEnfant(""); setUltraEnfantsList([]); setUltraMdp("");
-      } catch (e) { alert(e.response?.data || "Erreur suppression enfant"); }
-  };
+    const mdp = getUltraMdp(); if (!mdp) return;
+    if (!window.confirm("⚠️ Cette action est irréversible. L'enfant sera définitivement anonymisé et toutes ses données personnelles seront supprimées. Continuer ?")) return;
+    if (!window.confirm("SUPPRIMER DÉFINITIVEMENT cet enfant et tous ses enregistrements ?")) return;
+    try {
+        await axios.delete("/api/enfants/delete", {
+            data: { id: parseInt(ultraDelEnfant), mdpAdmin: mdp },
+            withCredentials: true
+        });
+        alert("Enfant supprimé définitivement.");
+        setUltraDelEnfantCreche(""); setUltraDelEnfant(""); setUltraEnfantsList([]); setUltraMdp("");
+    } catch (e) { alert(e.response?.data || "Erreur suppression enfant"); }
+};
 
 
 

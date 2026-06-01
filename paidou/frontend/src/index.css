@@ -484,3 +484,13 @@ a:hover {
     padding: 10px;
   }
 }
+
+
+
+/* Surbrillance temporaire pour les logs */
+.log-highlight {
+  background-color: #FFF3CD !important;
+  transition: background-color 1s ease;
+  border-radius: 4px;
+  padding: 4px 8px;
+}

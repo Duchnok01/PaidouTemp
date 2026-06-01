@@ -52,7 +52,7 @@ public class LogController {
         this.vaccinRepository = vaccinRepository;
     }
 
-    @GetMapping
+   @GetMapping
     public ResponseEntity<List<LogDTO>> getLogs(Authentication authentication,
                                                 @RequestParam(required = false) String q) {
         User currentUser = securityUtils.getCurrentUser();
@@ -68,11 +68,23 @@ public class LogController {
             logs = mergeAndSort(ownLogs, crecheLogs);
         }
 
+        // Transformer en DTO d'abord
+        List<LogDTO> dtos = logs.stream().map(this::toDto).toList();
+
+        // Puis filtrer sur les champs textuels
         if (q != null && !q.isBlank()) {
-            logs = filterLogs(logs, q);
+            String lower = q.toLowerCase();
+            dtos = dtos.stream().filter(dto ->
+                (dto.action() != null && dto.action().toLowerCase().contains(lower)) ||
+                (dto.details() != null && dto.details().toLowerCase().contains(lower)) ||
+                (dto.crecheNom() != null && dto.crecheNom().toLowerCase().contains(lower)) ||
+                (dto.userPrenom() != null && dto.userPrenom().toLowerCase().contains(lower)) ||
+                (dto.enfantPrenom() != null && dto.enfantPrenom().toLowerCase().contains(lower)) ||
+                (dto.enfantNom() != null && dto.enfantNom().toLowerCase().contains(lower)) ||
+                (dto.vaccinNom() != null && dto.vaccinNom().toLowerCase().contains(lower))
+            ).collect(Collectors.toList());
         }
 
-        List<LogDTO> dtos = logs.stream().map(this::toDto).toList();
         return ResponseEntity.ok(dtos);
     }
 
@@ -123,7 +135,7 @@ public class LogController {
 
     private boolean isUndoableByDirectrice(String action) {
         return switch (action) {
-            case "DESACTIVER_ENFANT", "AJOUTER_ENREGISTREMENT" -> true;
+            case "DESACTIVER_ENFANT", "RECTIFIER_ENFANT", "AJOUTER_ENREGISTREMENT" -> true;
             default -> false;
         };
     }
@@ -227,20 +239,12 @@ public class LogController {
         return merged;
     }
 
-    private List<Log> filterLogs(List<Log> logs, String q) {
-        String lower = q.toLowerCase();
-        return logs.stream().filter(l -> 
-            (l.getAction() != null && l.getAction().toLowerCase().contains(lower)) ||
-            (l.getDetails() != null && l.getDetails().toLowerCase().contains(lower)) ||
-            (l.getCrecheNom() != null && l.getCrecheNom().toLowerCase().contains(lower)) ||
-            (userRepository.findById(l.getUserId()).map(User::getPrenom).orElse("").toLowerCase().contains(lower))
-        ).collect(Collectors.toList());
-    }
+   
 
     private LogDTO toDto(Log log) {
         String userPrenom = null;
         if (log.getUserId() != null) {
-            userPrenom = userRepository.findById(log.getUserId()).map(User::getPrenom).orElse("?");
+           userPrenom = userRepository.findById(log.getUserId()).map(User::getPrenom).orElse("Utilisateur inconnu");
         }
         String enfantPrenom = null, enfantNom = null;
         if (log.getEnfantId() != null) {

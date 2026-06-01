@@ -89,7 +89,7 @@ const AjoutEnregistrement = () => {
         idUser: user.id,
       }, { withCredentials: true });
       alert("Enregistrement ajouté !");
-      navigate("/accueil");
+      navigate(-1);
     } catch (err) {
       const message = err.response?.data || "Erreur lors de l'ajout dans la base de données.";
       alert(message);

@@ -8,6 +8,9 @@ import AjoutEnregistrement from "./pages/AjoutEnregistrement";
 import Admin from "./pages/Admin";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import Logs from "./pages/Logs";
+import AdminDangerZone from "./pages/AdminDangerZone";
+
+
 
 function App() {
   return (
@@ -71,6 +74,7 @@ function AppContent() {
         <Route path="/ajout-enregistrement" element={<AjoutEnregistrement />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/logs" element={<Logs />} />
+        <Route path="/admin-danger-zone" element={<AdminDangerZone />} />
       </Routes>
     </>
   );

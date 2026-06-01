@@ -6,6 +6,7 @@ const Logs = () => {
   const { user } = useAuth();
   const [logs, setLogs] = useState([]);
   const [search, setSearch] = useState('');
+  const [highlightedLogId, setHighlightedLogId] = useState(null);
 
   const fetchLogs = async (q) => {
     try {
@@ -21,6 +22,10 @@ const Logs = () => {
     fetchLogs();
   }, []);
 
+  const findUndoLog = (log) => {
+    return logs.find(l => l.action === "UNDO_" + log.action && l.details && l.details.includes("logId=" + log.id));
+  };
+
   const handleUndo = async (log) => {
     if (log.action === 'DELETE_ENFANT') {
       alert("Impossible d'annuler la suppression définitive d'un enfant.");
@@ -35,7 +40,17 @@ const Logs = () => {
       fetchLogs(search || undefined);
     } catch (err) {
       const data = err.response?.data;
-      const message = typeof data === 'string' ? data : (data?.message || data?.error || "Erreur lors de l'annulation");
+      let message = typeof data === 'string' ? data : (data?.message || data?.error || "Erreur lors de l'annulation");
+      // Messages plus clairs pour l'utilisateur
+      if (message.includes("contient encore des enfants")) {
+        message = "Impossible d'annuler : la crèche contient encore des enfants. Transférez-les d'abord.";
+      } else if (message.includes("utilisé dans")) {
+        message = "Impossible d'annuler : ce vaccin est encore utilisé dans des enregistrements.";
+      } else if (message.includes("Action non annulable")) {
+        message = "Cette action ne peut pas être annulée.";
+      } else if (message.includes("pas annulable par une directrice")) {
+        message = "Vous n'avez pas les droits pour annuler cette action.";
+      }
       alert(message);
     }
   };
@@ -45,6 +60,8 @@ const Logs = () => {
   };
 
   const isUndoable = (log) => {
+    if (log.action.startsWith("UNDO_") || log.action.startsWith("REACTIVER_")) return false;
+    if (findUndoLog(log)) return false;
     const undoableActions = [
       "DESACTIVER_USER", "DESACTIVER_ENFANT", "FERMER_CRECHE",
       "RENDRE_OBSOLETE_VACCIN", "CHANGER_DIRECTEUR", "RECTIFIER_ENFANT",
@@ -52,6 +69,12 @@ const Logs = () => {
       "MODIFIER_VACCIN", "AJOUTER_ENREGISTREMENT"
     ];
     return undoableActions.includes(log.action);
+  };
+
+  const scrollToLog = (logId) => {
+    setHighlightedLogId(logId);
+    document.getElementById("log-" + logId)?.scrollIntoView({ behavior: "smooth" });
+    setTimeout(() => setHighlightedLogId(null), 3000);
   };
 
   const handleSearch = () => {
@@ -82,15 +105,25 @@ const Logs = () => {
 
       {logs.length === 0 && <p className="text-secondary">Aucune entrée.</p>}
       <ul>
-        {logs.map(log => (
-          <li key={log.id}>
-            <strong>{formatDate(log.timestamp)}</strong> - {log.user?.prenom || "?"} a effectué l'action : {log.action}
-            {log.details && <em> ({log.details})</em>}
-            {isUndoable(log) && (
-              <button onClick={() => handleUndo(log)}>Annuler</button>
-            )}
-          </li>
-        ))}
+        {logs.map(log => {
+          const undoLog = findUndoLog(log);
+          return (
+            <li
+              key={log.id}
+              id={"log-" + log.id}
+              className={highlightedLogId === log.id ? "log-highlight" : ""}
+            >
+              <strong>{formatDate(log.timestamp)}</strong> - {log.userPrenom || "Utilisateur inconnu"} a effectué l'action : {log.action}
+              {log.details && <em> ({log.details})</em>}
+              {isUndoable(log) && (
+                <button onClick={() => handleUndo(log)}>Annuler</button>
+              )}
+              {undoLog && (
+                <button onClick={() => scrollToLog(undoLog.id)}>Voir l'annulation</button>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
