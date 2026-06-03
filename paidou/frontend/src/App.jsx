@@ -7,6 +7,11 @@ import Enfant from "./pages/directrice/Enfant";
 import AjoutEnregistrement from "./pages/directrice/AjoutEnregistrement";
 import Admin from "./pages/pdg/Admin";
 import SuperAdminUsers from "./pages/superadmin/Users";
+import SuperAdminCreches from "./pages/superadmin/Creches";
+import SuperAdminEnfants from "./pages/superadmin/Enfants";
+import SuperAdminVaccins from "./pages/superadmin/Vaccins";
+import SuperAdminEnregistrements from "./pages/superadmin/Enregistrements";
+import SuperAdminParametres from "./pages/superadmin/Parametres";
 import Logs from "./pages/Logs";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 
@@ -31,6 +36,7 @@ function AppContent() {
   };
 
   const isLoginPage = location.pathname === "/" || location.pathname === "/changer-mdp";
+  const isSuperAdminPage = location.pathname.startsWith("/superadmin");
 
   return (
     <>
@@ -56,15 +62,30 @@ function AppContent() {
               <button className="btn btn-sm btn-logout" onClick={handleLogout}>Déconnexion</button>
             </div>
           </nav>
-          <div className="nav-back">
-            <button className="btn btn-sm btn-secondary" onClick={() => {
-                if (window.history.length > 1) {
-                    navigate(-1);
-                } else {
-                    navigate(user.role === "admin" ? "/pdg" : "/accueil");
-                }
-              }}>← Retour</button>
-          </div>
+
+          {/* Barre de navigation SuperAdmin */}
+          {user && user.role === "admin" && isSuperAdminPage && (
+            <div className="nav-back" style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", padding: "0.5rem 1rem", backgroundColor: "var(--gray-100)", borderBottom: "1px solid var(--gray-300)" }}>
+              <button className={`btn btn-sm ${location.pathname === "/superadmin/users" ? "btn-primary" : "btn-secondary"}`} onClick={() => navigate("/superadmin/users")}>👥 Users</button>
+              <button className={`btn btn-sm ${location.pathname === "/superadmin/creches" ? "btn-primary" : "btn-secondary"}`} onClick={() => navigate("/superadmin/creches")}>🏫 Crèches</button>
+              <button className={`btn btn-sm ${location.pathname === "/superadmin/enfants" ? "btn-primary" : "btn-secondary"}`} onClick={() => navigate("/superadmin/enfants")}>👶 Enfants</button>
+              <button className={`btn btn-sm ${location.pathname === "/superadmin/vaccins" ? "btn-primary" : "btn-secondary"}`} onClick={() => navigate("/superadmin/vaccins")}>💉 Vaccins</button>
+              <button className={`btn btn-sm ${location.pathname === "/superadmin/enregistrements" ? "btn-primary" : "btn-secondary"}`} onClick={() => navigate("/superadmin/enregistrements")}>📋 Enregistrements</button>
+              <button className={`btn btn-sm ${location.pathname === "/superadmin/parametres" ? "btn-primary" : "btn-secondary"}`} onClick={() => navigate("/superadmin/parametres")}>⚙️ Paramètres</button>
+            </div>
+          )}
+
+          {!isSuperAdminPage && (
+            <div className="nav-back">
+              <button className="btn btn-sm btn-secondary" onClick={() => {
+                  if (window.history.length > 1) {
+                      navigate(-1);
+                  } else {
+                      navigate(user.role === "admin" ? "/pdg" : "/accueil");
+                  }
+                }}>← Retour</button>
+            </div>
+          )}
         </>
       )}
 
@@ -78,6 +99,11 @@ function AppContent() {
         <Route path="/pdg" element={<Admin />} />
         <Route path="/logs" element={<Logs />} />
         <Route path="/superadmin/users" element={<SuperAdminUsers />} />
+        <Route path="/superadmin/creches" element={<SuperAdminCreches />} />
+        <Route path="/superadmin/enfants" element={<SuperAdminEnfants />} />
+        <Route path="/superadmin/vaccins" element={<SuperAdminVaccins />} />
+        <Route path="/superadmin/enregistrements" element={<SuperAdminEnregistrements />} />
+        <Route path="/superadmin/parametres" element={<SuperAdminParametres />} />
       </Routes>
     </>
   );
