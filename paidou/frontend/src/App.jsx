@@ -1,16 +1,14 @@
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import Login from "./pages/Login";
 import ChangerMotDePasse from "./pages/ChangerMotDePasse";
-import Accueil from "./pages/Accueil";
-import Creche from "./pages/Creche";
-import Enfant from "./pages/Enfant";
-import AjoutEnregistrement from "./pages/AjoutEnregistrement";
-import Admin from "./pages/Admin";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import Accueil from "./pages/directrice/Accueil";
+import Creche from "./pages/directrice/Creche";
+import Enfant from "./pages/directrice/Enfant";
+import AjoutEnregistrement from "./pages/directrice/AjoutEnregistrement";
+import Admin from "./pages/pdg/Admin";
+import SuperAdminUsers from "./pages/superadmin/Users";
 import Logs from "./pages/Logs";
-import AdminDangerZone from "./pages/AdminDangerZone";
-
-
+import { AuthProvider, useAuth } from "./context/AuthContext";
 
 function App() {
   return (
@@ -39,7 +37,7 @@ function AppContent() {
       {user && !isLoginPage && (
         <>
           <nav className="navbar">
-            <div className="nav-left" onClick={() => navigate(user.role === "admin" ? "/admin" : "/accueil")}>
+            <div className="nav-left" onClick={() => navigate(user.role === "admin" ? "/pdg" : "/accueil")}>
               <img src="/logo.png" alt="Paidou" className="nav-logo" />
               <span className="nav-title">Paidou</span>
             </div>
@@ -50,6 +48,11 @@ function AppContent() {
                       📋 Journal
                   </button>
               )}
+              {user.role === "admin" && (
+                  <button className="btn btn-sm btn-secondary" onClick={() => navigate("/superadmin/users")}>
+                      ⚙️ SuperAdmin
+                  </button>
+              )}
               <button className="btn btn-sm btn-logout" onClick={handleLogout}>Déconnexion</button>
             </div>
           </nav>
@@ -58,7 +61,7 @@ function AppContent() {
                 if (window.history.length > 1) {
                     navigate(-1);
                 } else {
-                    navigate(user.role === "admin" ? "/admin" : "/accueil");
+                    navigate(user.role === "admin" ? "/pdg" : "/accueil");
                 }
               }}>← Retour</button>
           </div>
@@ -72,9 +75,9 @@ function AppContent() {
         <Route path="/creche/:nom" element={<Creche />} />
         <Route path="/enfant/:id" element={<Enfant />} />
         <Route path="/ajout-enregistrement" element={<AjoutEnregistrement />} />
-        <Route path="/admin" element={<Admin />} />
+        <Route path="/pdg" element={<Admin />} />
         <Route path="/logs" element={<Logs />} />
-        <Route path="/admin-danger-zone" element={<AdminDangerZone />} />
+        <Route path="/superadmin/users" element={<SuperAdminUsers />} />
       </Routes>
     </>
   );
