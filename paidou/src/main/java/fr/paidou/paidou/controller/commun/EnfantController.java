@@ -1,4 +1,4 @@
-package fr.paidou.paidou.controller;
+package fr.paidou.paidou.controller.commun;
 
 import fr.paidou.paidou.service.EnfantService;
 import fr.paidou.paidou.model.Enfant;
@@ -14,46 +14,53 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-//@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/enfants")
 public class EnfantController {
 
     private final EnfantService enfantService;
-    
     private final SecurityUtils securityUtils;
     private final UserService userService;
-    
+
     public EnfantController(EnfantService enfantService, SecurityUtils securityUtils, UserService userService) {
         this.enfantService = enfantService;
         this.securityUtils = securityUtils;
         this.userService = userService;
     }
 
-   
+    // ==================== POST ====================
+
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> createEnfant(@RequestBody CreateEnfantRequest request) {
+        if (!securityUtils.hasPermission("CREER_ENFANT")) {
+            return ResponseEntity.status(403).build();
+        }
         try {
             enfantService.createEnfant(
                 request.nom(),
                 request.prenom(),
                 request.dateDeNaissance(),
                 request.nomCreche()
-        );
+            );
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-    
+
+    // ==================== DELETE ====================
+
     @DeleteMapping("/delete")
     public ResponseEntity<?> deleteEnfant(@RequestBody Map<String, String> request) {
+        if (!securityUtils.hasPermission("ANONYMISER_ENFANT")) {
+            return ResponseEntity.status(403).build();
+        }
+        String mdp = request.get("mdpAdmin");
+        if (mdp == null || !userService.verifyPassword(securityUtils.getRealUser().getPrenom(), mdp)) {
+            return ResponseEntity.status(403).body("Mot de passe incorrect");
+        }
         try {
-            if (!securityUtils.isAdmin()) return ResponseEntity.status(403).build();
             Long id = Long.parseLong(request.get("id"));
-            String mdp = request.get("mdpAdmin");
-            if (!userService.verifyPassword(securityUtils.getCurrentUser().getPrenom(), mdp))
-                return ResponseEntity.status(403).body("Mot de passe admin incorrect");
             enfantService.deleteEnfantPhysique(id);
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException e) {
@@ -61,11 +68,123 @@ public class EnfantController {
         }
     }
 
+    @DeleteMapping("/delete-physique")
+    public ResponseEntity<?> deleteEnfantPhysique(@RequestBody Map<String, String> request) {
+        if (!securityUtils.hasPermission("SUPPRIMER_ENFANT")) {
+            return ResponseEntity.status(403).build();
+        }
+        String mdp = request.get("mdpAdmin");
+        if (mdp == null || !userService.verifyPassword(securityUtils.getRealUser().getPrenom(), mdp)) {
+            return ResponseEntity.status(403).body("Mot de passe incorrect");
+        }
+        try {
+            Long id = Long.parseLong(request.get("id"));
+            enfantService.deleteEnfantPhysique(id);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 
+    // ==================== PUT ====================
 
+    @PutMapping("/change-creche")
+    public ResponseEntity<Void> changeCreche(@RequestBody ChangeCrecheRequest request) {
+        if (!securityUtils.hasPermission("CHANGER_CRECHE_ENFANT")) {
+            return ResponseEntity.status(403).build();
+        }
+        // MDP requis pour cette action sensible
+        String mdp = request.mdpAdmin();
+        if (mdp == null || !userService.verifyPassword(securityUtils.getRealUser().getPrenom(), mdp)) {
+            return ResponseEntity.status(403).build();
+        }
+        enfantService.changeCreche(request.id(), request.nomCreche());
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/rectifier")
+    public ResponseEntity<Void> rectifierInfos(@RequestBody RectifierInfosRequest request) {
+        if (!securityUtils.hasPermission("MODIFIER_ENFANT")) {
+            return ResponseEntity.status(403).build();
+        }
+        String mdp = request.mdpAdmin();
+        if (mdp == null || !userService.verifyPassword(securityUtils.getRealUser().getPrenom(), mdp)) {
+            return ResponseEntity.status(403).build();
+        }
+        enfantService.rectifierInfos(
+                request.id(),
+                request.nom(),
+                request.prenom(),
+                request.dateDeNaissance()
+        );
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/disable")
+    public ResponseEntity<Void> disableChild(@RequestBody DisableChildRequest request) {
+        if (!securityUtils.hasPermission("DESACTIVER_ENFANT")) {
+            return ResponseEntity.status(403).build();
+        }
+        String mdp = request.mdpAdmin();
+        if (mdp == null || !userService.verifyPassword(securityUtils.getRealUser().getPrenom(), mdp)) {
+            return ResponseEntity.status(403).build();
+        }
+        enfantService.disableChildAccount(request.id());
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/reactiver")
+    public ResponseEntity<Void> reactiverEnfant(@RequestBody Map<String, String> request) {
+        if (!securityUtils.hasPermission("REACTIVER_ENFANT")) {
+            return ResponseEntity.status(403).build();
+        }
+        String mdp = request.get("mdpAdmin");
+        if (mdp == null || !userService.verifyPassword(securityUtils.getRealUser().getPrenom(), mdp)) {
+            return ResponseEntity.status(403).body("Mot de passe incorrect");
+        }
+        enfantService.reactiverEnfant(Long.parseLong(request.get("id")));
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/anonymiser")
+    public ResponseEntity<Void> anonymiserEnfant(@RequestBody Map<String, String> request) {
+        if (!securityUtils.hasPermission("ANONYMISER_ENFANT")) {
+            return ResponseEntity.status(403).build();
+        }
+        String mdp = request.get("mdpAdmin");
+        if (mdp == null || !userService.verifyPassword(securityUtils.getRealUser().getPrenom(), mdp)) {
+            return ResponseEntity.status(403).body("Mot de passe incorrect");
+        }
+        enfantService.deleteEnfantPhysique(Long.parseLong(request.get("id")));
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/transfer-all")
+    public ResponseEntity<?> transferAllEnfants(@RequestBody Map<String, String> request) {
+        if (!securityUtils.hasPermission("CHANGER_CRECHE_ENFANT")) {
+            return ResponseEntity.status(403).build();
+        }
+        String mdp = request.get("mdpAdmin");
+        if (mdp == null || !userService.verifyPassword(securityUtils.getRealUser().getPrenom(), mdp)) {
+            return ResponseEntity.status(403).body("Mot de passe incorrect");
+        }
+        try {
+            String from = request.get("from");
+            String to = request.get("to");
+            enfantService.transferAllEnfants(from, to);
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // ==================== GET ====================
 
     @GetMapping("/all")
     public ResponseEntity<List<EnfantSummaryDTO>> getAllEnfantsByCreche(@RequestParam String nomCreche) {
+        if (!securityUtils.isProprietaireCreche(securityUtils.getCurrentUser(), nomCreche)) {
+            return ResponseEntity.status(403).build();
+        }
         try {
             List<EnfantSummaryDTO> enfants = enfantService.getAllEnfantsByCreche(nomCreche).stream()
                     .map(e -> new EnfantSummaryDTO(
@@ -82,86 +201,11 @@ public class EnfantController {
         }
     }
 
-
-    @PutMapping("/change-creche")
-    public ResponseEntity<Void> changeCreche(@RequestBody ChangeCrecheRequest request) {
-        enfantService.changeCreche(request.id(), request.nomCreche());
-        return ResponseEntity.ok().build();
-    }
-
-    @PutMapping("/rectifier")
-    public ResponseEntity<Void> rectifierInfos(@RequestBody RectifierInfosRequest request) {
-        enfantService.rectifierInfos(
-                request.id(),
-                request.nom(),
-                request.prenom(),
-                request.dateDeNaissance()
-        );
-        return ResponseEntity.ok().build();
-    }
-
-    @PutMapping("/disable")
-    public ResponseEntity<Void> disableChild(@RequestBody DisableChildRequest request) {
-        enfantService.disableChildAccount(request.id());
-        return ResponseEntity.ok().build();
-    }
-
-
-
-    @PutMapping("/transfer-all")
-    public ResponseEntity<?> transferAllEnfants(@RequestBody Map<String, String> request) {
-        try {
-            if (!securityUtils.isAdmin()) {
-                return ResponseEntity.status(403).build();
-            }
-            String from = request.get("from");
-            String to = request.get("to");
-            String mdpAdmin = request.get("mdpAdmin");
-            if (!userService.verifyPassword(securityUtils.getCurrentUser().getPrenom(), mdpAdmin)) {
-                return ResponseEntity.status(403).body("Mot de passe admin incorrect");
-            }
-            enfantService.transferAllEnfants(from, to);
-            return ResponseEntity.ok().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // ======== LECTURE ========
-
     @GetMapping
     public ResponseEntity<List<EnfantSummaryDTO>> getEnfantsByCreche(@RequestParam String nomCreche) {
+        if (!securityUtils.isProprietaireCreche(securityUtils.getCurrentUser(), nomCreche)) {
+            return ResponseEntity.status(403).build();
+        }
         try {
             List<EnfantSummaryDTO> enfants = enfantService.getEnfantsByCreche(nomCreche).stream()
                     .map(e -> new EnfantSummaryDTO(
@@ -182,6 +226,9 @@ public class EnfantController {
     public ResponseEntity<EnfantDetailDTO> getEnfantById(@PathVariable Long id) {
         try {
             Enfant enfant = enfantService.getEnfantById(id);
+            if (!securityUtils.isProprietaireCreche(securityUtils.getCurrentUser(), enfant.getCreche().getNom())) {
+                return ResponseEntity.status(403).build();
+            }
             EnfantDetailDTO dto = new EnfantDetailDTO(
                     enfant.getId_enfant(),
                     enfant.getNom(),
@@ -191,12 +238,9 @@ public class EnfantController {
             );
             return ResponseEntity.ok(dto);
         } catch (Exception e) {
-            e.printStackTrace(); // <-- ajoute cette ligne
             return ResponseEntity.status(500).build();
         }
     }
-
-
 
     @GetMapping("/{id}/statut-vaccinal")
     public ResponseEntity<List<VaccinStatusDTO>> getStatutVaccinal(@PathVariable Long id) {
@@ -206,9 +250,12 @@ public class EnfantController {
             return ResponseEntity.status(500).build();
         }
     }
-    
+
     @GetMapping("/statuts-vaccinaux")
     public ResponseEntity<List<EnfantStatutGlobalDTO>> getStatutsVaccinaux(@RequestParam String nomCreche) {
+        if (!securityUtils.isProprietaireCreche(securityUtils.getCurrentUser(), nomCreche)) {
+            return ResponseEntity.status(403).build();
+        }
         try {
             return ResponseEntity.ok(enfantService.getStatutsVaccinauxParCreche(nomCreche));
         } catch (Exception e) {
@@ -216,19 +263,7 @@ public class EnfantController {
         }
     }
 
-
-
-
-
-    
-
-
-
-
-
-
-
-    // ======== DTOs ========
+    // ======== DTOs avec mdpAdmin quand nécessaire ========
 
     public record CreateEnfantRequest(
             String nom,
@@ -237,16 +272,17 @@ public class EnfantController {
             String nomCreche
     ) {}
 
-    public record ChangeCrecheRequest(Long id, String nomCreche) {}
+    public record ChangeCrecheRequest(Long id, String nomCreche, String mdpAdmin) {}
 
     public record RectifierInfosRequest(
             Long id,
             String nom,
             String prenom,
-            LocalDate dateDeNaissance
+            LocalDate dateDeNaissance,
+            String mdpAdmin
     ) {}
 
-    public record DisableChildRequest(Long id) {}
+    public record DisableChildRequest(Long id, String mdpAdmin) {}
 
     public record EnfantSummaryDTO(
             Long id,
@@ -264,29 +300,14 @@ public class EnfantController {
             String nomCreche
     ) {}
 
-
-
-
-
-
     public record VaccinStatusDTO(
         Long idVaccin, String nomVaccin, long dosesRecues, int dosesRequises,
         LocalDate dateDose1Recommandee, LocalDate dateDose2Recommandee, LocalDate dateDose3Recommandee,
         String statut
     ) {}
-    
+
     public record EnfantStatutGlobalDTO(
         Long id, String nom, String prenom, LocalDate dateDeNaissance,
         String statut, String nomVaccin, long jours, LocalDate datePrevue
     ) {}
-
-
-
-
-
-
-
-
-
-
 }

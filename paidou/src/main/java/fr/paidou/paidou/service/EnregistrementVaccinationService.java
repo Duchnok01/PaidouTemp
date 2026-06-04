@@ -187,12 +187,8 @@ public class EnregistrementVaccinationService {
 
     private void verifierAuthorisationPourCreche(String nomCreche) {
         User current = securityUtils.getCurrentUser();
-        if (!securityUtils.isAdmin()) {
-            Creche creche = crecheRepo.findById(nomCreche)
-                    .orElseThrow(() -> new IllegalArgumentException("Crèche introuvable"));
-            if (!creche.getDirecteur().getId().equals(current.getId())) {
-                throw new SecurityException("Vous n'êtes pas autorisé à modifier cette crèche");
-            }
+        if (!securityUtils.isProprietaireCreche(current, nomCreche)) {
+            throw new SecurityException("Vous n'êtes pas autorisé à modifier cette crèche");
         }
     }
 }

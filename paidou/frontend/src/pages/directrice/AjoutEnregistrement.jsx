@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const AjoutEnregistrement = () => {
-  const { user } = useAuth();
+  const { effectiveUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -18,9 +18,9 @@ const AjoutEnregistrement = () => {
   const [dateVaccination, setDateVaccination] = useState("");
 
   useEffect(() => {
-    if (!user) { navigate("/"); return; }
+    if (!effectiveUser) { navigate("/"); return; }
     fetchCreches();
-  }, [user]);
+  }, [effectiveUser]);
 
   const fetchCreches = async () => {
     try {
@@ -86,7 +86,7 @@ const AjoutEnregistrement = () => {
         idVaccin: parseInt(selectedVaccin),
         dateVaccination: dateVaccination,
         nomCreche: selectedCreche,
-        idUser: user.id,
+        idUser: effectiveUser.id,
       }, { withCredentials: true });
       alert("Enregistrement ajouté !");
       navigate(-1);

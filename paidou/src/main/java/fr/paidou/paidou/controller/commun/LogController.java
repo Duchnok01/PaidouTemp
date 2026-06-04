@@ -1,4 +1,4 @@
-package fr.paidou.paidou.controller;
+package fr.paidou.paidou.controller.commun;
 
 import fr.paidou.paidou.model.*;
 import fr.paidou.paidou.repository.*;
@@ -52,26 +52,34 @@ public class LogController {
         this.vaccinRepository = vaccinRepository;
     }
 
-   @GetMapping
-    public ResponseEntity<List<LogDTO>> getLogs(Authentication authentication,
-                                                @RequestParam(required = false) String q) {
+    @GetMapping
+    public ResponseEntity<List<LogDTO>> getLogs(@RequestParam(required = false) String q) {
         User currentUser = securityUtils.getCurrentUser();
         List<Log> logs;
 
-        if (securityUtils.isAdmin()) {
+        if (currentUser.getRole().equals("superadmin") || currentUser.getRole().equals("pdg")) {
             logs = logRepository.findAllByOrderByTimestampDesc();
         } else {
             List<Log> ownLogs = logRepository.findByUserIdOrderByTimestampDesc(currentUser.getId());
-            List<String> crecheNoms = crecheRepository.findByDirecteurId(currentUser.getId())
-                    .stream().map(Creche::getNom).toList();
+            List<String> crecheNoms = new ArrayList<>();
+            // Crèches directement dirigées
+            crecheNoms.addAll(crecheRepository.findByDirecteurId(currentUser.getId())
+                    .stream().map(Creche::getNom).toList());
+            // Pour une coordinatrice : ajouter les crèches de ses directrices
+            if (currentUser.getRole().equals("coordinateur")) {
+                List<User> directrices = userRepository.findAll().stream()
+                        .filter(u -> u.getCoordinateur() != null && u.getCoordinateur().getId().equals(currentUser.getId()))
+                        .toList();
+                for (User d : directrices) {
+                    crecheNoms.addAll(crecheRepository.findByDirecteurId(d.getId()).stream().map(Creche::getNom).toList());
+                }
+            }
             List<Log> crecheLogs = logRepository.findByCrecheNomInOrderByTimestampDesc(crecheNoms);
             logs = mergeAndSort(ownLogs, crecheLogs);
         }
 
-        // Transformer en DTO d'abord
         List<LogDTO> dtos = logs.stream().map(this::toDto).toList();
 
-        // Puis filtrer sur les champs textuels
         if (q != null && !q.isBlank()) {
             String lower = q.toLowerCase();
             dtos = dtos.stream().filter(dto ->
@@ -96,23 +104,22 @@ public class LogController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Log introuvable");
         }
 
-        if (!securityUtils.isAdmin()) {
-            boolean isAuthor = log.getUserId().equals(currentUser.getId());
-            boolean isOwnCreche = log.getCrecheNom() != null &&
-                    crecheRepository.findById(log.getCrecheNom())
-                            .map(c -> c.getDirecteur().getId().equals(currentUser.getId()))
-                            .orElse(false);
-            if (!isAuthor && !isOwnCreche) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Action non autorisée");
-            }
-            if (!isUndoableByDirectrice(log.getAction())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Cette action n'est pas annulable par une directrice");
-            }
+        String role = currentUser.getRole();
+        boolean isAuthor = log.getUserId().equals(currentUser.getId());
+        boolean isOwnCreche = log.getCrecheNom() != null &&
+                crecheRepository.findById(log.getCrecheNom())
+                        .map(c -> c.getDirecteur().getId().equals(currentUser.getId()))
+                        .orElse(false);
+
+        // SuperAdmin et PDG peuvent tout annuler. Les autres, seulement leurs actions ou leurs crèches.
+        if (!role.equals("superadmin") && !role.equals("pdg") && !isAuthor && !isOwnCreche) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Action non autorisée");
         }
 
         try {
             String resultMessage = performUndo(log);
-            // Log de l'undo
+            User realUser = securityUtils.getRealUserIfSimulating();
+            User logUser = realUser != null ? realUser : currentUser;
             Creche creche = null;
             if (log.getCrecheNom() != null) {
                 creche = crecheRepository.findById(log.getCrecheNom()).orElse(null);
@@ -125,7 +132,7 @@ public class LogController {
             if (log.getVaccinId() != null) {
                 vaccin = vaccinRepository.findById(log.getVaccinId()).orElse(null);
             }
-            logService.log("UNDO_" + log.getAction(), currentUser, creche, enfant, vaccin,
+            logService.log("UNDO_" + log.getAction(), logUser, creche, enfant, vaccin,
                     "logId=" + log.getId() + ", details=" + log.getDetails());
             return ResponseEntity.ok(resultMessage);
         } catch (Exception e) {

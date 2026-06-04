@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const Creches = () => {
-  const { user } = useAuth();
+  const { user, effectiveUser } = useAuth();
   const navigate = useNavigate();
 
   const [creches, setCreches] = useState([]);
@@ -49,7 +49,7 @@ const Creches = () => {
   };
 
   useEffect(() => {
-    if (!user || user.role !== "admin") { navigate("/accueil"); return; }
+    if (!effectiveUser || effectiveUser.role !== "superadmin") { navigate("/accueil"); return; }
     fetchCreches();
     fetchUsers();
   }, [user]);
@@ -285,7 +285,7 @@ const Creches = () => {
           </div>
         </div>
       )}
-    </div>
+    </div>  
   );
 };
 

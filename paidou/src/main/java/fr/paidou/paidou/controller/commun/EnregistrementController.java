@@ -1,6 +1,7 @@
-package fr.paidou.paidou.controller;
+package fr.paidou.paidou.controller.commun;
 
 import fr.paidou.paidou.model.EnregistrementVaccination;
+import fr.paidou.paidou.security.SecurityUtils;
 import fr.paidou.paidou.service.EnregistrementVaccinationService;
 
 import java.time.LocalDate;
@@ -10,19 +11,26 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-//@CrossOrigin(origins = "http://localhost:5173")
 @RestController
 @RequestMapping("/enregistrements-vaccination")
 public class EnregistrementVaccinationController {
 
     private final EnregistrementVaccinationService enregistrementService;
+    private final SecurityUtils securityUtils;
 
-    public EnregistrementVaccinationController(EnregistrementVaccinationService enregistrementService) {
+    public EnregistrementVaccinationController(EnregistrementVaccinationService enregistrementService,
+                                                SecurityUtils securityUtils) {
         this.enregistrementService = enregistrementService;
+        this.securityUtils = securityUtils;
     }
+
+    // ==================== POST ====================
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Void> createEnregistrement(@RequestBody CreateEnregistrementRequest request) {
+        if (!securityUtils.hasPermission("CREER_ENREGISTREMENT")) {
+            return ResponseEntity.status(403).build();
+        }
         enregistrementService.createEnregistrement(
                 request.idEnfant(),
                 request.idVaccin(),
@@ -33,8 +41,13 @@ public class EnregistrementVaccinationController {
         return ResponseEntity.ok().build();
     }
 
+    // ==================== PUT ====================
+
     @PutMapping("/edit")
     public ResponseEntity<Void> editEnregistrement(@RequestBody EditEnregistrementRequest request) {
+        if (!securityUtils.hasPermission("MODIFIER_ENREGISTREMENT")) {
+            return ResponseEntity.status(403).build();
+        }
         enregistrementService.editEnregistrement(
                 request.idEnfant(),
                 request.idVaccin(),
@@ -45,8 +58,13 @@ public class EnregistrementVaccinationController {
         return ResponseEntity.ok().build();
     }
 
+    // ==================== DELETE ====================
+
     @DeleteMapping
     public ResponseEntity<Void> deleteEnregistrement(@RequestBody DeleteEnregistrementRequest request) {
+        if (!securityUtils.hasPermission("SUPPRIMER_ENREGISTREMENT")) {
+            return ResponseEntity.status(403).build();
+        }
         enregistrementService.deleteEnregistrement(
                 request.idEnfant(),
                 request.idVaccin(),
@@ -55,7 +73,7 @@ public class EnregistrementVaccinationController {
         return ResponseEntity.ok().build();
     }
 
-    // ======== LECTURE ========
+    // ==================== GET ====================
 
     @GetMapping
     public ResponseEntity<List<EnregistrementSummaryDTO>> getEnregistrements(
@@ -67,8 +85,15 @@ public class EnregistrementVaccinationController {
             if (idEnfant != null) {
                 enregistrements = enregistrementService.getEnregistrementsByEnfant(idEnfant);
             } else if (nomCreche != null) {
+                if (!securityUtils.isProprietaireCreche(securityUtils.getCurrentUser(), nomCreche)) {
+                    return ResponseEntity.status(403).build();
+                }
                 enregistrements = enregistrementService.getEnregistrementsByCreche(nomCreche);
             } else {
+                // Pas de filtre : vérifier permission de tout voir
+                if (!securityUtils.hasPermission("VOIR_TOUS_ENREGISTREMENTS")) {
+                    return ResponseEntity.status(403).build();
+                }
                 return ResponseEntity.badRequest().build();
             }
 

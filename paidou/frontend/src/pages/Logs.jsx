@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 const Logs = () => {
-  const { user } = useAuth();
+  const { effectiveUser } = useAuth();
   const [logs, setLogs] = useState([]);
   const [search, setSearch] = useState('');
   const [highlightedLogId, setHighlightedLogId] = useState(null);
@@ -19,8 +19,9 @@ const Logs = () => {
   };
 
   useEffect(() => {
+    if (!effectiveUser) return;
     fetchLogs();
-  }, []);
+  }, [effectiveUser]);
 
   const findUndoLog = (log) => {
     return logs.find(l => l.action === "UNDO_" + log.action && l.details && l.details.includes("logId=" + log.id));
@@ -41,7 +42,6 @@ const Logs = () => {
     } catch (err) {
       const data = err.response?.data;
       let message = typeof data === 'string' ? data : (data?.message || data?.error || "Erreur lors de l'annulation");
-      // Messages plus clairs pour l'utilisateur
       if (message.includes("contient encore des enfants")) {
         message = "Impossible d'annuler : la crèche contient encore des enfants. Transférez-les d'abord.";
       } else if (message.includes("utilisé dans")) {

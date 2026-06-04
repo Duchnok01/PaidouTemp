@@ -1,4 +1,4 @@
-package fr.paidou.paidou.controller;
+package fr.paidou.paidou.controller.commun;
 
 import fr.paidou.paidou.model.User;
 import fr.paidou.paidou.security.SecurityUtils;
@@ -20,75 +20,69 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/users")
-//@CrossOrigin(origins = "http://localhost:5173")
-public class UserController {
+public class AuthController {
 
     private final UserService userService;
     private final AuthenticationManager authenticationManager;
-    private final SecurityUtils securityUtils; 
+    private final SecurityUtils securityUtils;
 
-    public UserController(  UserService userService,
-                            AuthenticationManager authenticationManager,
-                            SecurityUtils securityUtils
-                        ) 
-    {  
+    public AuthController(UserService userService,
+                          AuthenticationManager authenticationManager,
+                          SecurityUtils securityUtils) {
         this.userService = userService;
         this.authenticationManager = authenticationManager;
-        this.securityUtils = securityUtils; 
+        this.securityUtils = securityUtils;
     }
 
     // DTO login (record)
     public record LoginRequest(String prenom, String mdp) {}
 
-    @PostMapping("/create")
-    public ResponseEntity<String> createUser(@RequestParam String prenom) {
-        try {
-            String mdp = userService.createUser(prenom);
-            return ResponseEntity.ok("Utilisateur créé. Mot de passe : " + mdp);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
+    // ==================== AUTH ====================
 
     @PostMapping("/login")
     public ResponseEntity<String[]> login(@RequestBody LoginRequest requestDto,
                                         HttpServletRequest request) {
-
         try {
-            // 1. Création du token
             UsernamePasswordAuthenticationToken token =
                     new UsernamePasswordAuthenticationToken(
                             requestDto.prenom().toLowerCase(),
                             requestDto.mdp()
                     );
-
-            // 2. Authentification via Spring Security
             Authentication auth = authenticationManager.authenticate(token);
-
-            // 3. Stockage dans le SecurityContext
             SecurityContext context = SecurityContextHolder.createEmptyContext();
             context.setAuthentication(auth);
             SecurityContextHolder.setContext(context);
-
-            // 4. Stockage en session HTTP (CRITIQUE)
             HttpSession session = request.getSession(true);
             session.setAttribute(
                     HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                     context
             );
-
-            // 5. Logique métier (redirect info)
             String[] result = userService.getRedirectInfo(requestDto.prenom());
-
             return ResponseEntity.ok(result);
-
         } catch (Exception e) {
-            return ResponseEntity
-                    .status(401)
+            return ResponseEntity.status(401)
                     .body(new String[]{"Identifiants incorrects"});
         }
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        SecurityContextHolder.clearContext();
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<UserSummaryDTO> getCurrentUser(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).build();
+        }
+        User user = userService.getUserByPrenom(authentication.getName().toLowerCase());
+        return ResponseEntity.ok(new UserSummaryDTO(user.getId(), user.getPrenom(), user.getRole(), user.isEstParti()));
+    }
 
     @PutMapping("/set-password")
     public ResponseEntity<?> setPassword(@RequestBody SetPasswordRequest dto,
@@ -108,12 +102,27 @@ public class UserController {
         }
     }
 
+    // ==================== USERS (protégé par permissions) ====================
+
+    @PostMapping("/create")
+    public ResponseEntity<String> createUser(@RequestParam String prenom) {
+        if (!securityUtils.hasPermission("CREER_UTILISATEUR")) {
+            return ResponseEntity.status(403).build();
+        }
+        try {
+            String mdp = userService.createUser(prenom);
+            return ResponseEntity.ok("Utilisateur créé. Mot de passe : " + mdp);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @PutMapping("/fix-name")
     public ResponseEntity<String> fixName(@RequestParam String ancienPrenom, @RequestParam String nouveauPrenom) {
+        if (!securityUtils.hasPermission("RENOMMER_UTILISATEUR")) {
+            return ResponseEntity.status(403).build();
+        }
         try {
-            if (!securityUtils.isAdmin()) {
-                return ResponseEntity.status(403).build();
-            }
             userService.fixNameTypo(ancienPrenom, nouveauPrenom);
             return ResponseEntity.ok("Prénom corrigé");
         } catch (IllegalArgumentException e) {
@@ -121,13 +130,12 @@ public class UserController {
         }
     }
 
-
     @PutMapping("/disable")
     public ResponseEntity<?> disableUser(@RequestBody Map<String, String> request) {
+        if (!securityUtils.hasPermission("DESACTIVER_UTILISATEUR")) {
+            return ResponseEntity.status(403).build();
+        }
         try {
-            if (!securityUtils.isAdmin()) {
-                return ResponseEntity.status(403).build();
-            }
             userService.disableUserAccount(request.get("prenom"));
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException e) {
@@ -135,54 +143,36 @@ public class UserController {
         }
     }
 
-    @GetMapping("/me")
-        public ResponseEntity<UserSummaryDTO> getCurrentUser(Authentication authentication) {
-            if (authentication == null || !authentication.isAuthenticated()) {
-                return ResponseEntity.status(401).build();
-            }
-            User user = userService.getUserByPrenom(authentication.getName().toLowerCase());
-            return ResponseEntity.ok(new UserSummaryDTO(user.getId(), user.getPrenom(), user.getRole(), user.isEstParti()));
-    }
-
-
-
-    @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            session.invalidate();
+    @PutMapping("/reactiver")
+    public ResponseEntity<?> reactiverUser(@RequestBody Map<String, String> request) {
+        if (!securityUtils.hasPermission("REACTIVER_UTILISATEUR")) {
+            return ResponseEntity.status(403).build();
         }
-        SecurityContextHolder.clearContext();
-        return ResponseEntity.ok().build();
+        try {
+            userService.reactiverUser(request.get("prenom"));
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
-
-
-
 
     @GetMapping
     public ResponseEntity<List<UserSummaryDTO>> getAllUsers() {
-        try {
-            if (!securityUtils.isAdmin()) {
-                return ResponseEntity.status(403).build();
-            }
-            List<UserSummaryDTO> users = userService.getAllUsers().stream()
-                    .map(u -> new UserSummaryDTO(u.getId(), u.getPrenom(), u.getRole(), u.isEstParti()))
-                    .toList();
-            return ResponseEntity.ok(users);
-        } catch (Exception e) {
-            return ResponseEntity.status(500).build();
+        if (!securityUtils.hasPermission("VOIR_TOUS_UTILISATEURS")) {
+            return ResponseEntity.status(403).build();
         }
+        List<UserSummaryDTO> users = userService.getAllUsers().stream()
+                .map(u -> new UserSummaryDTO(u.getId(), u.getPrenom(), u.getRole(), u.isEstParti()))
+                .toList();
+        return ResponseEntity.ok(users);
     }
-
-
-
 
     @PutMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
+        if (!securityUtils.hasPermission("RESET_MDP_UTILISATEUR")) {
+            return ResponseEntity.status(403).build();
+        }
         try {
-            if (!securityUtils.isAdmin()) {
-                return ResponseEntity.status(403).build();
-            }
             String prenom = request.get("prenom");
             String nouveauMdp = userService.resetPassword(prenom);
             return ResponseEntity.ok("Mot de passe réinitialisé. Nouveau mot de passe : " + nouveauMdp);
@@ -191,68 +181,26 @@ public class UserController {
         }
     }
 
-
-
-
-
-
     @DeleteMapping("/delete")
     public ResponseEntity<?> deleteUser(@RequestBody Map<String, String> request) {
+        if (!securityUtils.hasPermission("SUPPRIMER_UTILISATEUR")) {
+            return ResponseEntity.status(403).build();
+        }
+        String mdpAdmin = request.get("mdpAdmin");
+        if (mdpAdmin == null || !userService.verifyPassword(securityUtils.getRealUser().getPrenom(), mdpAdmin)) {
+            return ResponseEntity.status(403).body("Mot de passe incorrect");
+        }
         try {
-            if (!securityUtils.isAdmin()) {
-                return ResponseEntity.status(403).build();
-            }
-            String prenom = request.get("prenom");
-            String mdpAdmin = request.get("mdpAdmin");
-            if (!userService.verifyPassword(securityUtils.getCurrentUser().getPrenom(), mdpAdmin)) {
-                return ResponseEntity.status(403).body("Mot de passe admin incorrect");
-            }
-            userService.deleteUser(prenom);
+            userService.deleteUser(request.get("prenom"));
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
+    // ==================== DTO ====================
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // DTO
     public record SetPasswordRequest(String nouveauMdp) {}
-    
+
     public record UserSummaryDTO(Long id, String prenom, String role, boolean estParti) {}
-
-
-
 }

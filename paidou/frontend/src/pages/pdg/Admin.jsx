@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const Admin = () => {
-  const { user } = useAuth();
+  const { effectiveUser } = useAuth();
   const navigate = useNavigate();
 
   // États généraux
@@ -20,8 +20,6 @@ const Admin = () => {
   const [showInfos, setShowInfos] = useState(false);
   const [showDanger, setShowDanger] = useState(false);
   const [dangerMdp, setDangerMdp] = useState("");
-  const [showUltra, setShowUltra] = useState(false);
-  const [ultraMdp, setUltraMdp] = useState("");
 
   // Créations
   const [newUserPrenom, setNewUserPrenom] = useState("");
@@ -41,32 +39,17 @@ const Admin = () => {
   const [fermerCrecheSelect, setFermerCrecheSelect] = useState("");
   const [transferFrom, setTransferFrom] = useState("");
   const [transferTo, setTransferTo] = useState("");
-  const [delUserSelect, setDelUserSelect] = useState("");
   const [editVaccinId, setEditVaccinId] = useState("");
   const [editVaccin, setEditVaccin] = useState({ ...newVaccin });
   const [obsoleteVaccinSelect, setObsoleteVaccinSelect] = useState("");
-
-  // Zone ultra
-  const [ultraDelCreche, setUltraDelCreche] = useState("");
-  const [ultraDelUser, setUltraDelUser] = useState("");
-  const [ultraDelVaccin, setUltraDelVaccin] = useState("");
-  const [ultraEvCreche, setUltraEvCreche] = useState("");
-  const [ultraEvEnfant, setUltraEvEnfant] = useState("");
-  const [ultraEvVaccin, setUltraEvVaccin] = useState("");
-  const [ultraEvDate, setUltraEvDate] = useState("");
-  const [ultraEvEnfantsList, setUltraEvEnfantsList] = useState([]);
-  const [ultraEvRegistrementsList, setUltraEvRegistrementsList] = useState([]);
-  const [ultraDelEnfantCreche, setUltraDelEnfantCreche] = useState("");
-  const [ultraDelEnfant, setUltraDelEnfant] = useState("");
-  const [ultraEnfantsList, setUltraEnfantsList] = useState([]);
 
   // Infos vaccin
   const [selectedVaccinInfo, setSelectedVaccinInfo] = useState("");
 
   useEffect(() => {
-    if (!user || user.role !== "admin") { navigate("/accueil"); return; }
+    if (!effectiveUser || effectiveUser.role !== "pdg") { navigate("/accueil"); return; }
     fetchUsers(); fetchCreches(); fetchVaccins();
-  }, [user]);
+  }, [effectiveUser]);
 
   const fetchUsers = async () => {
     try { const r = await axios.get("/api/users", { withCredentials: true }); setUsers(r.data); }
@@ -80,27 +63,6 @@ const Admin = () => {
     try { const r = await axios.get("/api/vaccins?inclureObsoletes=true", { withCredentials: true }); setVaccins(r.data); }
     catch (e) { alert(e.response?.data || "Erreur chargement vaccins"); }
   };
-
-  const fetchEnfantsForUltra = async (nomCreche) => {
-    try {
-        const res = await axios.get("/api/enfants/all?nomCreche=" + nomCreche, { withCredentials: true });
-        setUltraEvEnfantsList(res.data);
-    } catch (e) { console.error(e); }
-};
-
-const fetchEnregistrementsForUltra = async (idEnfant) => {
-    try {
-        const res = await axios.get("/api/enregistrements-vaccination?idEnfant=" + idEnfant, { withCredentials: true });
-        setUltraEvRegistrementsList(res.data);
-    } catch (e) { console.error(e); }
-};
-
-const fetchEnfantsForUltraDelete = async (nomCreche) => {
-  try {
-      const res = await axios.get("/api/enfants/all?nomCreche=" + nomCreche, { withCredentials: true });
-      setUltraEnfantsList(res.data);
-  } catch (e) { console.error(e); }
-};
 
   // ==================== CRÉATIONS ====================
   const handleCreateUser = async () => {
@@ -150,7 +112,7 @@ const fetchEnfantsForUltraDelete = async (nomCreche) => {
 
   // ==================== ZONE DANGEREUSE ====================
   const getAdminMdp = () => {
-    if (!dangerMdp) { alert("Veuillez entrer votre mot de passe admin."); return null; }
+    if (!dangerMdp) { alert("Veuillez entrer votre mot de passe."); return null; }
     return dangerMdp;
   };
 
@@ -184,21 +146,6 @@ const fetchEnfantsForUltraDelete = async (nomCreche) => {
       fetchCreches(); setTransferFrom(""); setTransferTo(""); setDangerMdp("");
     } catch (e) { alert(e.response?.data || "Erreur"); }
   };
-  const handleDeleteUserZone = async () => {
-    const mdp = getAdminMdp(); if (!mdp) return;
-    const userToDelete = users.find(u => u.prenom === delUserSelect);
-    if (userToDelete?.role === "admin") { alert("Impossible de supprimer un administrateur."); return; }
-    const userCreches = creches.filter(c => c.directeurPrenom === delUserSelect);
-    if (userCreches.length > 0) {
-      alert("Impossible : " + delUserSelect + " dirige encore " + userCreches.map(c => c.nom).join(", "));
-      return;
-    }
-    if (!window.confirm("Supprimer DÉFINITIVEMENT " + delUserSelect + " ?")) return;
-    try {
-      await axios.delete("/api/users/delete", { data: { prenom: delUserSelect, mdpAdmin: mdp }, withCredentials: true });
-      fetchUsers(); fetchCreches(); setDelUserSelect(""); setDangerMdp("");
-    } catch (e) { alert(e.response?.data || "Erreur"); }
-  };
   const handleEditVaccin = async () => {
     const mdp = getAdminMdp(); if (!mdp) return;
     try {
@@ -210,7 +157,8 @@ const fetchEnfantsForUltraDelete = async (nomCreche) => {
         pourEnfantsNesApres: editVaccin.pourEnfantsNesApres || null,
         agePremiereVaccination: parseInt(editVaccin.agePremiereVaccination),
         nbMoisPremierDelai: parseInt(editVaccin.nbMoisPremierDelai),
-        nbMoisDeuxiemeDelai: editVaccin.nbMoisDeuxiemeDelai ? parseInt(editVaccin.nbMoisDeuxiemeDelai) : null
+        nbMoisDeuxiemeDelai: editVaccin.nbMoisDeuxiemeDelai ? parseInt(editVaccin.nbMoisDeuxiemeDelai) : null,
+        mdpAdmin: mdp
       }, { withCredentials: true });
       fetchVaccins(); setEditVaccinId(""); setDangerMdp("");
     } catch (e) { alert(e.response?.data || "Erreur"); }
@@ -224,67 +172,10 @@ const fetchEnfantsForUltraDelete = async (nomCreche) => {
     } catch (e) { alert(e.response?.data || "Erreur"); }
   };
 
-  // ==================== ZONE ULTRA ====================
-  const getUltraMdp = () => {
-    if (!ultraMdp) { alert("Veuillez entrer votre mot de passe admin (ultra)."); return null; }
-    return ultraMdp;
-  };
-  const handleUltraDeleteCreche = async () => {
-    const mdp = getUltraMdp(); if (!mdp) return;
-    if (!window.confirm("SUPPRIMER la crèche " + ultraDelCreche + " ?")) return;
-    try {
-      await axios.delete("/api/creches/delete", { data: { nom: ultraDelCreche, mdpAdmin: mdp }, withCredentials: true });
-      fetchCreches(); setUltraDelCreche(""); setUltraMdp("");
-    } catch (e) { alert(e.response?.data || "Erreur"); }
-  };
-  const handleUltraDeleteUser = async () => {
-    const mdp = getUltraMdp(); if (!mdp) return;
-    if (!window.confirm("SUPPRIMER " + ultraDelUser + " ?")) return;
-    try {
-      await axios.delete("/api/users/delete", { data: { prenom: ultraDelUser, mdpAdmin: mdp }, withCredentials: true });
-      fetchUsers(); setUltraDelUser(""); setUltraMdp("");
-    } catch (e) { alert(e.response?.data || "Erreur"); }
-  };
-  const handleUltraDeleteVaccin = async () => {
-    const mdp = getUltraMdp(); if (!mdp) return;
-    if (!window.confirm("SUPPRIMER PHYSIQUEMENT ce vaccin ?")) return;
-    try {
-      await axios.delete("/api/vaccins/delete", { data: { id: ultraDelVaccin, mdpAdmin: mdp }, withCredentials: true });
-      fetchVaccins(); setUltraDelVaccin(""); setUltraMdp("");
-    } catch (e) { alert(e.response?.data || "Erreur"); }
-  };
-  const handleUltraDeleteEnregistrement = async () => {
-    const mdp = getUltraMdp(); if (!mdp) return;
-    if (!window.confirm("Supprimer cet enregistrement ?")) return;
-    try {
-      await axios.delete("/api/enregistrements-vaccination", {
-        data: { idEnfant: parseInt(ultraEvEnfant), idVaccin: parseInt(ultraEvVaccin), dateVaccination: ultraEvDate },
-        withCredentials: true
-      });
-      alert("Supprimé."); setUltraEvEnfant(""); setUltraEvVaccin(""); setUltraEvDate(""); setUltraMdp("");
-    } catch (e) { alert(e.response?.data || "Erreur"); }
-  };
-
-  const handleUltraDeleteEnfant = async () => {
-    const mdp = getUltraMdp(); if (!mdp) return;
-    if (!window.confirm("⚠️ Cette action est irréversible. L'enfant sera définitivement anonymisé et toutes ses données personnelles seront supprimées. Continuer ?")) return;
-    if (!window.confirm("SUPPRIMER DÉFINITIVEMENT cet enfant et tous ses enregistrements ?")) return;
-    try {
-        await axios.delete("/api/enfants/delete", {
-            data: { id: parseInt(ultraDelEnfant), mdpAdmin: mdp },
-            withCredentials: true
-        });
-        alert("Enfant supprimé définitivement.");
-        setUltraDelEnfantCreche(""); setUltraDelEnfant(""); setUltraEnfantsList([]); setUltraMdp("");
-    } catch (e) { alert(e.response?.data || "Erreur suppression enfant"); }
-};
-
-
-
   // ==================== RENDU ====================
   return (
     <div className="page-container">
-      <h1>Administration</h1>
+      <h1>Administration PDG</h1>
 
       {/* Panneaux création */}
       <Panel title="Créer une directrice" show={showCreateUser} setShow={setShowCreateUser}>
@@ -327,7 +218,7 @@ const fetchEnfantsForUltraDelete = async (nomCreche) => {
           </div>
         ))}
         <h4>Administrateurs</h4>
-        {users.filter(u => u.role === "admin").map(u => (
+        {users.filter(u => u.role === "superadmin" || u.role === "admin").map(u => (
           <div key={u.id}>{u.prenom} (non modifiable)</div>
         ))}
       </Panel>
@@ -370,7 +261,7 @@ const fetchEnfantsForUltraDelete = async (nomCreche) => {
         {showDanger && (
           <div className="panel-body">
             <div className="form-group">
-              <label>Mot de passe admin</label>
+              <label>Mot de passe</label>
               <input type="password" className="form-input" value={dangerMdp} onChange={e => setDangerMdp(e.target.value)} />
             </div>
             <Section title="Renommer une crèche">
@@ -436,79 +327,6 @@ const fetchEnfantsForUltraDelete = async (nomCreche) => {
                 {vaccins.filter(v => !v.estObsolete).map(v => <option key={v.id} value={v.id}>{v.nom}</option>)}
               </select>
               <button className="btn btn-sm btn-danger" onClick={handleObsoleteVaccin}>Rendre obsolète</button>
-            </Section>
-          </div>
-        )}
-      </div>
-
-      {/* Zone ultra dangereuse */}
-      <div className="card ultra-zone">
-        <div className="panel-header" onClick={() => setShowUltra(!showUltra)}>
-          <span>☠️ Zone ultra dangereuse</span>
-          <span>{showUltra ? "▲" : "▼"}</span>
-        </div>
-        {showUltra && (
-          <div className="panel-body">
-            <div className="form-group">
-              <label>Mot de passe admin (ultra)</label>
-              <input type="password" className="form-input" value={ultraMdp} onChange={e => setUltraMdp(e.target.value)} />
-            </div>
-            <Section title="Supprimer une crèche (définitif)">
-              <select className="form-select" value={ultraDelCreche} onChange={e => setUltraDelCreche(e.target.value)}>
-                <option value="">-- Crèche --</option>
-                {creches.map(c => <option key={c.nom} value={c.nom}>{c.nom}</option>)}
-              </select>
-              <button className="btn btn-sm btn-danger" onClick={handleUltraDeleteCreche}>Supprimer</button>
-            </Section>
-            <Section title="Supprimer une directrice (définitif)">
-              <select className="form-select" value={ultraDelUser} onChange={e => setUltraDelUser(e.target.value)}>
-                <option value="">-- Utilisateur --</option>
-                {users.filter(u => u.role !== "admin").map(u => <option key={u.id} value={u.prenom}>{u.prenom} ({u.role})</option>)}
-              </select>
-              <button className="btn btn-sm btn-danger" onClick={handleUltraDeleteUser}>Supprimer</button>
-            </Section>
-            <Section title="Supprimer un vaccin (physique)">
-              <select className="form-select" value={ultraDelVaccin} onChange={e => setUltraDelVaccin(e.target.value)}>
-                <option value="">-- Vaccin --</option>
-                {vaccins.map(v => <option key={v.id} value={v.id}>{v.nom}</option>)}
-              </select>
-              <button className="btn btn-sm btn-danger" onClick={handleUltraDeleteVaccin}>Supprimer</button>
-            </Section>
-            <Section title="Supprimer un enfant (définitif)">
-                <select className="form-select" value={ultraDelEnfantCreche} onChange={e => {
-                    setUltraDelEnfantCreche(e.target.value);
-                    setUltraDelEnfant("");
-                    if (e.target.value) fetchEnfantsForUltraDelete(e.target.value);
-                }}>
-                    <option value="">-- Crèche --</option>
-                    {creches.map(c => <option key={c.nom} value={c.nom}>{c.nom}</option>)}
-                </select>
-                <select className="form-select" value={ultraDelEnfant} onChange={e => setUltraDelEnfant(e.target.value)} disabled={!ultraDelEnfantCreche}>
-                    <option value="">-- Enfant --</option>
-                    {ultraEnfantsList.map(e => <option key={e.id} value={e.id}>{e.nom} {e.prenom} {e.estParti ? "(désactivé)" : ""}</option>)}
-                </select>
-                <button className="btn btn-sm btn-danger" onClick={handleUltraDeleteEnfant} disabled={!ultraDelEnfant}>Supprimer</button>
-            </Section>
-            <Section title="Supprimer un enregistrement">
-              <select className="form-select" value={ultraEvCreche} onChange={e => { setUltraEvCreche(e.target.value); setUltraEvEnfant(""); setUltraEvVaccin(""); setUltraEvDate(""); if (e.target.value) fetchEnfantsForUltra(e.target.value); }}>
-                <option value="">-- Crèche --</option>
-                {creches.map(c => <option key={c.nom} value={c.nom}>{c.nom}</option>)}
-              </select>
-              <select className="form-select" value={ultraEvEnfant} onChange={e => { setUltraEvEnfant(e.target.value); setUltraEvVaccin(""); setUltraEvDate(""); if (e.target.value) fetchEnregistrementsForUltra(e.target.value); }} disabled={!ultraEvCreche}>
-                <option value="">-- Enfant --</option>
-                {ultraEvEnfantsList.map(e => <option key={e.id} value={e.id}>{e.nom} {e.prenom}</option>)}
-              </select>
-              <select className="form-select" value={ultraEvVaccin} onChange={e => { setUltraEvVaccin(e.target.value); setUltraEvDate(""); }} disabled={!ultraEvEnfant}>
-                <option value="">-- Vaccin --</option>
-                {[...new Map(ultraEvRegistrementsList.map(ev => [ev.idVaccin, ev.nomVaccin]))].map(([id, nom]) => <option key={id} value={id}>{nom}</option>)}
-              </select>
-              {ultraEvVaccin && (
-                <select className="form-select" value={ultraEvDate} onChange={e => setUltraEvDate(e.target.value)}>
-                  <option value="">-- Date --</option>
-                  {ultraEvRegistrementsList.filter(ev => ev.idVaccin === parseInt(ultraEvVaccin)).map(ev => <option key={ev.dateVaccination} value={ev.dateVaccination}>{new Date(ev.dateVaccination).toLocaleDateString("fr-FR")}</option>)}
-                </select>
-              )}
-              <button className="btn btn-sm btn-danger" onClick={handleUltraDeleteEnregistrement} disabled={!ultraEvDate}>Supprimer</button>
             </Section>
           </div>
         )}

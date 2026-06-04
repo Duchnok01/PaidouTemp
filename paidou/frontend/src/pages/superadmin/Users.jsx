@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const Users = () => {
-  const { user } = useAuth();
+  const { user, effectiveUser } = useAuth();
   const navigate = useNavigate();
 
   // ==================== ÉTATS ====================
@@ -56,7 +56,7 @@ const Users = () => {
   };
 
   useEffect(() => {
-    if (!user || user.role !== "admin") { navigate("/accueil"); return; }
+    if (!effectiveUser || effectiveUser.role !== "superadmin") { navigate("/accueil"); return; }
     fetchUsers();
     fetchCreches();
   }, [user]);

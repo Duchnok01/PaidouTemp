@@ -3,8 +3,8 @@ import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
-const Vaccins = () => {
-  const { user } = useAuth();
+const Vaccins = () => { 
+  const { user, effectiveUser } = useAuth();
   const navigate = useNavigate();
 
   const [vaccins, setVaccins] = useState([]);
@@ -48,7 +48,7 @@ const Vaccins = () => {
   };
 
   useEffect(() => {
-    if (!user || user.role !== "admin") { navigate("/accueil"); return; }
+    if (!effectiveUser || effectiveUser.role !== "superadmin") { navigate("/accueil"); return; }
     fetchVaccins();
   }, [user]);
 

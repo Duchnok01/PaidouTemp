@@ -51,6 +51,9 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/users/login", "/users/create").permitAll()
+                .requestMatchers("/superadmin/**").authenticated()
+                .requestMatchers("/simulation/**").authenticated()
+                .requestMatchers("/parametres").authenticated()
                 .anyRequest().authenticated()
             );
 

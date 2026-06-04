@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 
 const Creche = () => {
   const { nom } = useParams();
-  const { user } = useAuth();
+  const { effectiveUser } = useAuth();
   const navigate = useNavigate();
 
   const [enfants, setEnfants] = useState([]);
@@ -13,9 +13,9 @@ const Creche = () => {
   const [newEnfant, setNewEnfant] = useState({ nom: "", prenom: "", dateDeNaissance: "" });
 
   useEffect(() => {
-    if (!user) { navigate("/"); return; }
+    if (!effectiveUser) { navigate("/"); return; }
     fetchEnfants();
-  }, [nom, user]);
+  }, [nom, effectiveUser]);
 
   const fetchEnfants = async () => {
     try {

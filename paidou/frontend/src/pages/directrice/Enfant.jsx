@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 
 const Enfant = () => {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { effectiveUser } = useAuth();
   const navigate = useNavigate();
 
   const [enfant, setEnfant] = useState(null);
@@ -27,11 +27,11 @@ const Enfant = () => {
   const [newCrecheNom, setNewCrecheNom] = useState("");
 
   useEffect(() => {
-    if (!user) { navigate("/"); return; }
+    if (!effectiveUser) { navigate("/"); return; }
     fetchEnfant();
     fetchEnregistrements();
     fetchStatutVaccinal();
-  }, [id, user]);
+  }, [id, effectiveUser]);
 
   useEffect(() => {
     if (showChangerCreche && enfant) {
@@ -94,7 +94,11 @@ const Enfant = () => {
     if (!mdpDirectrice) { alert("Veuillez entrer votre mot de passe."); return; }
     try {
       await axios.put("/api/enfants/rectifier", {
-        id: parseInt(id), nom: editNom, prenom: editPrenom, dateDeNaissance: editDate,
+        id: parseInt(id),
+        nom: editNom,
+        prenom: editPrenom,
+        dateDeNaissance: editDate,
+        mdpAdmin: mdpDirectrice,
       }, { withCredentials: true });
       setShowModifier(false);
       setMdpDirectrice("");
@@ -108,7 +112,10 @@ const Enfant = () => {
     if (!mdpDirectrice) { alert("Veuillez entrer votre mot de passe."); return; }
     if (!window.confirm("Désactiver cet enfant ? Il n'apparaîtra plus dans les listes.")) return;
     try {
-      await axios.put("/api/enfants/disable", { id: parseInt(id) }, { withCredentials: true });
+      await axios.put("/api/enfants/disable", {
+        id: parseInt(id),
+        mdpAdmin: mdpDirectrice,
+      }, { withCredentials: true });
       setMdpDirectrice("");
       navigate("/creche/" + enfant.nomCreche);
     } catch (err) {
@@ -121,7 +128,9 @@ const Enfant = () => {
     if (!mdpDirectrice) { alert("Veuillez entrer votre mot de passe."); return; }
     try {
       await axios.put("/api/enfants/change-creche", {
-        id: parseInt(id), nomCreche: newCrecheNom,
+        id: parseInt(id),
+        nomCreche: newCrecheNom,
+        mdpAdmin: mdpDirectrice,
       }, { withCredentials: true });
       setShowChangerCreche(false);
       setMdpDirectrice("");
@@ -146,6 +155,7 @@ const Enfant = () => {
         ancienneDate: dateAncienne,
         newIdVaccin: parseInt(editEvVaccin),
         nouvelleDate: editEvDate,
+        mdpAdmin: mdpDirectrice,
       }, { withCredentials: true });
       setShowEditEv(null);
       setMdpDirectrice("");
@@ -165,6 +175,7 @@ const Enfant = () => {
           idEnfant: parseInt(id),
           idVaccin: idVaccin,
           dateVaccination: dateVaccination,
+          mdpAdmin: mdpDirectrice,
         },
         withCredentials: true,
       });

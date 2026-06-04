@@ -47,9 +47,7 @@ public class VaccinService {
     public void createVaccin(String nom, String listeMaladies, Integer pourEnfantsNesAvant,
                              Integer pourEnfantsNesApres, Integer agePremiereVaccination,
                              Integer nbMoisPremierDelai, Integer nbMoisDeuxiemeDelai) {
-        if (!securityUtils.isAdmin()) {
-            throw new SecurityException("Seul un administrateur peut créer un vaccin");
-        }
+        // Autorisation vérifiée par le contrôleur
         if (vaccinRepo.findByNom(nom.toLowerCase()).isPresent()) {
             throw new IllegalArgumentException("Un vaccin avec ce nom existe déjà");
         }
@@ -81,13 +79,10 @@ public class VaccinService {
     public void editVaccin(Long id, String nom, String listeMaladies, Integer pourEnfantsNesAvant,
                            Integer pourEnfantsNesApres, Integer agePremiereVaccination,
                            Integer nbMoisPremierDelai, Integer nbMoisDeuxiemeDelai) {
-        if (!securityUtils.isAdmin()) {
-            throw new SecurityException("Seul un administrateur peut modifier un vaccin");
-        }
+        // Autorisation vérifiée par le contrôleur
         Vaccin vaccin = vaccinRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
 
-        // Sauvegarder les anciennes valeurs pour le log
         String ancienNom = vaccin.getNom();
         String ancienMaladies = vaccin.getMaladiesPrevenues();
         Integer ancienAvant = vaccin.getPourEnfantsNesAvant();
@@ -118,9 +113,7 @@ public class VaccinService {
     }
 
     public void rendreObsolete(Long id) {
-        if (!securityUtils.isAdmin()) {
-            throw new SecurityException("Seul un administrateur peut rendre un vaccin obsolète");
-        }
+        // Autorisation vérifiée par le contrôleur
         Vaccin vaccin = vaccinRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
         vaccin.setEstObsolete(true);
@@ -131,7 +124,7 @@ public class VaccinService {
     }
 
     public void deleteVaccinPhysique(Long id) {
-        if (!securityUtils.isAdmin()) throw new SecurityException("Admin requis");
+        // Autorisation vérifiée par le contrôleur
         List<EnregistrementVaccination> evs = enregistrementRepo.findByIdIdVaccin(id);
         if (!evs.isEmpty()) {
             throw new IllegalArgumentException(

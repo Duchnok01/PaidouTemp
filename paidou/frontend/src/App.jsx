@@ -26,7 +26,7 @@ function App() {
 }
 
 function AppContent() {
-  const { user, logout } = useAuth();
+  const { user, effectiveUser, simulatedUser, simulatableUsers, logout, startSimulation, stopSimulation, fetchSimulatableUsers } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -38,23 +38,88 @@ function AppContent() {
   const isLoginPage = location.pathname === "/" || location.pathname === "/changer-mdp";
   const isSuperAdminPage = location.pathname.startsWith("/superadmin");
 
+  // Redirection selon le rôle effectif
+  const getHomePath = () => {
+    if (effectiveUser.role === "superadmin" || effectiveUser.role === "admin") return "/superadmin/users";
+    if (effectiveUser.role === "pdg") return "/pdg";
+    if (effectiveUser.role === "coordinateur") return "/accueil";
+    return "/accueil";
+  };
+
+  // Gérer le clic sur un utilisateur à simuler
+  const handleStartSimulation = async (targetId) => {
+    try {
+      await startSimulation(targetId);
+      navigate(getHomePath());
+    } catch (err) {
+      alert("Erreur lors de la simulation.");
+    }
+  };
+
+  // Gérer l'arrêt de la simulation
+  const handleStopSimulation = async () => {
+    await stopSimulation();
+    navigate(getHomePath());
+  };
+
+  // Charger la liste des utilisateurs simulables quand la navbar est affichée
+  const loadSimulatableUsers = () => {
+    if (user && (user.role === "superadmin" || user.role === "admin" || user.role === "pdg" || user.role === "coordinateur")) {
+      fetchSimulatableUsers();
+    }
+  };
+
   return (
     <>
       {user && !isLoginPage && (
         <>
           <nav className="navbar">
-            <div className="nav-left" onClick={() => navigate(user.role === "admin" ? "/pdg" : "/accueil")}>
+            <div className="nav-left" onClick={() => navigate(getHomePath())}>
               <img src="/logo.png" alt="Paidou" className="nav-logo" />
               <span className="nav-title">Paidou</span>
             </div>
             <div className="nav-right">
-              <span className="nav-user">{user.prenom} ({user.role})</span>
-              {(user.role === "admin" || user.role === "directrice") && (
+              {/* Sélecteur de simulation */}
+              {simulatedUser ? (
+                <>
+                  <span className="nav-user" style={{ color: "var(--warning)" }}>
+                    {user.prenom} ({user.role}) → {simulatedUser.prenom} ({simulatedUser.role})
+                  </span>
+                  <button className="btn btn-sm btn-warning" onClick={handleStopSimulation}>
+                    ⏎ Revenir à moi
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className="nav-user">{effectiveUser.prenom} ({effectiveUser.role})</span>
+                  {(user.role === "superadmin" || user.role === "admin" || user.role === "pdg" || user.role === "coordinateur") && (
+                    <select
+                      className="form-select"
+                      style={{ width: "auto", fontSize: "0.85rem" }}
+                      defaultValue=""
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          handleStartSimulation(parseInt(e.target.value));
+                        }
+                      }}
+                      onFocus={loadSimulatableUsers}
+                    >
+                      <option value="">Simuler...</option>
+                      {simulatableUsers.map(u => (
+                        <option key={u.id} value={u.id}>{u.prenom} ({u.role})</option>
+                      ))}
+                    </select>
+                  )}
+                </>
+              )}
+
+              {/* Journal et SuperAdmin */}
+              {(effectiveUser.role === "superadmin" || effectiveUser.role === "admin" || effectiveUser.role === "directrice") && (
                   <button className="btn btn-sm btn-secondary" onClick={() => navigate("/logs")}>
                       📋 Journal
                   </button>
               )}
-              {user.role === "admin" && (
+              {(effectiveUser.role === "superadmin" || effectiveUser.role === "admin") && (
                   <button className="btn btn-sm btn-secondary" onClick={() => navigate("/superadmin/users")}>
                       ⚙️ SuperAdmin
                   </button>
@@ -64,7 +129,7 @@ function AppContent() {
           </nav>
 
           {/* Barre de navigation SuperAdmin */}
-          {user && user.role === "admin" && isSuperAdminPage && (
+          {(effectiveUser.role === "superadmin" || effectiveUser.role === "admin") && isSuperAdminPage && (
             <div className="nav-back" style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", padding: "0.5rem 1rem", backgroundColor: "var(--gray-100)", borderBottom: "1px solid var(--gray-300)" }}>
               <button className={`btn btn-sm ${location.pathname === "/superadmin/users" ? "btn-primary" : "btn-secondary"}`} onClick={() => navigate("/superadmin/users")}>👥 Users</button>
               <button className={`btn btn-sm ${location.pathname === "/superadmin/creches" ? "btn-primary" : "btn-secondary"}`} onClick={() => navigate("/superadmin/creches")}>🏫 Crèches</button>
@@ -81,7 +146,7 @@ function AppContent() {
                   if (window.history.length > 1) {
                       navigate(-1);
                   } else {
-                      navigate(user.role === "admin" ? "/pdg" : "/accueil");
+                      navigate(getHomePath());
                   }
                 }}>← Retour</button>
             </div>

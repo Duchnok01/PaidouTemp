@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const Accueil = () => {
-  const { user } = useAuth();
+  const { user, effectiveUser } = useAuth();
   const navigate = useNavigate();
   const [creches, setCreches] = useState([]);
   const [enfantsByCreche, setEnfantsByCreche] = useState({});
@@ -14,10 +14,11 @@ const Accueil = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) { navigate("/"); return; }
-    if (user.role == "admin") {navigate("/admin");}
+    if (!effectiveUser) { navigate("/"); return; }
+    if (effectiveUser.role === "superadmin") { navigate("/superadmin/users"); return; }
+    if (effectiveUser.role === "pdg") { navigate("/pdg"); return; }
     fetchData();
-  }, [user]);
+  }, [effectiveUser]);
 
   const fetchData = async () => {
     try {
@@ -54,7 +55,7 @@ const Accueil = () => {
   return (
     <div className="page-container">
       <div className="header-actions">
-        <h1>Accueil — {user.prenom}</h1>
+        <h1>Accueil — {effectiveUser.prenom}</h1>
         <button className="btn btn-primary" onClick={() => navigate("/ajout-enregistrement")}>
           ➕ Ajouter un enregistrement
         </button>
