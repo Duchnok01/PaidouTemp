@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, useRedirectByRole } from '../context/AuthContext';
 
 const Logs = () => {
   const { effectiveUser } = useAuth();

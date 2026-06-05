@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react"; 
+import React, { useState } from "react"; 
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
@@ -8,15 +7,7 @@ const Login = () => {
   const [mdp, setMdp] = useState("");
   const [error, setError] = useState("");
 
-  const navigate = useNavigate();
-  const { user, login } = useAuth();
-
-  useEffect(() => {
-    if (user) {
-      navigate("/accueil");
-    }
-  }, [user, navigate]);
-
+  const { login } = useAuth();
 
   const handleLogin = async () => {
     setError("");
@@ -45,7 +36,6 @@ const Login = () => {
         return;
       }
 
-      // Récupérer l'id utilisateur
       try {
         const meRes = await axios.get("/api/users/me", { withCredentials: true });
         login({ id: meRes.data.id, prenom: result[2], role: result[1] });
@@ -53,13 +43,16 @@ const Login = () => {
         login({ prenom: result[2], role: result[1] });
       }
 
-      // Redirections
       if (status === "changer-mdp") {
-        navigate("/changer-mdp");
-      } else if (status === "admin") {
-        navigate("/admin");
+        window.location.href = "/changer-mdp";
+      } else if (status === "superadmin" || status === "admin") {
+        window.location.href = "/superadmin/users";
+      } else if (status === "pdg") {
+        window.location.href = "/pdg/users";
+      } else if (status === "coordinateur") {
+        window.location.href = "/coordinateur";
       } else {
-        navigate("/accueil");
+        window.location.href = "/accueil";
       }
     } catch (err) {
       const message = Array.isArray(err.response?.data)

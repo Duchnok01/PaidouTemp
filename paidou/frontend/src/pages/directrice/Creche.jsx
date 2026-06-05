@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth, useRedirectByRole } from "../../context/AuthContext";
 
 const Creche = () => {
   const { nom } = useParams();
@@ -12,9 +12,10 @@ const Creche = () => {
   const [showAddEnfant, setShowAddEnfant] = useState(false);
   const [newEnfant, setNewEnfant] = useState({ nom: "", prenom: "", dateDeNaissance: "" });
 
+  useRedirectByRole(["directrice"]);
   useEffect(() => {
-    if (!effectiveUser) { navigate("/"); return; }
-    fetchEnfants();
+      if (!effectiveUser) return;
+      fetchEnfants();
   }, [nom, effectiveUser]);
 
   const fetchEnfants = async () => {

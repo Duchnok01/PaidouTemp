@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth, useRedirectByRole } from "../../context/AuthContext";
 
 const Accueil = () => {
-  const { user, effectiveUser } = useAuth();
+  const { effectiveUser } = useAuth();
   const navigate = useNavigate();
   const [creches, setCreches] = useState([]);
   const [enfantsByCreche, setEnfantsByCreche] = useState({});
@@ -13,10 +13,9 @@ const Accueil = () => {
   const [selectedVaccinInfo, setSelectedVaccinInfo] = useState("");
   const [loading, setLoading] = useState(true);
 
+  useRedirectByRole(["directrice"]);
   useEffect(() => {
-    if (!effectiveUser) { navigate("/"); return; }
-    if (effectiveUser.role === "superadmin") { navigate("/superadmin/users"); return; }
-    if (effectiveUser.role === "pdg") { navigate("/pdg"); return; }
+    if (!effectiveUser) return;
     fetchData();
   }, [effectiveUser]);
 
@@ -51,6 +50,7 @@ const Accueil = () => {
   };
 
   if (loading) return <p className="text-secondary">Chargement...</p>;
+  if (!effectiveUser) return <p className="text-secondary">Chargement...</p>;
 
   return (
     <div className="page-container">

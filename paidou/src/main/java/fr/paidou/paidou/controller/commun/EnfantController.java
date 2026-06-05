@@ -134,7 +134,7 @@ public class EnfantController {
     }
 
     @PutMapping("/reactiver")
-    public ResponseEntity<Void> reactiverEnfant(@RequestBody Map<String, String> request) {
+    public ResponseEntity<?> reactiverEnfant(@RequestBody Map<String, String> request) {
         if (!securityUtils.hasPermission("REACTIVER_ENFANT")) {
             return ResponseEntity.status(403).build();
         }
@@ -147,7 +147,7 @@ public class EnfantController {
     }
 
     @PutMapping("/anonymiser")
-    public ResponseEntity<Void> anonymiserEnfant(@RequestBody Map<String, String> request) {
+    public ResponseEntity<?> anonymiserEnfant(@RequestBody Map<String, String> request) {
         if (!securityUtils.hasPermission("ANONYMISER_ENFANT")) {
             return ResponseEntity.status(403).build();
         }

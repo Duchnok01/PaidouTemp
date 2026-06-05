@@ -5,6 +5,7 @@ import fr.paidou.paidou.security.SecurityUtils;
 import fr.paidou.paidou.service.UserService;
 import fr.paidou.paidou.service.VaccinService;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -37,8 +38,8 @@ public class VaccinController {
             vaccinService.createVaccin(
                 request.nom(),
                 request.listeMaladies(),
-                request.pourEnfantsNesAvant(),
-                request.pourEnfantsNesApres(),
+                request.neAvantLe() != null && !request.neAvantLe().isBlank() ? LocalDate.parse(request.neAvantLe()) : null,
+                request.neApresLe() != null && !request.neApresLe().isBlank() ? LocalDate.parse(request.neApresLe()) : null,
                 request.agePremiereVaccination(),
                 request.nbMoisPremierDelai(),
                 request.nbMoisDeuxiemeDelai()
@@ -64,8 +65,8 @@ public class VaccinController {
                 request.id(),
                 request.nom(),
                 request.listeMaladies(),
-                request.pourEnfantsNesAvant(),
-                request.pourEnfantsNesApres(),
+                request.neAvantLe() != null && !request.neAvantLe().isBlank() ? LocalDate.parse(request.neAvantLe()) : null,
+                request.neApresLe() != null && !request.neApresLe().isBlank() ? LocalDate.parse(request.neApresLe()) : null,
                 request.agePremiereVaccination(),
                 request.nbMoisPremierDelai(),
                 request.nbMoisDeuxiemeDelai()
@@ -145,7 +146,7 @@ public class VaccinController {
             List<VaccinSummaryDTO> dtos = vaccins.stream()
                     .map(v -> new VaccinSummaryDTO(
                         v.getId(), v.getNom(), v.getMaladiesPrevenues(),
-                        v.getPourEnfantsNesAvant(), v.getPourEnfantsNesApres(),
+                        v.getNeAvantLe(), v.getNeApresLe(),
                         v.getAgePremiereVaccination(), v.getNbMoisPremierDelai(),
                         v.getNbMoisDeuxiemeDelai(), v.isEstObsolete()
                     ))
@@ -170,8 +171,8 @@ public class VaccinController {
     public record CreateVaccinRequest(
             String nom,
             String listeMaladies,
-            Integer pourEnfantsNesAvant,
-            Integer pourEnfantsNesApres,
+            String neAvantLe,
+            String neApresLe,
             Integer agePremiereVaccination,
             Integer nbMoisPremierDelai,
             Integer nbMoisDeuxiemeDelai
@@ -181,8 +182,8 @@ public class VaccinController {
             Long id,
             String nom,
             String listeMaladies,
-            Integer pourEnfantsNesAvant,
-            Integer pourEnfantsNesApres,
+            String neAvantLe,
+            String neApresLe,
             Integer agePremiereVaccination,
             Integer nbMoisPremierDelai,
             Integer nbMoisDeuxiemeDelai,
@@ -193,8 +194,8 @@ public class VaccinController {
         Long id,
         String nom,
         String maladiesPrevenues,
-        Integer pourEnfantsNesAvant,
-        Integer pourEnfantsNesApres,
+        LocalDate neAvantLe,
+        LocalDate neApresLe,
         Integer agePremiereVaccination,
         Integer nbMoisPremierDelai,
         Integer nbMoisDeuxiemeDelai,

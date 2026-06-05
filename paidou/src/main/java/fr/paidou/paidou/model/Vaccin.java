@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
+import java.time.LocalDate;
 
 @Data
 @Entity
@@ -18,27 +19,26 @@ public class Vaccin {
     private Long id;
 
     @Column(nullable = false)
-    private String nom; // nom du vaccin
+    private String nom;
 
     @Column(nullable = false)
-    private String maladiesPrevenues; // liste de maladies prevenues par le vaccin, séparées par des virgules
+    private String maladiesPrevenues;
 
-    @Column(nullable = true)
-    private Integer pourEnfantsNesAvant; //Certains vaccins sont uniquement pour les enfants nés avant une certaine date
+    @Column(name = "ne_avant_le")
+    private LocalDate neAvantLe;
 
-    @Column(nullable = true)
-    private Integer pourEnfantsNesApres; //Certains vaccins sont uniquement pour les enfants nés après une certaine date
-
-    @Column(nullable = false)
-    private Integer agePremiereVaccination; // age de la premiere vaccination
+    @Column(name = "ne_apres_le")
+    private LocalDate neApresLe;
 
     @Column(nullable = false)
-    private Integer nbMoisPremierDelai; // nombre de mois entre la premiere et la deuxieme prise
+    private Integer agePremiereVaccination;
+
+    @Column(nullable = false)
+    private Integer nbMoisPremierDelai;
 
     @Column(nullable = true)
-    private Integer nbMoisDeuxiemeDelai; // nombre de mois entre la deuxieme et la troisieme prise, si il y en a une
+    private Integer nbMoisDeuxiemeDelai;
 
     @Column(nullable = false)
     private boolean estObsolete = false;
-
 }

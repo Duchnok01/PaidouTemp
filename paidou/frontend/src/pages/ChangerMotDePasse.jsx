@@ -14,8 +14,16 @@ const ChangerMotDePasse = () => {
   useEffect(() => {
     if (!user) {
       navigate("/");
+      return;
     }
-  }, [user]);
+    // Si l'utilisateur n'a pas besoin de changer son MDP, le rediriger vers sa page d'accueil
+    if (!user.doitChangerMdp) {
+      const homePath = user.role === "superadmin" ? "/superadmin/users" :
+                       user.role === "pdg" ? "/pdg/users" :
+                       user.role === "coordinateur" ? "/coordinateur" : "/accueil";
+      navigate(homePath);
+    }
+  }, [user, navigate]);
 
   const handleSubmit = async () => {
     setError("");
@@ -37,11 +45,11 @@ const ChangerMotDePasse = () => {
         withCredentials: true,
       });
 
-      if (user.role === "admin") {
-        navigate("/admin");
-      } else {
-        navigate("/accueil");
-      }
+      // Redirection après changement de MDP réussi
+      const homePath = user.role === "superadmin" ? "/superadmin/users" :
+                       user.role === "pdg" ? "/pdg/users" :
+                       user.role === "coordinateur" ? "/coordinateur" : "/accueil";
+      window.location.href = homePath;
     } catch (err) {
       const message = err.response?.data || "Erreur réseau ou serveur";
       setError(message);

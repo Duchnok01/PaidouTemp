@@ -13,13 +13,13 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/enregistrements-vaccination")
-public class EnregistrementVaccinationController {
+public class EnregistrementController {
 
     private final EnregistrementVaccinationService enregistrementService;
     private final SecurityUtils securityUtils;
 
-    public EnregistrementVaccinationController(EnregistrementVaccinationService enregistrementService,
-                                                SecurityUtils securityUtils) {
+    public EnregistrementController(EnregistrementVaccinationService enregistrementService,
+                                    SecurityUtils securityUtils) {
         this.enregistrementService = enregistrementService;
         this.securityUtils = securityUtils;
     }
@@ -90,7 +90,6 @@ public class EnregistrementVaccinationController {
                 }
                 enregistrements = enregistrementService.getEnregistrementsByCreche(nomCreche);
             } else {
-                // Pas de filtre : vérifier permission de tout voir
                 if (!securityUtils.hasPermission("VOIR_TOUS_ENREGISTREMENTS")) {
                     return ResponseEntity.status(403).build();
                 }

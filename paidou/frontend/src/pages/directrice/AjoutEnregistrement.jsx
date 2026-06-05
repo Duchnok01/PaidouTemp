@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth, useRedirectByRole } from "../../context/AuthContext";
 
 const AjoutEnregistrement = () => {
   const { effectiveUser } = useAuth();
@@ -17,8 +17,9 @@ const AjoutEnregistrement = () => {
   const [selectedVaccin, setSelectedVaccin] = useState("");
   const [dateVaccination, setDateVaccination] = useState("");
 
+  useRedirectByRole(["directrice", "coordinateur"]);
   useEffect(() => {
-    if (!effectiveUser) { navigate("/"); return; }
+    if (!effectiveUser) return;
     fetchCreches();
   }, [effectiveUser]);
 

@@ -5,6 +5,7 @@ import fr.paidou.paidou.service.VaccinService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 @RestController
@@ -19,44 +20,47 @@ public class SuperAdminVaccinController {
         this.securityUtils = securityUtils;
     }
 
-    // POST créer un vaccin
+    private Integer parseOptionalInt(String value) {
+        if (value == null || value.isBlank()) return null;
+        return Integer.parseInt(value);
+    }
+
+    private LocalDate parseOptionalDate(String value) {
+        if (value == null || value.isBlank()) return null;
+        return LocalDate.parse(value);
+    }
+
     @PostMapping
     public ResponseEntity<Void> createVaccin(@RequestBody Map<String, String> request) {
-        if (!securityUtils.hasPermission("CREER_VACCIN")) {
-            return ResponseEntity.status(403).build();
-        }
+        if (!securityUtils.hasPermission("CREER_VACCIN")) return ResponseEntity.status(403).build();
         vaccinService.createVaccin(
             request.get("nom"),
             request.get("listeMaladies"),
-            request.containsKey("neAvantLe") ? Integer.parseInt(request.get("neAvantLe")) : null,
-            request.containsKey("neApresLe") ? Integer.parseInt(request.get("neApresLe")) : null,
+            parseOptionalDate(request.get("neAvantLe")),
+            parseOptionalDate(request.get("neApresLe")),
             Integer.parseInt(request.get("agePremiereVaccination")),
             Integer.parseInt(request.get("nbMoisPremierDelai")),
-            request.containsKey("nbMoisDeuxiemeDelai") ? Integer.parseInt(request.get("nbMoisDeuxiemeDelai")) : null
+            parseOptionalInt(request.get("nbMoisDeuxiemeDelai"))
         );
         return ResponseEntity.ok().build();
     }
 
-    // PUT modifier un vaccin
     @PutMapping("/edit")
     public ResponseEntity<Void> editVaccin(@RequestBody Map<String, String> request) {
-        if (!securityUtils.hasPermission("MODIFIER_VACCIN")) {
-            return ResponseEntity.status(403).build();
-        }
+        if (!securityUtils.hasPermission("MODIFIER_VACCIN")) return ResponseEntity.status(403).build();
         vaccinService.editVaccin(
             Long.parseLong(request.get("id")),
             request.get("nom"),
             request.get("listeMaladies"),
-            request.containsKey("neAvantLe") ? Integer.parseInt(request.get("neAvantLe")) : null,
-            request.containsKey("neApresLe") ? Integer.parseInt(request.get("neApresLe")) : null,
+            parseOptionalDate(request.get("neAvantLe")),
+            parseOptionalDate(request.get("neApresLe")),
             Integer.parseInt(request.get("agePremiereVaccination")),
             Integer.parseInt(request.get("nbMoisPremierDelai")),
-            request.containsKey("nbMoisDeuxiemeDelai") ? Integer.parseInt(request.get("nbMoisDeuxiemeDelai")) : null
+            parseOptionalInt(request.get("nbMoisDeuxiemeDelai"))
         );
         return ResponseEntity.ok().build();
     }
 
-    // PUT rendre obsolète
     @PutMapping("/rendre-obsolete")
     public ResponseEntity<Void> rendreObsolete(@RequestBody Map<String, String> request) {
         if (!securityUtils.hasPermission("RENDRE_OBSOLETE_VACCIN")) {
@@ -66,7 +70,6 @@ public class SuperAdminVaccinController {
         return ResponseEntity.ok().build();
     }
 
-    // PUT réactiver
     @PutMapping("/reactiver")
     public ResponseEntity<Void> reactiverVaccin(@RequestBody Map<String, String> request) {
         if (!securityUtils.hasPermission("REACTIVER_VACCIN")) {
@@ -76,7 +79,6 @@ public class SuperAdminVaccinController {
         return ResponseEntity.ok().build();
     }
 
-    // DELETE supprimer définitivement
     @DeleteMapping("/delete")
     public ResponseEntity<Void> deleteVaccin(@RequestBody Map<String, String> request) {
         if (!securityUtils.hasPermission("SUPPRIMER_VACCIN")) {

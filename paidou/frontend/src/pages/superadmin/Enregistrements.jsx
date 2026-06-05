@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth, useRedirectByRole } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const Enregistrements = () => {
-  const { user, effectiveUser } = useAuth();
+  const { effectiveUser } = useAuth();
   const navigate = useNavigate();
 
   const [enregistrements, setEnregistrements] = useState([]);
@@ -29,8 +29,16 @@ const Enregistrements = () => {
   const [rightShowCreche, setRightShowCreche] = useState(false);
   const [rightShowUser, setRightShowUser] = useState(false);
 
-  // Sélection (identifiant unique = "idEnfant-idVaccin-date")
+  // Sélection
   const [selectedKeys, setSelectedKeys] = useState([]);
+
+
+  useRedirectByRole(["superadmin"]);
+  useEffect(() => {
+    if (!effectiveUser) return;
+    fetchCreches();
+    fetchVaccins();
+  }, [effectiveUser]);  
 
   const fetchEnregistrements = async () => {
     try {
@@ -57,11 +65,6 @@ const Enregistrements = () => {
     } catch (e) { console.error("Erreur chargement vaccins", e); }
   };
 
-  useEffect(() => {
-    if (!effectiveUser || effectiveUser.role !== "superadmin") { navigate("/accueil"); return; }
-    fetchCreches();
-    fetchVaccins();
-  }, [user]);
 
   useEffect(() => {
     if (creches.length > 0) fetchEnregistrements();
@@ -118,7 +121,7 @@ const Enregistrements = () => {
     if (!actionMessage("SUPPRIMER")) return;
     try {
       for (const ev of getSelectedEvs()) {
-        await axios.delete("/api/enregistrements-vaccination", {
+        await axios.delete("/api/superadmin/enregistrements", {
           data: { idEnfant: ev.idEnfant, idVaccin: ev.idVaccin, dateVaccination: ev.dateVaccination },
           withCredentials: true
         });

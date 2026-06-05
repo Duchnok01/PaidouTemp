@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth, useRedirectByRole } from "../../context/AuthContext";
 
 const Enfant = () => {
   const { id } = useParams();
@@ -26,8 +26,9 @@ const Enfant = () => {
   const [editDate, setEditDate] = useState("");
   const [newCrecheNom, setNewCrecheNom] = useState("");
 
+  useRedirectByRole(["directrice"]);
   useEffect(() => {
-    if (!effectiveUser) { navigate("/"); return; }
+    if (!effectiveUser) return;
     fetchEnfant();
     fetchEnregistrements();
     fetchStatutVaccinal();

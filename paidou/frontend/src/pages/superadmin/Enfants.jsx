@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth, useRedirectByRole } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const Enfants = () => {
-  const { user, effectiveUser } = useAuth();
+  const { effectiveUser } = useAuth();
   const navigate = useNavigate();
 
   const [enfants, setEnfants] = useState([]);
@@ -44,9 +44,16 @@ const Enfants = () => {
   const [newDate, setNewDate] = useState("");
   const [newCreche, setNewCreche] = useState("");
 
+
+  useRedirectByRole(["superadmin"]);
+
+  useEffect(() => {
+    if (!effectiveUser) return;
+    fetchCreches();
+  }, [effectiveUser]);
+
   const fetchEnfants = async () => {
     try {
-      // Récupérer tous les enfants de toutes les crèches
       const allEnfants = [];
       for (const c of creches) {
         const res = await axios.get(`/api/enfants/all?nomCreche=${c.nom}`, { withCredentials: true });
@@ -60,7 +67,6 @@ const Enfants = () => {
     try {
       const res = await axios.get("/api/creches", { withCredentials: true });
       setCreches(res.data);
-      // Initialiser les cases à cocher des crèches
       const initCreches = {};
       res.data.forEach(c => { initCreches[c.nom] = true; });
       setLeftCreches(initCreches);
@@ -68,10 +74,7 @@ const Enfants = () => {
     } catch (e) { console.error("Erreur chargement crèches", e); }
   };
 
-  useEffect(() => {
-    if (!effectiveUser || effectiveUser.role !== "superadmin") { navigate("/accueil"); return; }
-    fetchCreches();
-  }, [user]);
+
 
   useEffect(() => {
     if (creches.length > 0) fetchEnfants();
@@ -164,7 +167,7 @@ const Enfants = () => {
   const handleCreateEnfant = async () => {
     if (!newPrenom || !newNom || !newDate || !newCreche) { alert("Tous les champs sont obligatoires."); return; }
     try {
-      await axios.post("/api/enfants", {
+      await axios.post("/api/superadmin/enfants", {
         prenom: newPrenom, nom: newNom, dateDeNaissance: newDate, nomCreche: newCreche
       }, { withCredentials: true });
       setNewPrenom(""); setNewNom(""); setNewDate(""); setNewCreche("");
@@ -176,7 +179,7 @@ const Enfants = () => {
     const sel = getSelectedEnfants();
     if (sel.length !== 1) { alert("Sélectionnez exactement un enfant."); return; }
     try {
-      await axios.put("/api/enfants/rectifier", {
+      await axios.put("/api/superadmin/enfants/rectifier", {
         id: sel[0].id, prenom: editPrenom, nom: editNom, dateDeNaissance: editDate
       }, { withCredentials: true });
       setEditMode(null);
@@ -189,7 +192,7 @@ const Enfants = () => {
     if (!actionMessage(`Transférer vers "${editValue2}"`)) return;
     try {
       for (const e of getSelectedEnfants()) {
-        await axios.put("/api/enfants/change-creche", { id: e.id, nomCreche: editValue2 }, { withCredentials: true });
+        await axios.put("/api/superadmin/enfants/change-creche", { id: e.id, nomCreche: editValue2 }, { withCredentials: true });
       }
       setEditMode(null); setEditValue2("");
       fetchEnfants();
@@ -200,7 +203,7 @@ const Enfants = () => {
     if (!actionMessage("Désactiver")) return;
     try {
       for (const e of getSelectedEnfants()) {
-        await axios.put("/api/enfants/disable", { id: e.id }, { withCredentials: true });
+        await axios.put("/api/superadmin/enfants/disable", { id: e.id }, { withCredentials: true });
       }
       fetchEnfants();
     } catch (e) { alert(e.response?.data || "Erreur"); }
@@ -210,7 +213,7 @@ const Enfants = () => {
     if (!actionMessage("Réactiver")) return;
     try {
       for (const e of getSelectedEnfants()) {
-        await axios.put("/api/enfants/reactiver", { id: e.id }, { withCredentials: true });
+        await axios.put("/api/superadmin/enfants/reactiver", { id: e.id }, { withCredentials: true });
       }
       fetchEnfants();
     } catch (e) { alert(e.response?.data || "Erreur"); }
@@ -221,7 +224,7 @@ const Enfants = () => {
     if (!window.confirm("⚠️ Les données seront remplacées par des valeurs génériques. Les enregistrements de vaccination seront conservés. Continuer ?")) return;
     try {
       for (const e of getSelectedEnfants()) {
-        await axios.put("/api/enfants/anonymiser", { id: e.id }, { withCredentials: true });
+        await axios.put("/api/superadmin/enfants/anonymiser", { id: e.id }, { withCredentials: true });
       }
       fetchEnfants();
     } catch (e) { alert(e.response?.data || "Erreur"); }
@@ -232,7 +235,7 @@ const Enfants = () => {
     if (!window.confirm("☠️ Cette action est IRRÉVERSIBLE. L'enfant et tous ses enregistrements seront supprimés. Continuer ?")) return;
     try {
       for (const e of getSelectedEnfants()) {
-        await axios.delete("/api/enfants/delete-physique", { data: { id: e.id }, withCredentials: true });
+        await axios.delete("/api/superadmin/enfants/delete-physique", { data: { id: e.id }, withCredentials: true });
       }
       setSelectedIds([]);
       fetchEnfants();

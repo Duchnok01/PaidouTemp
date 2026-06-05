@@ -6,7 +6,7 @@ import fr.paidou.paidou.repository.PermissionRepository;
 import fr.paidou.paidou.repository.RolePermissionRepository;
 import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -87,6 +87,7 @@ public class PermissionService {
     // Initialise les permissions en base au démarrage si elles n'existent pas
     @PostConstruct
     public void initPermissions() {
+        // Créer les permissions si elles n'existent pas
         for (Map.Entry<String, String[]> entry : ALL_PERMISSIONS.entrySet()) {
             String code = entry.getKey();
             String[] infos = entry.getValue();
@@ -96,6 +97,12 @@ public class PermissionService {
                 p.setDescription(infos[0]);
                 p.setCategorie(infos[1]);
                 permissionRepository.save(p);
+            }
+        }
+        // Initialiser les permissions par défaut pour les rôles qui n'en ont pas
+        for (String role : List.of("superadmin", "pdg", "coordinateur", "directrice")) {
+            if (rolePermissionRepository.findByRole(role).isEmpty()) {
+                initDefaultPermissions(role);
             }
         }
     }
@@ -113,6 +120,7 @@ public class PermissionService {
     }
 
     // Donne une permission à un rôle
+    @Transactional
     public void addPermissionToRole(String role, Long permissionId) {
         Permission permission = permissionRepository.findById(permissionId)
                 .orElseThrow(() -> new IllegalArgumentException("Permission introuvable"));
@@ -123,6 +131,7 @@ public class PermissionService {
     }
 
     // Retire une permission à un rôle
+    @Transactional
     public void removePermissionFromRole(String role, Long permissionId) {
         rolePermissionRepository.deleteByRoleAndPermissionId(role, permissionId);
     }

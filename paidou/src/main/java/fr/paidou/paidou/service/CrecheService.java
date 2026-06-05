@@ -1,6 +1,6 @@
 package fr.paidou.paidou.service;
 
-import fr.paidou.paidou.controller.CrecheController.CrecheSummaryDTO;
+import fr.paidou.paidou.controller.commun.CrecheController.CrecheSummaryDTO;
 import fr.paidou.paidou.model.Creche;
 import fr.paidou.paidou.model.Enfant;
 import fr.paidou.paidou.model.EnregistrementVaccination;
@@ -10,6 +10,7 @@ import fr.paidou.paidou.repository.EnfantRepository;
 import fr.paidou.paidou.repository.EnregistrementVaccinationRepository;
 import fr.paidou.paidou.repository.UserRepository;
 import fr.paidou.paidou.security.SecurityUtils;
+import java.util.ArrayList;
 
 import org.springframework.stereotype.Service;
 
@@ -76,7 +77,19 @@ public class CrecheService {
 
     public List<CrecheSummaryDTO> getMesCrechesWithInfos() {
         User currentUser = securityUtils.getCurrentUser();
-        return crecheRepo.findByDirecteurId(currentUser.getId()).stream()
+        List<Creche> creches;
+        if (currentUser.getRole().equals("coordinateur")) {
+            List<User> directrices = userRepo.findAll().stream()
+                    .filter(u -> u.getCoordinateur() != null && u.getCoordinateur().getId().equals(currentUser.getId()))
+                    .toList();
+            creches = new ArrayList<>();
+            for (User d : directrices) {
+                creches.addAll(crecheRepo.findByDirecteurId(d.getId()));
+            }
+        } else {
+            creches = crecheRepo.findByDirecteurId(currentUser.getId());
+        }
+        return creches.stream()
                 .map(c -> new CrecheSummaryDTO(
                         c.getNom(),
                         c.getDirecteur().getPrenom(),

@@ -99,7 +99,7 @@ public class SuperAdminCrecheController {
             return ResponseEntity.status(403).build();
         }
         // Appel au UserService pour transférer les crèches
-        // userService.transfererCreches(request.get("fromDirectrice"), request.get("toDirectrice"));
+        userService.transfererCreches(request.get("fromDirectrice"), request.get("toDirectrice"));
         return ResponseEntity.ok().build();
     }
 }

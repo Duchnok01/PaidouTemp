@@ -1,9 +1,10 @@
 package fr.paidou.paidou.repository;
 
 import fr.paidou.paidou.model.Vaccin;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface VaccinRepository extends JpaRepository<Vaccin, Long> {
 
@@ -13,8 +14,7 @@ public interface VaccinRepository extends JpaRepository<Vaccin, Long> {
 
     List<Vaccin> findByAgePremiereVaccinationLessThanEqual(Integer ageEnMois);
 
-    List<Vaccin> findByPourEnfantsNesAvant(Integer annee);
+    List<Vaccin> findByNeAvantLe(LocalDate date);
 
-    List<Vaccin> findByPourEnfantsNesApres(Integer annee);
-
+    List<Vaccin> findByNeApresLe(LocalDate date);
 }

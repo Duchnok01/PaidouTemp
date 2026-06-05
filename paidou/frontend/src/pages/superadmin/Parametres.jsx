@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth, useRedirectByRole } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const Parametres = () => {
@@ -24,6 +24,16 @@ const Parametres = () => {
   const [rolePermissions, setRolePermissions] = useState([]);
   const [savedPerms, setSavedPerms] = useState(false);
 
+
+  useRedirectByRole(["superadmin"]);
+  useEffect(() => {
+    if (!effectiveUser) return;
+    fetchParametres();
+    fetchAllPermissions();
+  }, [effectiveUser]);
+
+
+  
   // ==================== FETCH ====================
   const fetchParametres = async () => {
     try {
@@ -51,11 +61,6 @@ const Parametres = () => {
     } catch (e) { console.error("Erreur chargement permissions rôle", e); }
   };
 
-  useEffect(() => {
-    if (!effectiveUser || effectiveUser.role !== "superadmin") { navigate("/accueil"); return; }
-    fetchParametres();
-    fetchAllPermissions();
-  }, [user]);
 
   useEffect(() => {
     if (tab === "permissions") {

@@ -1,6 +1,6 @@
 package fr.paidou.paidou.service;
 
-import fr.paidou.paidou.controller.VaccinController.VaccinPourEnfantDTO;
+import fr.paidou.paidou.controller.commun.VaccinController.VaccinPourEnfantDTO;
 import fr.paidou.paidou.model.Enfant;
 import fr.paidou.paidou.model.EnregistrementVaccination;
 import fr.paidou.paidou.model.Vaccin;
@@ -10,6 +10,7 @@ import fr.paidou.paidou.repository.EnregistrementVaccinationRepository;
 import fr.paidou.paidou.repository.VaccinRepository;
 import fr.paidou.paidou.security.SecurityUtils;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,10 +45,9 @@ public class VaccinService {
         logService.log("REACTIVER_VACCIN", currentUser, vaccin, "id=" + id + ", nom=" + vaccin.getNom());
     }
 
-    public void createVaccin(String nom, String listeMaladies, Integer pourEnfantsNesAvant,
-                             Integer pourEnfantsNesApres, Integer agePremiereVaccination,
+    public void createVaccin(String nom, String listeMaladies, LocalDate neAvantLe,
+                             LocalDate neApresLe, Integer agePremiereVaccination,
                              Integer nbMoisPremierDelai, Integer nbMoisDeuxiemeDelai) {
-        // Autorisation vérifiée par le contrôleur
         if (vaccinRepo.findByNom(nom.toLowerCase()).isPresent()) {
             throw new IllegalArgumentException("Un vaccin avec ce nom existe déjà");
         }
@@ -55,8 +55,8 @@ public class VaccinService {
         Vaccin newV = new Vaccin();
         newV.setNom(nom);
         newV.setMaladiesPrevenues(listeMaladies);
-        newV.setPourEnfantsNesAvant(pourEnfantsNesAvant);
-        newV.setPourEnfantsNesApres(pourEnfantsNesApres);
+        newV.setNeAvantLe(neAvantLe);
+        newV.setNeApresLe(neApresLe);
         newV.setAgePremiereVaccination(agePremiereVaccination);
         newV.setNbMoisPremierDelai(nbMoisPremierDelai);
         newV.setNbMoisDeuxiemeDelai(nbMoisDeuxiemeDelai);
@@ -76,25 +76,24 @@ public class VaccinService {
         return vaccinRepo.findAll();
     }
 
-    public void editVaccin(Long id, String nom, String listeMaladies, Integer pourEnfantsNesAvant,
-                           Integer pourEnfantsNesApres, Integer agePremiereVaccination,
+    public void editVaccin(Long id, String nom, String listeMaladies, LocalDate neAvantLe,
+                           LocalDate neApresLe, Integer agePremiereVaccination,
                            Integer nbMoisPremierDelai, Integer nbMoisDeuxiemeDelai) {
-        // Autorisation vérifiée par le contrôleur
         Vaccin vaccin = vaccinRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
 
         String ancienNom = vaccin.getNom();
         String ancienMaladies = vaccin.getMaladiesPrevenues();
-        Integer ancienAvant = vaccin.getPourEnfantsNesAvant();
-        Integer ancienApres = vaccin.getPourEnfantsNesApres();
+        LocalDate ancienAvant = vaccin.getNeAvantLe();
+        LocalDate ancienApres = vaccin.getNeApresLe();
         Integer ancienAge = vaccin.getAgePremiereVaccination();
         Integer ancienDelai1 = vaccin.getNbMoisPremierDelai();
         Integer ancienDelai2 = vaccin.getNbMoisDeuxiemeDelai();
 
         vaccin.setNom(nom);
         vaccin.setMaladiesPrevenues(listeMaladies);
-        vaccin.setPourEnfantsNesAvant(pourEnfantsNesAvant);
-        vaccin.setPourEnfantsNesApres(pourEnfantsNesApres);
+        vaccin.setNeAvantLe(neAvantLe);
+        vaccin.setNeApresLe(neApresLe);
         vaccin.setAgePremiereVaccination(agePremiereVaccination);
         vaccin.setNbMoisPremierDelai(nbMoisPremierDelai);
         vaccin.setNbMoisDeuxiemeDelai(nbMoisDeuxiemeDelai);
@@ -105,15 +104,14 @@ public class VaccinService {
                 "id=" + id
                 + ", ancienNom=" + ancienNom + ", nouveauNom=" + nom
                 + ", ancienMaladies=" + ancienMaladies + ", nouvellesMaladies=" + listeMaladies
-                + ", ancienAvant=" + ancienAvant + ", nouveauAvant=" + pourEnfantsNesAvant
-                + ", ancienApres=" + ancienApres + ", nouveauApres=" + pourEnfantsNesApres
+                + ", ancienAvant=" + ancienAvant + ", nouveauAvant=" + neAvantLe
+                + ", ancienApres=" + ancienApres + ", nouveauApres=" + neApresLe
                 + ", ancienAge=" + ancienAge + ", nouvelAge=" + agePremiereVaccination
                 + ", ancienDelai1=" + ancienDelai1 + ", nouveauDelai1=" + nbMoisPremierDelai
                 + ", ancienDelai2=" + ancienDelai2 + ", nouveauDelai2=" + nbMoisDeuxiemeDelai);
     }
 
     public void rendreObsolete(Long id) {
-        // Autorisation vérifiée par le contrôleur
         Vaccin vaccin = vaccinRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
         vaccin.setEstObsolete(true);
@@ -124,7 +122,6 @@ public class VaccinService {
     }
 
     public void deleteVaccinPhysique(Long id) {
-        // Autorisation vérifiée par le contrôleur
         List<EnregistrementVaccination> evs = enregistrementRepo.findByIdIdVaccin(id);
         if (!evs.isEmpty()) {
             throw new IllegalArgumentException(
@@ -148,11 +145,11 @@ public class VaccinService {
                 .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
         List<Vaccin> vaccins = getAllVaccins();
         List<EnregistrementVaccination> enregistrements = enregistrementRepo.findByIdIdEnfant(enfantId);
-        int annee = enfant.getDateDeNaissance().getYear();
+        LocalDate dateNaissance = enfant.getDateDeNaissance();
         List<VaccinPourEnfantDTO> result = new ArrayList<>();
         for (Vaccin v : vaccins) {
-            if (v.getPourEnfantsNesAvant() != null && annee > v.getPourEnfantsNesAvant()) continue;
-            if (v.getPourEnfantsNesApres() != null && annee < v.getPourEnfantsNesApres()) continue;
+            if (v.getNeAvantLe() != null && !dateNaissance.isBefore(v.getNeAvantLe())) continue;
+            if (v.getNeApresLe() != null && dateNaissance.isBefore(v.getNeApresLe())) continue;
             long recues = enregistrements.stream().filter(ev -> ev.getVaccin().getId().equals(v.getId())).count();
             int requises = v.getNbMoisDeuxiemeDelai() != null ? 3 : 2;
             boolean complet = recues >= requises;

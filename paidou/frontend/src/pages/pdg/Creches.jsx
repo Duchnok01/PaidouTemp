@@ -3,46 +3,38 @@ import axios from "axios";
 import { useAuth, useRedirectByRole } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
-
-const Creches = () => {
+const PdgCreches = () => {
   const { effectiveUser } = useAuth();
   const navigate = useNavigate();
 
   const [creches, setCreches] = useState([]);
   const [users, setUsers] = useState([]);
 
-  // Filtres panneau gauche (non sélectionnées)
   const [leftSearch, setLeftSearch] = useState("");
   const [leftStatut, setLeftStatut] = useState("ouvert");
   const [leftShowDirectrice, setLeftShowDirectrice] = useState(false);
   const [leftShowEnfants, setLeftShowEnfants] = useState(false);
 
-  // Filtres panneau droit (sélectionnées)
   const [rightSearch, setRightSearch] = useState("");
   const [rightStatut, setRightStatut] = useState("tous");
   const [rightShowDirectrice, setRightShowDirectrice] = useState(false);
   const [rightShowEnfants, setRightShowEnfants] = useState(false);
 
-  // Sélection
   const [selectedNoms, setSelectedNoms] = useState([]);
-
-  // Édition
   const [editMode, setEditMode] = useState(null);
   const [editValue, setEditValue] = useState("");
   const [editValue2, setEditValue2] = useState("");
-
-  // Création
   const [newNom, setNewNom] = useState("");
   const [newDirectrice, setNewDirectrice] = useState("");
 
-  useRedirectByRole(["superadmin"]);
+  useRedirectByRole(["pdg"]);
 
   useEffect(() => {
     if (!effectiveUser) return;
     fetchCreches();
     fetchUsers();
   }, [effectiveUser]);
-  
+
   const fetchCreches = async () => {
     try {
       const res = await axios.get("/api/creches", { withCredentials: true });
@@ -57,7 +49,6 @@ const Creches = () => {
     } catch (e) { console.error("Erreur chargement utilisateurs", e); }
   };
 
-  // ==================== FILTRAGE ====================
   const applyFilters = (list, search, statut, showDirectrice, showEnfants) => {
     return list.filter(c => {
       if (statut === "ouvert" && c.estFerme) return false;
@@ -72,22 +63,14 @@ const Creches = () => {
     }).sort((a, b) => a.nom.localeCompare(b.nom));
   };
 
-  const nonSelected = applyFilters(
-    creches.filter(c => !selectedNoms.includes(c.nom)),
-    leftSearch, leftStatut, leftShowDirectrice, leftShowEnfants
-  );
-  const selected = applyFilters(
-    creches.filter(c => selectedNoms.includes(c.nom)),
-    rightSearch, rightStatut, rightShowDirectrice, rightShowEnfants
-  );
+  const nonSelected = applyFilters(creches.filter(c => !selectedNoms.includes(c.nom)), leftSearch, leftStatut, leftShowDirectrice, leftShowEnfants);
+  const selected = applyFilters(creches.filter(c => selectedNoms.includes(c.nom)), rightSearch, rightStatut, rightShowDirectrice, rightShowEnfants);
 
-  // ==================== SÉLECTION ====================
   const selectCreche = (nom) => setSelectedNoms(prev => [...prev, nom]);
   const unselectCreche = (nom) => setSelectedNoms(prev => prev.filter(x => x !== nom));
   const selectAllLeft = () => setSelectedNoms(prev => [...new Set([...prev, ...nonSelected.map(c => c.nom)])]);
   const unselectAllRight = () => setSelectedNoms(prev => prev.filter(x => !selected.find(c => c.nom === x)));
 
-  // ==================== HELPERS ====================
   const getSelectedCreches = () => creches.filter(c => selectedNoms.includes(c.nom));
 
   const actionMessage = (action) => {
@@ -98,19 +81,6 @@ const Creches = () => {
     return true;
   };
 
-  const statutLabel = (s) => {
-    if (s === "ouvert") return "Ouvertes";
-    if (s === "ferme") return "Fermées";
-    return "Toutes";
-  };
-
-  const cycleStatut = (current, setter) => {
-    if (current === "ouvert") setter("ferme");
-    else if (current === "ferme") setter("tous");
-    else setter("ouvert");
-  };
-
-  // ==================== ACTIONS ====================
   const handleCreateCreche = async () => {
     if (!newNom || !newDirectrice) { alert("Nom et directrice obligatoires."); return; }
     try {
@@ -162,24 +132,21 @@ const Creches = () => {
     } catch (e) { alert(e.response?.data || "Erreur"); }
   };
 
-  const handleSupprimer = async () => {
-    if (!actionMessage("SUPPRIMER DÉFINITIVEMENT")) return;
-    for (const c of getSelectedCreches()) {
-      if (c.nbEnfants > 0) {
-        alert(`${c.nom} contient encore ${c.nbEnfants} enfant(s). Transférez-les d'abord.`);
-        return;
-      }
-    }
+  const handleTransferEnfants = async () => {
+    if (!editValue2) { alert("Sélectionnez une crèche cible."); return; }
+    if (!actionMessage(`Transférer tous les enfants vers ${editValue2} ?`)) return;
     try {
       for (const c of getSelectedCreches()) {
-        await axios.delete("/api/superadmin/creches/delete", { data: { nom: c.nom }, withCredentials: true });
+        await axios.put("/api/superadmin/creches/transferer-enfants", { from: c.nom, to: editValue2 }, { withCredentials: true });
       }
-      setSelectedNoms([]);
+      setEditMode(null); setEditValue2("");
       fetchCreches();
     } catch (e) { alert(e.response?.data || "Erreur"); }
   };
 
-  // ==================== RENDU ====================
+  const statutLabel = (s) => { if (s === "ouvert") return "Ouvertes"; if (s === "ferme") return "Fermées"; return "Toutes"; };
+  const cycleStatut = (current, setter) => { if (current === "ouvert") setter("ferme"); else if (current === "ferme") setter("tous"); else setter("ouvert"); };
+
   const renderCrecheRow = (c, onClick, isSelected) => (
     <div key={c.nom} onClick={onClick} className="list-item" style={{ cursor: "pointer", userSelect: "none" }}>
       <span>{isSelected ? "☑" : "☐"} {c.nom}</span>
@@ -189,11 +156,7 @@ const Creches = () => {
     </div>
   );
 
-  const renderPanel = (
-    title, list, search, setSearch, statut, setStatut,
-    showDirectrice, setShowDirectrice, showEnfants, setShowEnfants,
-    selectAll, unselectAll, onRowClick, isRightPanel
-  ) => (
+  const renderPanel = (title, list, search, setSearch, statut, setStatut, showDirectrice, setShowDirectrice, showEnfants, setShowEnfants, selectAll, unselectAll, onRowClick, isRightPanel) => (
     <div className="card" style={{ flex: 1, minWidth: 0 }}>
       <div className="panel-header"><span>{title} ({list.length})</span></div>
       <div className="panel-body" style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
@@ -214,11 +177,7 @@ const Creches = () => {
         {(showDirectrice || showEnfants) && list.length > 0 && (
           <div style={{ fontSize: "0.8rem", color: "var(--gray-500)" }}>
             {list.map(c => (
-              <div key={c.nom}>
-                {c.nom}
-                {showDirectrice && ` — Dirigée par ${c.directeurPrenom}`}
-                {showEnfants && ` — ${c.nbEnfants} enfant(s)`}
-              </div>
+              <div key={c.nom}>{c.nom}{showDirectrice && ` — Dirigée par ${c.directeurPrenom}`}{showEnfants && ` — ${c.nbEnfants} enfant(s)`}</div>
             ))}
           </div>
         )}
@@ -230,7 +189,6 @@ const Creches = () => {
     <div className="page-container">
       <h1>Gestion des crèches</h1>
 
-      {/* Création */}
       <div className="card" style={{ marginBottom: "1rem" }}>
         <div className="panel-header"><span>➕ Créer une crèche</span></div>
         <div className="panel-body">
@@ -245,19 +203,16 @@ const Creches = () => {
         </div>
       </div>
 
-      {/* Panneaux */}
       <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
         {renderPanel("🏫 Crèches", nonSelected, leftSearch, setLeftSearch, leftStatut, setLeftStatut, leftShowDirectrice, setLeftShowDirectrice, leftShowEnfants, setLeftShowEnfants, selectAllLeft, null, selectCreche, false)}
         {renderPanel("✅ Sélectionnées", selected, rightSearch, setRightSearch, rightStatut, setRightStatut, rightShowDirectrice, setRightShowDirectrice, rightShowEnfants, setRightShowEnfants, null, unselectAllRight, unselectCreche, true)}
       </div>
 
-      {/* Barre d'actions */}
       {selectedNoms.length > 0 && (
         <div className="card" style={{ marginTop: "1rem", backgroundColor: "var(--gray-50)" }}>
           <div className="panel-header"><span>🔧 Actions ({selectedNoms.length})</span></div>
           <div className="panel-body">
             <div className="btn-group" style={{ flexWrap: "wrap", gap: "0.5rem" }}>
-
               {editMode === "rename" ? (
                 <div style={{ display: "flex", gap: "0.25rem", alignItems: "center" }}>
                   <input className="form-input" placeholder="Nouveau nom" value={editValue} onChange={e => setEditValue(e.target.value)} style={{ width: "150px" }} />
@@ -267,7 +222,6 @@ const Creches = () => {
               ) : (
                 <button className="btn btn-sm btn-primary" onClick={() => setEditMode("rename")} disabled={getSelectedCreches().length !== 1}>✏️ Renommer</button>
               )}
-
               {editMode === "changeDirecteur" ? (
                 <div style={{ display: "flex", gap: "0.25rem", alignItems: "center" }}>
                   <select className="form-select" value={editValue2} onChange={e => setEditValue2(e.target.value)} style={{ width: "150px" }}>
@@ -280,16 +234,26 @@ const Creches = () => {
               ) : (
                 <button className="btn btn-sm btn-primary" onClick={() => setEditMode("changeDirecteur")} disabled={getSelectedCreches().length !== 1}>👩‍💼 Changer directrice</button>
               )}
-
               <button className="btn btn-sm btn-warning" onClick={handleFermer}>🔒 Fermer</button>
               <button className="btn btn-sm btn-success" onClick={handleRouvrir}>🔓 Rouvrir</button>
-              <button className="btn btn-sm btn-danger" onClick={handleSupprimer}>🗑️ Supprimer</button>
+              {editMode === "transferEnfants" ? (
+                <div style={{ display: "flex", gap: "0.25rem", alignItems: "center" }}>
+                  <select className="form-select" value={editValue2} onChange={e => setEditValue2(e.target.value)} style={{ width: "150px" }}>
+                    <option value="">-- Crèche cible --</option>
+                    {creches.filter(c => !selectedNoms.includes(c.nom)).map(c => <option key={c.nom} value={c.nom}>{c.nom}</option>)}
+                  </select>
+                  <button className="btn btn-sm btn-primary" onClick={handleTransferEnfants}>✅</button>
+                  <button className="btn btn-sm btn-secondary" onClick={() => setEditMode(null)}>✖</button>
+                </div>
+              ) : (
+                <button className="btn btn-sm btn-primary" onClick={() => setEditMode("transferEnfants")} disabled={getSelectedCreches().length === 0}>📦 Transférer enfants</button>
+              )}
             </div>
           </div>
         </div>
       )}
-    </div>  
+    </div>
   );
 };
 
-export default Creches;
+export default PdgCreches;

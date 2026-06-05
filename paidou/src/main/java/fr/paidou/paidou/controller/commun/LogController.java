@@ -6,7 +6,6 @@ import fr.paidou.paidou.security.SecurityUtils;
 import fr.paidou.paidou.service.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -62,10 +61,8 @@ public class LogController {
         } else {
             List<Log> ownLogs = logRepository.findByUserIdOrderByTimestampDesc(currentUser.getId());
             List<String> crecheNoms = new ArrayList<>();
-            // Crèches directement dirigées
             crecheNoms.addAll(crecheRepository.findByDirecteurId(currentUser.getId())
                     .stream().map(Creche::getNom).toList());
-            // Pour une coordinatrice : ajouter les crèches de ses directrices
             if (currentUser.getRole().equals("coordinateur")) {
                 List<User> directrices = userRepository.findAll().stream()
                         .filter(u -> u.getCoordinateur() != null && u.getCoordinateur().getId().equals(currentUser.getId()))
@@ -111,7 +108,6 @@ public class LogController {
                         .map(c -> c.getDirecteur().getId().equals(currentUser.getId()))
                         .orElse(false);
 
-        // SuperAdmin et PDG peuvent tout annuler. Les autres, seulement leurs actions ou leurs crèches.
         if (!role.equals("superadmin") && !role.equals("pdg") && !isAuthor && !isOwnCreche) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Action non autorisée");
         }
@@ -138,13 +134,6 @@ public class LogController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
-    }
-
-    private boolean isUndoableByDirectrice(String action) {
-        return switch (action) {
-            case "DESACTIVER_ENFANT", "RECTIFIER_ENFANT", "AJOUTER_ENREGISTREMENT" -> true;
-            default -> false;
-        };
     }
 
     private String performUndo(Log log) {
@@ -213,8 +202,8 @@ public class LogController {
         String details = log.getDetails();
         String ancienNom = extractValue(details, "ancienNom");
         String ancienMaladies = extractValue(details, "ancienMaladies");
-        Integer ancienAvant = parseIntegerOrNull(extractValue(details, "ancienAvant"));
-        Integer ancienApres = parseIntegerOrNull(extractValue(details, "ancienApres"));
+        LocalDate ancienAvant = parseLocalDateOrNull(extractValue(details, "ancienAvant"));
+        LocalDate ancienApres = parseLocalDateOrNull(extractValue(details, "ancienApres"));
         Integer ancienAge = Integer.parseInt(extractValue(details, "ancienAge"));
         Integer ancienDelai1 = Integer.parseInt(extractValue(details, "ancienDelai1"));
         Integer ancienDelai2 = parseIntegerOrNull(extractValue(details, "ancienDelai2"));
@@ -237,6 +226,11 @@ public class LogController {
         return Integer.parseInt(value);
     }
 
+    private LocalDate parseLocalDateOrNull(String value) {
+        if (value == null || value.equals("null")) return null;
+        return LocalDate.parse(value);
+    }
+
     private List<Log> mergeAndSort(List<Log> list1, List<Log> list2) {
         Map<Long, Log> map = new LinkedHashMap<>();
         list1.forEach(l -> map.put(l.getId(), l));
@@ -245,8 +239,6 @@ public class LogController {
         merged.sort(Comparator.comparing(Log::getTimestamp).reversed());
         return merged;
     }
-
-   
 
     private LogDTO toDto(Log log) {
         String userPrenom = null;

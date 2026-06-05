@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const AuthContext = createContext();
 
@@ -7,8 +8,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Simulation
-  const [simulatedUser, setSimulatedUser] = useState(null); // { id, prenom, role }
+  const [simulatedUser, setSimulatedUser] = useState(null);
   const [simulatableUsers, setSimulatableUsers] = useState([]);
 
   useEffect(() => {
@@ -16,7 +16,6 @@ export const AuthProvider = ({ children }) => {
       try {
         const res = await axios.get("/api/users/me", { withCredentials: true });
         setUser({ id: res.data.id, prenom: res.data.prenom, role: res.data.role });
-        // Vérifier si une simulation est active
         await refreshSimulationStatus();
       } catch (err) {
         setUser(null);
@@ -28,7 +27,6 @@ export const AuthProvider = ({ children }) => {
     checkSession();
   }, []);
 
-  // Récupérer le statut de simulation depuis le backend
   const refreshSimulationStatus = async () => {
     try {
       const res = await axios.get("/api/simulation/status", { withCredentials: true });
@@ -46,7 +44,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Récupérer la liste des utilisateurs simulables
   const fetchSimulatableUsers = async () => {
     try {
       const res = await axios.get("/api/simulation/simulatable", { withCredentials: true });
@@ -72,7 +69,6 @@ export const AuthProvider = ({ children }) => {
     setSimulatableUsers([]);
   };
 
-  // Démarrer la simulation d'un utilisateur
   const startSimulation = async (targetUserId) => {
     try {
       const res = await axios.post(`/api/simulation/start/${targetUserId}`, null, { withCredentials: true });
@@ -83,7 +79,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Arrêter la simulation
   const stopSimulation = async () => {
     try {
       await axios.post("/api/simulation/stop", null, { withCredentials: true });
@@ -93,16 +88,23 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // L'utilisateur effectif (simulé ou réel)
   const effectiveUser = simulatedUser || user;
+
+  const getHomePath = () => {
+    if (!effectiveUser) return "/";
+    if (effectiveUser.role === "superadmin" || effectiveUser.role === "admin") return "/superadmin/users";
+    if (effectiveUser.role === "pdg") return "/pdg";
+    if (effectiveUser.role === "coordinateur") return "/coordinateur";
+    return "/accueil";
+  };
 
   if (loading) return <div>Chargement...</div>;
 
   return (
     <AuthContext.Provider value={{
-      user,           // utilisateur réel
-      effectiveUser,  // utilisateur effectif (simulé si simulation active)
-      simulatedUser,  // null si pas de simulation, sinon l'utilisateur simulé
+      user,
+      effectiveUser,
+      simulatedUser,
       simulatableUsers,
       login,
       logout,
@@ -110,6 +112,7 @@ export const AuthProvider = ({ children }) => {
       stopSimulation,
       fetchSimulatableUsers,
       refreshSimulationStatus,
+      getHomePath,
     }}>
       {children}
     </AuthContext.Provider>
@@ -117,4 +120,22 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
+
+// Hook de redirection intelligente
+export const useRedirectByRole = (allowedRoles) => {
+  const { effectiveUser, getHomePath } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!effectiveUser) {
+      navigate("/");
+      return;
+    }
+    if (!allowedRoles.includes(effectiveUser.role)) {
+      navigate(getHomePath());
+    }
+  }, [effectiveUser, allowedRoles, navigate, getHomePath]);
+};
+
 export default AuthContext;

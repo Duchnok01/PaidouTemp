@@ -3,69 +3,57 @@ import axios from "axios";
 import { useAuth, useRedirectByRole } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
-const Users = () => {
-  const { user, effectiveUser } = useAuth();
+const PdgUsers = () => {
+  const { effectiveUser } = useAuth();
   const navigate = useNavigate();
 
-  // ==================== ÉTATS ====================
   const [users, setUsers] = useState([]);
   const [creches, setCreches] = useState([]);
 
-  // Filtres panneau gauche (non sélectionnés)
+  // Filtres panneau gauche
   const [leftSearch, setLeftSearch] = useState("");
-  const [leftStatut, setLeftStatut] = useState("pres"); // "pres" | "parti" | "tous"
-  const [leftMdp, setLeftMdp] = useState("tous"); // "tous" | "doit" | "pas"
-  const [leftRoles, setLeftRoles] = useState({ directrice: true, coordinateur: true, pdg: true });
+  const [leftStatut, setLeftStatut] = useState("pres");
+  const [leftMdp, setLeftMdp] = useState("tous");
+  const [leftRoles, setLeftRoles] = useState({ directrice: true, coordinateur: true });
   const [leftShowCreche, setLeftShowCreche] = useState(false);
 
-  // Filtres panneau droit (sélectionnés)
+  // Filtres panneau droit
   const [rightSearch, setRightSearch] = useState("");
   const [rightStatut, setRightStatut] = useState("tous");
   const [rightMdp, setRightMdp] = useState("tous");
-  const [rightRoles, setRightRoles] = useState({ directrice: true, coordinateur: true, pdg: true });
+  const [rightRoles, setRightRoles] = useState({ directrice: true, coordinateur: true });
   const [rightShowCreche, setRightShowCreche] = useState(false);
 
-  // Sélection
   const [selectedIds, setSelectedIds] = useState([]);
-
-  // Formulaire d'édition
   const [editMode, setEditMode] = useState(null);
   const [editValue, setEditValue] = useState("");
   const [editValue2, setEditValue2] = useState("");
-
-  // Création d'utilisateur
   const [newPrenom, setNewPrenom] = useState("");
   const [newRole, setNewRole] = useState("directrice");
   const [newMdp, setNewMdp] = useState(null);
 
-  useRedirectByRole(["superadmin"]);
+  useRedirectByRole(["pdg"]);
+
   useEffect(() => {
     if (!effectiveUser) return;
     fetchUsers();
     fetchCreches();
   }, [effectiveUser]);
 
-  // ==================== FETCH ====================
   const fetchUsers = async () => {
     try {
-      const res = await axios.get("/api/superadmin/users", { withCredentials: true });
-      setUsers(res.data.filter(u => u.role !== "superadmin"));
-    } catch (e) {
-      alert(e.response?.data || "Erreur chargement utilisateurs");
-    }
+      const res = await axios.get("/api/users", { withCredentials: true });
+      setUsers(res.data.filter(u => u.role !== "superadmin" && u.role !== "pdg"));
+    } catch (e) { alert(e.response?.data || "Erreur chargement utilisateurs"); }
   };
 
   const fetchCreches = async () => {
     try {
       const res = await axios.get("/api/creches", { withCredentials: true });
       setCreches(res.data);
-    } catch (e) {
-      console.error("Erreur chargement crèches", e);
-    }
+    } catch (e) { console.error("Erreur chargement crèches", e); }
   };
 
-
-  // ==================== FILTRAGE ====================
   const applyFilters = (list, search, statut, mdp, roles, showCreche) => {
     return list.filter(u => {
       if (statut === "pres" && u.estParti) return false;
@@ -82,70 +70,36 @@ const Users = () => {
         if (!matchPrenom && !matchCreche && !matchRole) return false;
       }
       return true;
-    }).sort((a, b) => {
-      const order = ["pdg", "coordinateur", "directrice"];
-      const roleA = order.indexOf(a.role);
-      const roleB = order.indexOf(b.role);
-      if (roleA !== roleB) return roleA - roleB;
-      return a.prenom.localeCompare(b.prenom);
-    });
+    }).sort((a, b) => a.prenom.localeCompare(b.prenom));
   };
 
-  const nonSelectedUsers = applyFilters(
-    users.filter(u => !selectedIds.includes(u.id)),
-    leftSearch, leftStatut, leftMdp, leftRoles, leftShowCreche
-  );
-  const selectedUsers = applyFilters(
-    users.filter(u => selectedIds.includes(u.id)),
-    rightSearch, rightStatut, rightMdp, rightRoles, rightShowCreche
-  );
+  const nonSelectedUsers = applyFilters(users.filter(u => !selectedIds.includes(u.id)), leftSearch, leftStatut, leftMdp, leftRoles, leftShowCreche);
+  const selectedUsers = applyFilters(users.filter(u => selectedIds.includes(u.id)), rightSearch, rightStatut, rightMdp, rightRoles, rightShowCreche);
 
-  // ==================== SÉLECTION ====================
-  const selectUser = (id) => {
-    setSelectedIds(prev => [...prev, id]);
+  const selectUser = (id) => setSelectedIds(prev => [...prev, id]);
+  const unselectUser = (id) => setSelectedIds(prev => prev.filter(x => x !== id));
+  const selectAllLeft = () => setSelectedIds(prev => [...new Set([...prev, ...nonSelectedUsers.map(u => u.id)])]);
+  const unselectAllRight = () => setSelectedIds(prev => prev.filter(x => !selectedUsers.find(u => u.id === x)));
+
+  const getSelectedUsers = () => users.filter(u => selectedIds.includes(u.id));
+
+  const actionMessage = (action) => {
+    const sel = getSelectedUsers();
+    if (sel.length === 0) { alert("Aucun utilisateur sélectionné."); return false; }
+    const noms = sel.map(u => u.prenom).join(", ");
+    if (!window.confirm(`${action} : ${noms} ?`)) return false;
+    return true;
   };
 
-  const unselectUser = (id) => {
-    setSelectedIds(prev => prev.filter(x => x !== id));
-  };
-
-  const selectAllLeft = () => {
-    const ids = nonSelectedUsers.map(u => u.id);
-    setSelectedIds(prev => [...new Set([...prev, ...ids])]);
-  };
-
-  const unselectAllRight = () => {
-    const ids = selectedUsers.map(u => u.id);
-    setSelectedIds(prev => prev.filter(x => !ids.includes(x)));
-  };
-
-  // ==================== CRÉATION ====================
   const handleCreateUser = async () => {
     if (!newPrenom) return alert("Le prénom est obligatoire");
     try {
-      const res = await axios.post("/api/superadmin/users", {
-        prenom: newPrenom,
-        role: newRole,
-      }, { withCredentials: true });
+      const res = await axios.post("/api/superadmin/users", { prenom: newPrenom, role: newRole }, { withCredentials: true });
       setNewMdp(res.data);
       setNewPrenom("");
       setNewRole("directrice");
       fetchUsers();
     } catch (e) { alert(e.response?.data || "Erreur création utilisateur"); }
-  };
-
-  // ==================== ACTIONS ====================
-  const getSelectedUsers = () => users.filter(u => selectedIds.includes(u.id));
-
-  const actionMessage = (action) => {
-    const sel = getSelectedUsers();
-    if (sel.length === 0) {
-      alert("Aucun utilisateur sélectionné.");
-      return false;
-    }
-    const noms = sel.map(u => u.prenom).join(", ");
-    if (!window.confirm(`${action} : ${noms} ?`)) return false;
-    return true;
   };
 
   const handleChangeRole = async (nouveauRole) => {
@@ -159,15 +113,8 @@ const Users = () => {
 
   const handleDesactiver = async () => {
     if (!actionMessage("Désactiver")) return;
-    const sel = getSelectedUsers();
-    const pdgs = sel.filter(u => u.role === "pdg");
-    const allPdgs = users.filter(u => u.role === "pdg" && !u.estParti);
-    if (pdgs.length >= allPdgs.length && allPdgs.length > 0) {
-      alert("Impossible : il doit rester au moins un PDG actif.");
-      return;
-    }
     try {
-      for (const u of sel) {
+      for (const u of getSelectedUsers()) {
         await axios.put("/api/users/disable", { prenom: u.prenom }, { withCredentials: true });
       }
       fetchUsers();
@@ -205,31 +152,6 @@ const Users = () => {
     } catch (e) { alert(e.response?.data || "Erreur"); }
   };
 
-  const handleSupprimer = async () => {
-    if (!actionMessage("SUPPRIMER DÉFINITIVEMENT")) return;
-    const sel = getSelectedUsers();
-    const pdgs = sel.filter(u => u.role === "pdg");
-    const allPdgs = users.filter(u => u.role === "pdg");
-    if (pdgs.length >= allPdgs.length) {
-      alert("Impossible de supprimer tous les PDG.");
-      return;
-    }
-    for (const u of sel) {
-      const dirCreches = creches.filter(c => c.directeurPrenom === u.prenom);
-      if (dirCreches.length > 0) {
-        alert(`${u.prenom} dirige encore ${dirCreches.map(c => c.nom).join(", ")}. Libérez ses crèches d'abord.`);
-        return;
-      }
-    }
-    try {
-      for (const u of sel) {
-        await axios.delete("/api/users/delete", { data: { prenom: u.prenom }, withCredentials: true });
-      }
-      setSelectedIds([]);
-      fetchUsers();
-    } catch (e) { alert(e.response?.data || "Erreur"); }
-  };
-
   const handleRetirerCreche = async () => {
     if (!actionMessage("Retirer la crèche de")) return;
     try {
@@ -241,172 +163,78 @@ const Users = () => {
 
   const handleTransferCreche = async () => {
     const sel = getSelectedUsers();
-    if (sel.length !== 1) {
-      alert("Sélectionnez exactement une directrice pour transférer SES crèches.");
-      return;
-    }
-    if (!editValue2) {
-      alert("Sélectionnez une directrice cible.");
-      return;
-    }
+    if (sel.length !== 1) { alert("Sélectionnez exactement une directrice."); return; }
+    if (!editValue2) { alert("Sélectionnez une directrice cible."); return; }
     try {
-      await axios.put("/api/superadmin/creches/transferer-toutes", {
-        fromDirectrice: sel[0].prenom,
-        toDirectrice: editValue2,
-      }, { withCredentials: true });
-      setEditMode(null);
-      setEditValue2("");
-      fetchUsers();
-      fetchCreches();
+      await axios.put("/api/superadmin/creches/transferer-toutes", { fromDirectrice: sel[0].prenom, toDirectrice: editValue2 }, { withCredentials: true });
+      setEditMode(null); setEditValue2("");
+      fetchUsers(); fetchCreches();
     } catch (e) { alert(e.response?.data || "Erreur"); }
   };
 
   const handleChangeCoordo = async () => {
-    if (!editValue2) {
-      alert("Sélectionnez un coordinateur cible.");
-      return;
-    }
+    if (!editValue2) { alert("Sélectionnez un coordinateur cible."); return; }
     if (!actionMessage(`Assigner le coordinateur "${editValue2}" à`)) return;
     try {
       await axios.put("/api/superadmin/users/change-coordo-bulk", { ids: selectedIds, newCoordoPrenom: editValue2 }, { withCredentials: true });
-      setEditMode(null);
-      setEditValue2("");
+      setEditMode(null); setEditValue2("");
       fetchUsers();
     } catch (e) { alert(e.response?.data || "Erreur"); }
   };
 
   const handleRename = async () => {
     const sel = getSelectedUsers();
-    if (sel.length !== 1) {
-      alert("Sélectionnez exactement un utilisateur pour le renommer.");
-      return;
-    }
-    if (!editValue) {
-      alert("Entrez un nouveau prénom.");
-      return;
-    }
+    if (sel.length !== 1) { alert("Sélectionnez exactement un utilisateur."); return; }
+    if (!editValue) { alert("Entrez un nouveau prénom."); return; }
     try {
       await axios.put(`/api/users/fix-name?ancienPrenom=${sel[0].prenom}&nouveauPrenom=${editValue}`, null, { withCredentials: true });
-      setEditMode(null);
-      setEditValue("");
+      setEditMode(null); setEditValue("");
       fetchUsers();
     } catch (e) { alert(e.response?.data || "Erreur"); }
   };
 
   const handleSetMdp = async () => {
     const sel = getSelectedUsers();
-    if (sel.length !== 1) {
-      alert("Sélectionnez exactement un utilisateur pour définir son MDP.");
-      return;
-    }
-    if (!editValue) {
-      alert("Entrez un nouveau mot de passe.");
-      return;
-    }
+    if (sel.length !== 1) { alert("Sélectionnez exactement un utilisateur."); return; }
+    if (!editValue) { alert("Entrez un nouveau mot de passe."); return; }
     try {
       await axios.put("/api/superadmin/users/set-password-admin", { id: sel[0].id, nouveauMdp: editValue }, { withCredentials: true });
       alert("Mot de passe défini.");
-      setEditMode(null);
-      setEditValue("");
+      setEditMode(null); setEditValue("");
     } catch (e) { alert(e.response?.data || "Erreur"); }
   };
 
   // ==================== HELPERS ====================
-  const getCrecheNom = (u) => {
-    return creches.find(c => c.directeurPrenom === u.prenom)?.nom || "";
-  };
-
-  const statutLabel = (s) => {
-    if (s === "pres") return "Présents";
-    if (s === "parti") return "Partis";
-    return "Tous";
-  };
-
-  const mdpLabel = (m) => {
-    if (m === "tous") return "MDP : Tous";
-    if (m === "doit") return "MDP : À changer";
-    return "MDP : OK";
-  };
-
-  const toggleRole = (role, roles, setRoles) => {
-    setRoles(prev => ({ ...prev, [role]: !prev[role] }));
-  };
-
-  const cycleStatut = (current, setter) => {
-    if (current === "pres") setter("parti");
-    else if (current === "parti") setter("tous");
-    else setter("pres");
-  };
-
-  const cycleMdp = (current, setter) => {
-    if (current === "tous") setter("doit");
-    else if (current === "doit") setter("pas");
-    else setter("tous");
-  };
+  const getCrecheNom = (u) => creches.find(c => c.directeurPrenom === u.prenom)?.nom || "";
+  const statutLabel = (s) => { if (s === "pres") return "Présents"; if (s === "parti") return "Partis"; return "Tous"; };
+  const mdpLabel = (m) => { if (m === "tous") return "MDP : Tous"; if (m === "doit") return "MDP : À changer"; return "MDP : OK"; };
+  const toggleRole = (role, roles, setRoles) => setRoles(prev => ({ ...prev, [role]: !prev[role] }));
+  const cycleStatut = (current, setter) => { if (current === "pres") setter("parti"); else if (current === "parti") setter("tous"); else setter("pres"); };
+  const cycleMdp = (current, setter) => { if (current === "tous") setter("doit"); else if (current === "doit") setter("pas"); else setter("tous"); };
 
   // ==================== RENDU ====================
   const renderUserRow = (u, onClick, isSelected) => (
-    <div
-      key={u.id}
-      onClick={onClick}
-      className="list-item"
-      style={{ cursor: "pointer", userSelect: "none" }}
-    >
+    <div key={u.id} onClick={onClick} className="list-item" style={{ cursor: "pointer", userSelect: "none" }}>
       <span>{isSelected ? "☑" : "☐"} {u.prenom} ({u.role})</span>
       {isSelected !== undefined && (
         <span className="text-secondary" style={{ fontSize: "0.85rem" }}>
-          {u.estParti ? "❌ Parti" : "✅ Présent"} 
-          {u.doitChangerMdp ? " 🔑" : ""}
+          {u.estParti ? "❌ Parti" : "✅ Présent"} {u.doitChangerMdp ? " 🔑" : ""}
         </span>
       )}
     </div>
   );
 
-  const renderPanel = (
-    title,
-    usersList,
-    search, setSearch,
-    statut, setStatut,
-    mdp, setMdp,
-    roles, setRoles,
-    showCreche, setShowCreche,
-    selectAll, unselectAll,
-    onRowClick,
-    isRightPanel
-  ) => (
+  const renderPanel = (title, usersList, search, setSearch, statut, setStatut, mdp, setMdp, roles, setRoles, showCreche, setShowCreche, selectAll, unselectAll, onRowClick, isRightPanel) => (
     <div className="card" style={{ flex: 1, minWidth: 0 }}>
-      <div className="panel-header">
-        <span>{title} ({usersList.length})</span>
-      </div>
+      <div className="panel-header"><span>{title} ({usersList.length})</span></div>
       <div className="panel-body" style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-        <input
-          type="text"
-          placeholder="Rechercher..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="form-input"
-        />
+        <input type="text" placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)} className="form-input" />
         <div style={{ display: "flex", gap: "0.25rem", flexWrap: "wrap" }}>
-          <button className="btn btn-sm btn-secondary" onClick={() => cycleStatut(statut, setStatut)}>
-            {statutLabel(statut)}
-          </button>
-          <button className="btn btn-sm btn-secondary" onClick={() => cycleMdp(mdp, setMdp)}>
-            {mdpLabel(mdp)}
-          </button>
-          <button
-            className={`btn btn-sm ${showCreche ? "btn-primary" : "btn-secondary"}`}
-            onClick={() => setShowCreche(!showCreche)}
-          >
-            🏫 Crèche
-          </button>
+          <button className="btn btn-sm btn-secondary" onClick={() => cycleStatut(statut, setStatut)}>{statutLabel(statut)}</button>
+          <button className="btn btn-sm btn-secondary" onClick={() => cycleMdp(mdp, setMdp)}>{mdpLabel(mdp)}</button>
+          <button className={`btn btn-sm ${showCreche ? "btn-primary" : "btn-secondary"}`} onClick={() => setShowCreche(!showCreche)}>🏫 Crèche</button>
           {Object.keys(roles).map(role => (
-            <button
-              key={role}
-              className={`btn btn-sm ${roles[role] ? "btn-primary" : "btn-secondary"}`}
-              onClick={() => toggleRole(role, roles, setRoles)}
-            >
-              {role}
-            </button>
+            <button key={role} className={`btn btn-sm ${roles[role] ? "btn-primary" : "btn-secondary"}`} onClick={() => toggleRole(role, roles, setRoles)}>{role}</button>
           ))}
         </div>
         <div style={{ display: "flex", gap: "0.25rem" }}>
@@ -419,9 +247,7 @@ const Users = () => {
         </div>
         {showCreche && usersList.length > 0 && (
           <div style={{ fontSize: "0.8rem", color: "var(--gray-500)" }}>
-            {usersList.map(u => (
-              <div key={u.id}>{u.prenom} → {getCrecheNom(u) || "Aucune"}</div>
-            ))}
+            {usersList.map(u => <div key={u.id}>{u.prenom} → {getCrecheNom(u) || "Aucune"}</div>)}
           </div>
         )}
       </div>
@@ -432,29 +258,14 @@ const Users = () => {
     <div className="page-container">
       <h1>Gestion des utilisateurs</h1>
 
-      {/* Création d'utilisateur */}
       <div className="card" style={{ marginBottom: "1rem" }}>
-        <div className="panel-header">
-          <span>➕ Créer un utilisateur</span>
-        </div>
+        <div className="panel-header"><span>➕ Créer un utilisateur</span></div>
         <div className="panel-body">
           <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-            <input
-              className="form-input"
-              placeholder="Prénom"
-              value={newPrenom}
-              onChange={e => setNewPrenom(e.target.value)}
-              style={{ width: "200px" }}
-            />
-            <select
-              className="form-select"
-              value={newRole}
-              onChange={e => setNewRole(e.target.value)}
-              style={{ width: "200px" }}
-            >
+            <input className="form-input" placeholder="Prénom" value={newPrenom} onChange={e => setNewPrenom(e.target.value)} style={{ width: "200px" }} />
+            <select className="form-select" value={newRole} onChange={e => setNewRole(e.target.value)} style={{ width: "200px" }}>
               <option value="directrice">Directrice</option>
               <option value="coordinateur">Coordinatrice</option>
-              <option value="pdg">PDG</option>
             </select>
             <button className="btn btn-primary" onClick={handleCreateUser}>Créer</button>
             {newMdp && <span className="success-message">✅ {newMdp}</span>}
@@ -462,40 +273,14 @@ const Users = () => {
         </div>
       </div>
 
-      {/* Panneaux */}
       <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-        {renderPanel(
-          "👥 Utilisateurs",
-          nonSelectedUsers,
-          leftSearch, setLeftSearch,
-          leftStatut, setLeftStatut,
-          leftMdp, setLeftMdp,
-          leftRoles, setLeftRoles,
-          leftShowCreche, setLeftShowCreche,
-          selectAllLeft, null,
-          selectUser,
-          false
-        )}
-        {renderPanel(
-          "✅ Sélectionnés",
-          selectedUsers,
-          rightSearch, setRightSearch,
-          rightStatut, setRightStatut,
-          rightMdp, setRightMdp,
-          rightRoles, setRightRoles,
-          rightShowCreche, setRightShowCreche,
-          null, unselectAllRight,
-          unselectUser,
-          true
-        )}
+        {renderPanel("👥 Utilisateurs", nonSelectedUsers, leftSearch, setLeftSearch, leftStatut, setLeftStatut, leftMdp, setLeftMdp, leftRoles, setLeftRoles, leftShowCreche, setLeftShowCreche, selectAllLeft, null, selectUser, false)}
+        {renderPanel("✅ Sélectionnés", selectedUsers, rightSearch, setRightSearch, rightStatut, setRightStatut, rightMdp, setRightMdp, rightRoles, setRightRoles, rightShowCreche, setRightShowCreche, null, unselectAllRight, unselectUser, true)}
       </div>
 
-      {/* Barre d'actions */}
       {selectedIds.length > 0 && (
         <div className="card" style={{ marginTop: "1rem", backgroundColor: "var(--gray-50)" }}>
-          <div className="panel-header">
-            <span>🔧 Actions sur la sélection ({selectedIds.length})</span>
-          </div>
+          <div className="panel-header"><span>🔧 Actions sur la sélection ({selectedIds.length})</span></div>
           <div className="panel-body">
             <div className="btn-group" style={{ flexWrap: "wrap", gap: "0.5rem" }}>
               {editMode === "rename" ? (
@@ -520,7 +305,6 @@ const Users = () => {
               <button className="btn btn-sm btn-primary" onClick={handleForceChangeMdp}>🔐 Forcer chgt MDP</button>
               <button className="btn btn-sm btn-primary" onClick={() => handleChangeRole("directrice")}>Rôle → Directrice</button>
               <button className="btn btn-sm btn-primary" onClick={() => handleChangeRole("coordinateur")}>Rôle → Coordinatrice</button>
-              <button className="btn btn-sm btn-primary" onClick={() => handleChangeRole("pdg")}>Rôle → PDG</button>
               <button className="btn btn-sm btn-danger" onClick={handleDesactiver}>❌ Désactiver</button>
               <button className="btn btn-sm btn-success" onClick={handleReactiver}>↩️ Réactiver</button>
               <button className="btn btn-sm btn-warning" onClick={handleRetirerCreche}>🏫 Retirer crèche</button>
@@ -552,7 +336,6 @@ const Users = () => {
               ) : (
                 <button className="btn btn-sm btn-primary" onClick={() => setEditMode("changeCoordo")}>👥 Changer coordo</button>
               )}
-              <button className="btn btn-sm btn-danger" onClick={handleSupprimer}>🗑️ Supprimer</button>
             </div>
           </div>
         </div>
@@ -561,4 +344,4 @@ const Users = () => {
   );
 };
 
-export default Users;
+export default PdgUsers;

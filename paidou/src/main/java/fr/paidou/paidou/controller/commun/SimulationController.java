@@ -1,9 +1,12 @@
 package fr.paidou.paidou.controller.commun;
 
+import fr.paidou.paidou.model.User;
+import fr.paidou.paidou.repository.UserRepository;
 import fr.paidou.paidou.security.SecurityUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -11,31 +14,55 @@ import java.util.Map;
 public class SimulationController {
 
     private final SecurityUtils securityUtils;
+    private final UserRepository userRepository;
 
-    public SimulationController(SecurityUtils securityUtils) {
+    public SimulationController(SecurityUtils securityUtils, UserRepository userRepository) {
         this.securityUtils = securityUtils;
+        this.userRepository = userRepository;
     }
 
-    @PostMapping("/start")
-    public ResponseEntity<String> startSimulation(@RequestBody Map<String, String> request) {
-        String targetRole = request.get("role");
-        if (!securityUtils.canSimulate(securityUtils.getCurrentUser().getRole(), targetRole)) {
-            return ResponseEntity.status(403).body("Rôle non autorisé");
+    // Démarrer la simulation d'un utilisateur
+    @PostMapping("/start/{userId}")
+    public ResponseEntity<String> startSimulation(@PathVariable Long userId) {
+        User realUser = securityUtils.getRealUser();
+        User targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Utilisateur cible introuvable"));
+        if (!securityUtils.canSimulateUser(realUser, targetUser)) {
+            return ResponseEntity.status(403).body("Vous ne pouvez pas simuler cet utilisateur.");
         }
-        securityUtils.setSimulatedRole(targetRole);
-        return ResponseEntity.ok("Simulation démarrée en tant que " + targetRole);
+        securityUtils.setSimulatedUserId(userId);
+        return ResponseEntity.ok("Simulation démarrée en tant que " + targetUser.getPrenom());
     }
 
+    // Arrêter la simulation
     @PostMapping("/stop")
     public ResponseEntity<Void> stopSimulation() {
         securityUtils.stopSimulation();
         return ResponseEntity.ok().build();
     }
 
+    // Statut de la simulation
     @GetMapping("/status")
-    public ResponseEntity<Map<String, String>> getStatus() {
-        String simulated = securityUtils.getSimulatedRole();
-        String real = securityUtils.getCurrentUser().getRole();
-        return ResponseEntity.ok(Map.of("realRole", real, "simulatedRole", simulated != null ? simulated : real));
+    public ResponseEntity<Map<String, Object>> getStatus() {
+        User realUser = securityUtils.getRealUserIfSimulating();
+        User effectiveUser = securityUtils.getCurrentUser();
+        return ResponseEntity.ok(Map.of(
+            "effectiveId", effectiveUser.getId(),
+            "effectivePrenom", effectiveUser.getPrenom(),
+            "effectiveRole", effectiveUser.getRole(),
+            "isSimulating", realUser != null,
+            "realPrenom", realUser != null ? realUser.getPrenom() : effectiveUser.getPrenom(),
+            "realRole", realUser != null ? realUser.getRole() : effectiveUser.getRole()
+        ));
+    }
+
+    // Liste des utilisateurs simulables
+    @GetMapping("/simulatable")
+    public ResponseEntity<List<Map<String, Object>>> getSimulatableUsers() {
+        List<User> users = securityUtils.getSimulatableUsers();
+        List<Map<String, Object>> result = users.stream()
+                .map(u -> Map.of("id", (Object) u.getId(), "prenom", (Object) u.getPrenom(), "role", (Object) u.getRole()))
+                .toList();
+        return ResponseEntity.ok(result);
     }
 }
