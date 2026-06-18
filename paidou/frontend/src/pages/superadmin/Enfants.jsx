@@ -56,7 +56,7 @@ const Enfants = () => {
     try {
       const allEnfants = [];
       for (const c of creches) {
-        const res = await axios.get(`/api/enfants/all?nomCreche=${c.nom}`, { withCredentials: true });
+        const res = await axios.get("/api/enfants/all", { params: { nomCreche: c.nom }, withCredentials: true });
         allEnfants.push(...res.data.map(e => ({ ...e, nomCreche: c.nom, directeurPrenom: c.directeurPrenom })));
       }
       setEnfants(allEnfants);

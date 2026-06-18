@@ -30,7 +30,7 @@ const VueCoordinateur = () => {
       for (const c of crechesData) {
         try {
           const statutsRes = await axios.get(
-            `/api/enfants/statuts-vaccinaux?nomCreche=${c.nom}`,
+            `/api/enfants/statuts-vaccinaux?nomCreche=${encodeURIComponent(c.nom)}`,
             { withCredentials: true }
           );
           retardsMap[c.nom] = statutsRes.data.filter(

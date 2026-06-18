@@ -50,7 +50,7 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
             )
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/users/login", "/users/create").permitAll()
+                .requestMatchers("/users/login").permitAll()
                 .requestMatchers("/superadmin/**").authenticated()
                 .requestMatchers("/simulation/**").authenticated()
                 .requestMatchers("/parametres").authenticated()

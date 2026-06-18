@@ -17,7 +17,7 @@ public class Creche {
     private String nom;
 
     @ManyToOne
-    @JoinColumn(name = "id_directeur", nullable = false)
+    @JoinColumn(name = "id_directeur")
     private User directeur;
 
     @Column(nullable = false)

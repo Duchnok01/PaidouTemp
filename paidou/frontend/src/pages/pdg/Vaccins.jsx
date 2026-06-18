@@ -85,7 +85,7 @@ const PdgVaccins = () => {
       alert("Nom, maladies, âge 1ère dose et délai 1 sont obligatoires."); return;
     }
     try {
-      await axios.post("/api/superadmin/vaccins", {
+      await axios.post("/api/admin/vaccins", {
         nom: f.nom, listeMaladies: f.maladiesPrevenues, neAvantLe: f.neAvantLe || null, neApresLe: f.neApresLe || null,
         agePremiereVaccination: parseInt(f.agePremiereVaccination), nbMoisPremierDelai: parseInt(f.nbMoisPremierDelai),
         nbMoisDeuxiemeDelai: f.nbMoisDeuxiemeDelai ? parseInt(f.nbMoisDeuxiemeDelai) : null
@@ -100,7 +100,7 @@ const PdgVaccins = () => {
     if (sel.length !== 1) { alert("Sélectionnez exactement un vaccin."); return; }
     const f = editForm;
     try {
-      await axios.put("/api/superadmin/vaccins/edit", {
+      await axios.put("/api/admin/vaccins/edit", {
         id: sel[0].id, nom: f.nom, listeMaladies: f.maladiesPrevenues, neAvantLe: f.neAvantLe || null, neApresLe: f.neApresLe || null,
         agePremiereVaccination: parseInt(f.agePremiereVaccination), nbMoisPremierDelai: parseInt(f.nbMoisPremierDelai),
         nbMoisDeuxiemeDelai: f.nbMoisDeuxiemeDelai ? parseInt(f.nbMoisDeuxiemeDelai) : null
@@ -114,7 +114,7 @@ const PdgVaccins = () => {
     if (!actionMessage("Rendre obsolète")) return;
     try {
       for (const v of getSelectedVaccins()) {
-        await axios.put("/api/superadmin/vaccins/rendre-obsolete", { id: v.id }, { withCredentials: true });
+        await axios.put("/api/admin/vaccins/rendre-obsolete", { id: v.id }, { withCredentials: true });
       }
       fetchVaccins();
     } catch (e) { alert(e.response?.data || "Erreur"); }
@@ -124,7 +124,7 @@ const PdgVaccins = () => {
     if (!actionMessage("Réactiver")) return;
     try {
       for (const v of getSelectedVaccins()) {
-        await axios.put("/api/superadmin/vaccins/reactiver", { id: v.id }, { withCredentials: true });
+        await axios.put("/api/admin/vaccins/reactiver", { id: v.id }, { withCredentials: true });
       }
       fetchVaccins();
     } catch (e) { alert(e.response?.data || "Erreur"); }

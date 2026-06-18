@@ -55,8 +55,7 @@ public class CrecheService {
         }
         Creche newCreche = new Creche();
         newCreche.setNom(nomNormalized);
-        User dir = userRepo.findByPrenom(directeurPrenom.toLowerCase())
-                .orElseThrow(() -> new IllegalArgumentException("Directeur introuvable"));
+        User dir = findDirectriceOrNull(directeurPrenom);
         newCreche.setDirecteur(dir);
         crecheRepo.save(newCreche);
 
@@ -67,11 +66,7 @@ public class CrecheService {
 
     public List<CrecheSummaryDTO> getAllCrechesWithInfos() {
         return crecheRepo.findAll().stream()
-                .map(c -> new CrecheSummaryDTO(
-                        c.getNom(),
-                        c.getDirecteur().getPrenom(),
-                        c.isEstFerme(),
-                        enfantRepo.countByCrecheNom(c.getNom())))
+                .map(this::toSummaryDTO)
                 .toList();
     }
 
@@ -90,11 +85,7 @@ public class CrecheService {
             creches = crecheRepo.findByDirecteurId(currentUser.getId());
         }
         return creches.stream()
-                .map(c -> new CrecheSummaryDTO(
-                        c.getNom(),
-                        c.getDirecteur().getPrenom(),
-                        c.isEstFerme(),
-                        enfantRepo.countByCrecheNom(c.getNom())))
+                .map(this::toSummaryDTO)
                 .toList();
     }
 
@@ -102,16 +93,15 @@ public class CrecheService {
         // Autorisation gérée par le contrôleur
         Creche c = crecheRepo.findById(nomCreche.toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException("Crèche introuvable"));
-        User newDir = userRepo.findByPrenom(nouveauDirecteurPrenom.toLowerCase())
-                .orElseThrow(() -> new IllegalArgumentException("Nouveau directeur introuvable"));
+        User newDir = findDirectriceOrNull(nouveauDirecteurPrenom);
 
-        String ancienDirecteurPrenom = c.getDirecteur().getPrenom();
+        String ancienDirecteurPrenom = c.getDirecteur() != null ? c.getDirecteur().getPrenom() : "";
         c.setDirecteur(newDir);
         crecheRepo.save(c);
 
         User currentUser = securityUtils.getCurrentUser();
         logService.log("CHANGER_DIRECTEUR", currentUser, c,
-                ancienDirecteurPrenom + " -> " + nouveauDirecteurPrenom);
+                ancienDirecteurPrenom + " -> " + (newDir != null ? newDir.getPrenom() : ""));
     }
 
     public void renameCreche(String ancienNom, String nouveauNom) {
@@ -202,5 +192,26 @@ public class CrecheService {
         User currentUser = securityUtils.getCurrentUser();
         logService.log("SUPPRIMER_CRECHE", currentUser, creche, "nom=" + nomNorm);
         crecheRepo.delete(creche);
+    }
+
+    private CrecheSummaryDTO toSummaryDTO(Creche creche) {
+        String directeurPrenom = creche.getDirecteur() != null ? creche.getDirecteur().getPrenom() : null;
+        return new CrecheSummaryDTO(
+                creche.getNom(),
+                directeurPrenom,
+                creche.isEstFerme(),
+                enfantRepo.countByCrecheNom(creche.getNom()));
+    }
+
+    private User findDirectriceOrNull(String directeurPrenom) {
+        if (directeurPrenom == null || directeurPrenom.isBlank()) {
+            return null;
+        }
+        User directeur = userRepo.findByPrenom(directeurPrenom.toLowerCase().trim())
+                .orElseThrow(() -> new IllegalArgumentException("Directrice introuvable"));
+        if (!directeur.getRole().equals("directrice")) {
+            throw new IllegalArgumentException(directeurPrenom + " n'est pas une directrice");
+        }
+        return directeur;
     }
 }

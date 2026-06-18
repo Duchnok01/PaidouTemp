@@ -494,3 +494,31 @@ a:hover {
   border-radius: 4px;
   padding: 4px 8px;
 }
+
+.logs-table th:first-child,
+.logs-table td:first-child {
+  width: 150px;
+}
+
+.logs-action-cell {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.log-undo-btn {
+  background: var(--primary-light);
+  color: var(--text);
+}
+
+.log-undo-btn:hover {
+  background: var(--border);
+}
+
+.log-undo-btn-disabled,
+.log-undo-btn-disabled:hover {
+  background: rgba(214, 237, 236, 0.55);
+  color: rgba(43, 64, 64, 0.45);
+  cursor: not-allowed;
+}

@@ -34,7 +34,7 @@ const PdgEnfants = () => {
     try {
       const allEnfants = [];
       for (const c of creches) {
-        const res = await axios.get(`/api/enfants/all?nomCreche=${c.nom}`, { withCredentials: true });
+        const res = await axios.get("/api/enfants/all", { params: { nomCreche: c.nom }, withCredentials: true });
         allEnfants.push(...res.data.map(e => ({ ...e, nomCreche: c.nom, directeurPrenom: c.directeurPrenom })));
       }
       setEnfants(allEnfants);
@@ -110,7 +110,7 @@ const PdgEnfants = () => {
     if (!window.confirm("⚠️ Les données seront remplacées par des valeurs génériques. Les enregistrements de vaccination seront conservés. Continuer ?")) return;
     try {
       for (const e of getSelectedEnfants()) {
-        await axios.put("/api/superadmin/enfants/anonymiser", { id: e.id }, { withCredentials: true });
+        await axios.put("/api/admin/enfants/anonymiser", { id: e.id }, { withCredentials: true });
       }
       fetchEnfants();
     } catch (e) { alert(e.response?.data || "Erreur"); }

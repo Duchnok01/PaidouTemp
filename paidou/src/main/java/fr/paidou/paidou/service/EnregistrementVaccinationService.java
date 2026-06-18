@@ -16,7 +16,6 @@ public class EnregistrementVaccinationService {
     private final EnfantRepository enfantRepo;
     private final VaccinRepository vaccinRepo;
     private final CrecheRepository crecheRepo;
-    private final UserRepository userRepo;
     private final SecurityUtils securityUtils;
     private final LogService logService;
 
@@ -25,14 +24,12 @@ public class EnregistrementVaccinationService {
             EnfantRepository enfantRepo,
             VaccinRepository vaccinRepo,
             CrecheRepository crecheRepo,
-            UserRepository userRepo,
             SecurityUtils securityUtils,
             LogService logService) {
         this.enregistrementRepo = enregistrementRepo;
         this.enfantRepo = enfantRepo;
         this.vaccinRepo = vaccinRepo;
         this.crecheRepo = crecheRepo;
-        this.userRepo = userRepo;
         this.securityUtils = securityUtils;
         this.logService = logService;
     }
@@ -44,10 +41,13 @@ public class EnregistrementVaccinationService {
             String nomCreche,
             Long idUser) {
 
-        verifierAuthorisationPourCreche(nomCreche);
-
         Enfant enfant = enfantRepo.findById(idEnfant)
                 .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
+        String nomCrecheEnfant = enfant.getCreche().getNom();
+        if (!nomCrecheEnfant.equals(nomCreche)) {
+            throw new IllegalArgumentException("L'enfant n'appartient pas a la creche selectionnee.");
+        }
+        verifierAuthorisationPourCreche(nomCrecheEnfant);
 
         Vaccin vaccin = vaccinRepo.findById(idVaccin)
                 .orElseThrow(() -> new IllegalArgumentException("Vaccin introuvable"));
@@ -67,11 +67,10 @@ public class EnregistrementVaccinationService {
             throw new IllegalArgumentException("La date ne peut pas être antérieure à la dose précédente (" + derniere.get() + ").");
         }
 
-        Creche creche = crecheRepo.findById(nomCreche)
+        Creche creche = crecheRepo.findById(nomCrecheEnfant)
                 .orElseThrow(() -> new IllegalArgumentException("Crèche introuvable"));
 
-        User user = userRepo.findById(idUser)
-                .orElseThrow(() -> new IllegalArgumentException("User introuvable"));
+        User user = securityUtils.getCurrentUser();
 
         EnregistrementVaccinationId id = new EnregistrementVaccinationId();
         id.setIdEnfant(idEnfant);
@@ -87,8 +86,7 @@ public class EnregistrementVaccinationService {
 
         EnregistrementVaccination saved = enregistrementRepo.save(ev);
 
-        User currentUser = securityUtils.getCurrentUser();
-        logService.log("AJOUTER_ENREGISTREMENT", currentUser, creche, enfant, vaccin,
+        logService.log("AJOUTER_ENREGISTREMENT", user, creche, enfant, vaccin,
                 "date=" + dateVaccination + ", user=" + user.getPrenom());
 
         return saved;

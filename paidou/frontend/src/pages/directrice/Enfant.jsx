@@ -63,7 +63,7 @@ const Enfant = () => {
 
   const fetchEnregistrements = async () => {
     try {
-      const res = await axios.get("/api/enregistrements-vaccination?idEnfant=" + id, { withCredentials: true });
+      const res = await axios.get("/api/enregistrements-vaccination?idEnfant=" + encodeURIComponent(id), { withCredentials: true });
       const sorted = [...res.data].sort((a, b) => new Date(b.dateVaccination) - new Date(a.dateVaccination));
       setEnregistrements(sorted);
     } catch (err) {

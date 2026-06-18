@@ -81,7 +81,7 @@ public class AuthController {
             return ResponseEntity.status(401).build();
         }
         User user = userService.getUserByPrenom(authentication.getName().toLowerCase());
-        return ResponseEntity.ok(new UserSummaryDTO(user.getId(), user.getPrenom(), user.getRole(), user.isEstParti()));
+        return ResponseEntity.ok(new UserSummaryDTO(user.getId(), user.getPrenom(), user.getRole(), user.isEstParti(), user.isDoitChangerMdp()));
     }
 
     @PutMapping("/set-password")
@@ -103,19 +103,6 @@ public class AuthController {
     }
 
     // ==================== USERS (protégé par permissions) ====================
-
-    @PostMapping("/create")
-    public ResponseEntity<String> createUser(@RequestParam String prenom) {
-        if (!securityUtils.hasPermission("CREER_UTILISATEUR")) {
-            return ResponseEntity.status(403).build();
-        }
-        try {
-            String mdp = userService.createUser(prenom);
-            return ResponseEntity.ok("Utilisateur créé. Mot de passe : " + mdp);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
 
     @PutMapping("/fix-name")
     public ResponseEntity<String> fixName(@RequestParam String ancienPrenom, @RequestParam String nouveauPrenom) {
@@ -162,7 +149,7 @@ public class AuthController {
             return ResponseEntity.status(403).build();
         }
         List<UserSummaryDTO> users = userService.getAllUsers().stream()
-                .map(u -> new UserSummaryDTO(u.getId(), u.getPrenom(), u.getRole(), u.isEstParti()))
+                .map(u -> new UserSummaryDTO(u.getId(), u.getPrenom(), u.getRole(), u.isEstParti(), u.isDoitChangerMdp()))
                 .toList();
         return ResponseEntity.ok(users);
     }
@@ -202,5 +189,5 @@ public class AuthController {
 
     public record SetPasswordRequest(String nouveauMdp) {}
 
-    public record UserSummaryDTO(Long id, String prenom, String role, boolean estParti) {}
+    public record UserSummaryDTO(Long id, String prenom, String role, boolean estParti, boolean doitChangerMdp) {}
 }

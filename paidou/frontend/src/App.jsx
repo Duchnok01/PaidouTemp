@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import Login from "./pages/Login";
 import ChangerMotDePasse from "./pages/ChangerMotDePasse";
@@ -31,7 +32,7 @@ function App() {
 }
 
 function AppContent() {
-  const { user, effectiveUser, simulatedUser, simulatableUsers, logout, startSimulation, stopSimulation, fetchSimulatableUsers } = useAuth();
+  const { user, effectiveUser, simulatedUser, simulatableUsers, hasCoordinationScope, logout, startSimulation, stopSimulation, fetchSimulatableUsers } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -44,17 +45,59 @@ function AppContent() {
   const isSuperAdminPage = location.pathname.startsWith("/superadmin");
   const isPdgPage = location.pathname.startsWith("/pdg");
 
-  const getHomePath = () => {
-    if (effectiveUser.role === "superadmin") return "/superadmin/users";
-    if (effectiveUser.role === "pdg") return "/pdg/users";
-    if (effectiveUser.role === "coordinateur") return "/coordinateur";
+  const getRoleHomePath = (role) => {
+    if (role === "superadmin") return "/superadmin/users";
+    if (role === "pdg") return "/pdg/users";
+    if (role === "coordinateur") return "/coordinateur";
     return "/accueil";
   };
 
-  const handleStartSimulation = async (targetId) => {
+  const getHomePath = () => {
+    if (!effectiveUser) return "/";
+    if (user?.doitChangerMdp && !simulatedUser) return "/changer-mdp";
+    if (!simulatedUser && hasCoordinationScope) return "/coordinateur";
+    return getRoleHomePath(effectiveUser.role);
+  };
+
+  const isAllowedPath = (role, pathname) => {
+    if (pathname === "/logs") return true;
+    if (role === "superadmin") return pathname.startsWith("/superadmin");
+    if (role === "pdg") return pathname.startsWith("/pdg");
+    if (role === "coordinateur") return pathname === "/coordinateur";
+    if (role === "directrice") {
+      return pathname === "/accueil"
+        || pathname.startsWith("/creche/")
+        || pathname.startsWith("/enfant/")
+        || pathname === "/ajout-enregistrement";
+    }
+    return false;
+  };
+
+  useEffect(() => {
+    if (!user) {
+      if (location.pathname !== "/") navigate("/", { replace: true });
+      return;
+    }
+
+    if (user.doitChangerMdp && !simulatedUser) {
+      if (location.pathname !== "/changer-mdp") navigate("/changer-mdp", { replace: true });
+      return;
+    }
+
+    if (location.pathname === "/" || location.pathname === "/changer-mdp") {
+      navigate(getHomePath(), { replace: true });
+      return;
+    }
+
+    if (!effectiveUser || !isAllowedPath(effectiveUser.role, location.pathname)) {
+      navigate(getHomePath(), { replace: true });
+    }
+  }, [user, effectiveUser, simulatedUser, hasCoordinationScope, location.pathname, navigate]);
+
+  const handleStartSimulation = async (targetId, asRole = null) => {
     try {
-      await startSimulation(targetId);
-      navigate(getHomePath());
+      const status = await startSimulation(targetId, asRole);
+      navigate(getRoleHomePath(status?.effectiveRole), { replace: true });
     } catch (err) {
       alert("Erreur lors de la simulation.");
     }
@@ -62,11 +105,14 @@ function AppContent() {
 
   const handleStopSimulation = async () => {
     await stopSimulation();
-    navigate(getHomePath());
+    if (user.role === "superadmin") navigate("/superadmin/users");
+    else if (user.role === "pdg") navigate("/pdg/users");
+    else if (user.role === "coordinateur") navigate("/coordinateur");
+    else navigate("/accueil");
   };
 
   const loadSimulatableUsers = () => {
-    if (user && (user.role === "superadmin" || user.role === "pdg" || user.role === "coordinateur")) {
+    if (user && (user.role === "superadmin" || user.role === "pdg" || user.role === "coordinateur" || hasCoordinationScope)) {
       fetchSimulatableUsers();
     }
   };
@@ -93,28 +139,29 @@ function AppContent() {
               ) : (
                 <>
                   <span className="nav-user">{effectiveUser.prenom} ({effectiveUser.role})</span>
-                  {(user.role === "superadmin" || user.role === "pdg" || user.role === "coordinateur") && (
+                  {(user.role === "superadmin" || user.role === "pdg" || user.role === "coordinateur" || hasCoordinationScope) && (
                     <select
                       className="form-select"
                       style={{ width: "auto", fontSize: "0.85rem" }}
                       defaultValue=""
                       onChange={(e) => {
                         if (e.target.value) {
-                          handleStartSimulation(parseInt(e.target.value));
+                          const [targetId, asRole] = e.target.value.split("|");
+                          handleStartSimulation(parseInt(targetId), asRole || null);
                         }
                       }}
                       onFocus={loadSimulatableUsers}
                     >
                       <option value="">Simuler...</option>
                       {simulatableUsers.map(u => (
-                        <option key={u.id} value={u.id}>{u.prenom} ({u.role})</option>
+                        <option key={`${u.id}-${u.asRole || u.role}`} value={`${u.id}|${u.asRole || ""}`}>{u.prenom} ({u.role})</option>
                       ))}
                     </select>
                   )}
                 </>
               )}
 
-              {(effectiveUser.role === "superadmin" || effectiveUser.role === "directrice" || effectiveUser.role === "coordinateur" || effectiveUser.role === "pdg") && (
+              {effectiveUser && (
                   <button className="btn btn-sm btn-secondary" onClick={() => navigate("/logs")}>
                       📋 Journal
                   </button>

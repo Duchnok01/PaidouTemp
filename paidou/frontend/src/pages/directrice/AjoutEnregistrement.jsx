@@ -17,7 +17,7 @@ const AjoutEnregistrement = () => {
   const [selectedVaccin, setSelectedVaccin] = useState("");
   const [dateVaccination, setDateVaccination] = useState("");
 
-  useRedirectByRole(["directrice", "coordinateur"]);
+  useRedirectByRole(["directrice"]);
   useEffect(() => {
     if (!effectiveUser) return;
     fetchCreches();
@@ -45,7 +45,7 @@ const AjoutEnregistrement = () => {
 
   const fetchEnfants = async (nomCreche) => {
     try {
-      const res = await axios.get("/api/enfants?nomCreche=" + nomCreche, { withCredentials: true });
+      const res = await axios.get("/api/enfants?nomCreche=" + encodeURIComponent(nomCreche), { withCredentials: true });
       setEnfants(res.data);
     } catch (err) {
       console.error("Erreur chargement enfants", err);

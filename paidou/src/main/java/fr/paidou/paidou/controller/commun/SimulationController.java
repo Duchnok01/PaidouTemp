@@ -23,14 +23,20 @@ public class SimulationController {
 
     // Démarrer la simulation d'un utilisateur
     @PostMapping("/start/{userId}")
-    public ResponseEntity<String> startSimulation(@PathVariable Long userId) {
+    public ResponseEntity<String> startSimulation(
+            @PathVariable Long userId,
+            @RequestParam(required = false) String asRole) {
         User realUser = securityUtils.getRealUser();
         User targetUser = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Utilisateur cible introuvable"));
         if (!securityUtils.canSimulateUser(realUser, targetUser)) {
             return ResponseEntity.status(403).body("Vous ne pouvez pas simuler cet utilisateur.");
         }
-        securityUtils.setSimulatedUserId(userId);
+        if ("directrice".equals(asRole) && targetUser.getRole().equals("coordinateur") && targetUser.getCoordinateur() != null) {
+            securityUtils.setSelfSimulationAsDirectrice(userId);
+        } else {
+            securityUtils.setSimulatedUserId(userId);
+        }
         return ResponseEntity.ok("Simulation démarrée en tant que " + targetUser.getPrenom());
     }
 
@@ -46,22 +52,42 @@ public class SimulationController {
     public ResponseEntity<Map<String, Object>> getStatus() {
         User realUser = securityUtils.getRealUserIfSimulating();
         User effectiveUser = securityUtils.getCurrentUser();
+        User scopeUser = realUser != null ? realUser : effectiveUser;
         return ResponseEntity.ok(Map.of(
             "effectiveId", effectiveUser.getId(),
             "effectivePrenom", effectiveUser.getPrenom(),
             "effectiveRole", effectiveUser.getRole(),
             "isSimulating", realUser != null,
             "realPrenom", realUser != null ? realUser.getPrenom() : effectiveUser.getPrenom(),
-            "realRole", realUser != null ? realUser.getRole() : effectiveUser.getRole()
+            "realRole", realUser != null ? realUser.getRole() : effectiveUser.getRole(),
+            "hasCoordinationScope", securityUtils.hasCoordinationScope(scopeUser)
         ));
     }
 
     // Liste des utilisateurs simulables
     @GetMapping("/simulatable")
     public ResponseEntity<List<Map<String, Object>>> getSimulatableUsers() {
+        User realUser = securityUtils.getRealUser();
         List<User> users = securityUtils.getSimulatableUsers();
         List<Map<String, Object>> result = users.stream()
-                .map(u -> Map.of("id", (Object) u.getId(), "prenom", (Object) u.getPrenom(), "role", (Object) u.getRole()))
+                .flatMap(u -> {
+                    Map<String, Object> defaultOption = Map.of(
+                            "id", (Object) u.getId(),
+                            "prenom", (Object) u.getPrenom(),
+                            "role", (Object) u.getRole());
+                    if (u.getRole().equals("coordinateur") && u.getCoordinateur() != null) {
+                        Map<String, Object> directriceOption = Map.of(
+                                "id", (Object) u.getId(),
+                                "prenom", (Object) u.getPrenom(),
+                                "role", (Object) "directrice",
+                                "asRole", (Object) "directrice");
+                        if (u.getId().equals(realUser.getId())) {
+                            return java.util.stream.Stream.of(directriceOption);
+                        }
+                        return java.util.stream.Stream.of(defaultOption, directriceOption);
+                    }
+                    return java.util.stream.Stream.of(defaultOption);
+                })
                 .toList();
         return ResponseEntity.ok(result);
     }

@@ -8,7 +8,6 @@ import java.util.List;
 
 import fr.paidou.paidou.security.SecurityUtils;
 import fr.paidou.paidou.service.UserService;
-import java.util.Map;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -42,44 +41,6 @@ public class EnfantController {
                 request.dateDeNaissance(),
                 request.nomCreche()
             );
-            return ResponseEntity.ok().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    // ==================== DELETE ====================
-
-    @DeleteMapping("/delete")
-    public ResponseEntity<?> deleteEnfant(@RequestBody Map<String, String> request) {
-        if (!securityUtils.hasPermission("ANONYMISER_ENFANT")) {
-            return ResponseEntity.status(403).build();
-        }
-        String mdp = request.get("mdpAdmin");
-        if (mdp == null || !userService.verifyPassword(securityUtils.getRealUser().getPrenom(), mdp)) {
-            return ResponseEntity.status(403).body("Mot de passe incorrect");
-        }
-        try {
-            Long id = Long.parseLong(request.get("id"));
-            enfantService.deleteEnfantPhysique(id);
-            return ResponseEntity.ok().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    @DeleteMapping("/delete-physique")
-    public ResponseEntity<?> deleteEnfantPhysique(@RequestBody Map<String, String> request) {
-        if (!securityUtils.hasPermission("SUPPRIMER_ENFANT")) {
-            return ResponseEntity.status(403).build();
-        }
-        String mdp = request.get("mdpAdmin");
-        if (mdp == null || !userService.verifyPassword(securityUtils.getRealUser().getPrenom(), mdp)) {
-            return ResponseEntity.status(403).body("Mot de passe incorrect");
-        }
-        try {
-            Long id = Long.parseLong(request.get("id"));
-            enfantService.deleteEnfantPhysique(id);
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -131,51 +92,6 @@ public class EnfantController {
         }
         enfantService.disableChildAccount(request.id());
         return ResponseEntity.ok().build();
-    }
-
-    @PutMapping("/reactiver")
-    public ResponseEntity<?> reactiverEnfant(@RequestBody Map<String, String> request) {
-        if (!securityUtils.hasPermission("REACTIVER_ENFANT")) {
-            return ResponseEntity.status(403).build();
-        }
-        String mdp = request.get("mdpAdmin");
-        if (mdp == null || !userService.verifyPassword(securityUtils.getRealUser().getPrenom(), mdp)) {
-            return ResponseEntity.status(403).body("Mot de passe incorrect");
-        }
-        enfantService.reactiverEnfant(Long.parseLong(request.get("id")));
-        return ResponseEntity.ok().build();
-    }
-
-    @PutMapping("/anonymiser")
-    public ResponseEntity<?> anonymiserEnfant(@RequestBody Map<String, String> request) {
-        if (!securityUtils.hasPermission("ANONYMISER_ENFANT")) {
-            return ResponseEntity.status(403).build();
-        }
-        String mdp = request.get("mdpAdmin");
-        if (mdp == null || !userService.verifyPassword(securityUtils.getRealUser().getPrenom(), mdp)) {
-            return ResponseEntity.status(403).body("Mot de passe incorrect");
-        }
-        enfantService.deleteEnfantPhysique(Long.parseLong(request.get("id")));
-        return ResponseEntity.ok().build();
-    }
-
-    @PutMapping("/transfer-all")
-    public ResponseEntity<?> transferAllEnfants(@RequestBody Map<String, String> request) {
-        if (!securityUtils.hasPermission("CHANGER_CRECHE_ENFANT")) {
-            return ResponseEntity.status(403).build();
-        }
-        String mdp = request.get("mdpAdmin");
-        if (mdp == null || !userService.verifyPassword(securityUtils.getRealUser().getPrenom(), mdp)) {
-            return ResponseEntity.status(403).body("Mot de passe incorrect");
-        }
-        try {
-            String from = request.get("from");
-            String to = request.get("to");
-            enfantService.transferAllEnfants(from, to);
-            return ResponseEntity.ok().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
     }
 
     // ==================== GET ====================

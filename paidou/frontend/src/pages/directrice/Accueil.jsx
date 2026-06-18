@@ -26,7 +26,7 @@ const Accueil = () => {
       setCreches(crechesData);
       const enfantsMap = {};
       for (const creche of crechesData) {
-        const statutsRes = await axios.get("/api/enfants/statuts-vaccinaux?nomCreche=" + creche.nom, { withCredentials: true });
+        const statutsRes = await axios.get("/api/enfants/statuts-vaccinaux?nomCreche=" + encodeURIComponent(creche.nom), { withCredentials: true });
         enfantsMap[creche.nom] = statutsRes.data;
       }
       setEnfantsByCreche(enfantsMap);

@@ -84,7 +84,7 @@ const PdgCreches = () => {
   const handleCreateCreche = async () => {
     if (!newNom || !newDirectrice) { alert("Nom et directrice obligatoires."); return; }
     try {
-      await axios.post("/api/superadmin/creches", { nom: newNom, directeur: newDirectrice }, { withCredentials: true });
+      await axios.post("/api/admin/creches", { nom: newNom, directeur: newDirectrice }, { withCredentials: true });
       setNewNom(""); setNewDirectrice("");
       fetchCreches();
     } catch (e) { alert(e.response?.data || "Erreur"); }
@@ -95,7 +95,7 @@ const PdgCreches = () => {
     if (sel.length !== 1) { alert("Sélectionnez exactement une crèche."); return; }
     if (!editValue) { alert("Entrez un nouveau nom."); return; }
     try {
-      await axios.put("/api/superadmin/creches/rename", { ancienNom: sel[0].nom, nouveauNom: editValue }, { withCredentials: true });
+      await axios.put("/api/admin/creches/rename", { ancienNom: sel[0].nom, nouveauNom: editValue }, { withCredentials: true });
       setEditMode(null); setEditValue("");
       fetchCreches();
     } catch (e) { alert(e.response?.data || "Erreur"); }
@@ -106,7 +106,7 @@ const PdgCreches = () => {
     if (sel.length !== 1) { alert("Sélectionnez exactement une crèche."); return; }
     if (!editValue2) { alert("Sélectionnez une directrice."); return; }
     try {
-      await axios.put("/api/superadmin/creches/change-directeur", { nom: sel[0].nom, directeur: editValue2 }, { withCredentials: true });
+      await axios.put("/api/admin/creches/change-directeur", { nom: sel[0].nom, directeur: editValue2 }, { withCredentials: true });
       setEditMode(null); setEditValue2("");
       fetchCreches();
     } catch (e) { alert(e.response?.data || "Erreur"); }
@@ -116,7 +116,7 @@ const PdgCreches = () => {
     if (!actionMessage("Fermer")) return;
     try {
       for (const c of getSelectedCreches()) {
-        await axios.put("/api/superadmin/creches/fermer", { nom: c.nom }, { withCredentials: true });
+        await axios.put("/api/admin/creches/fermer", { nom: c.nom }, { withCredentials: true });
       }
       fetchCreches();
     } catch (e) { alert(e.response?.data || "Erreur"); }
@@ -126,7 +126,7 @@ const PdgCreches = () => {
     if (!actionMessage("Rouvrir")) return;
     try {
       for (const c of getSelectedCreches()) {
-        await axios.put("/api/superadmin/creches/rouvrir", { nom: c.nom }, { withCredentials: true });
+        await axios.put("/api/admin/creches/rouvrir", { nom: c.nom }, { withCredentials: true });
       }
       fetchCreches();
     } catch (e) { alert(e.response?.data || "Erreur"); }
@@ -137,7 +137,7 @@ const PdgCreches = () => {
     if (!actionMessage(`Transférer tous les enfants vers ${editValue2} ?`)) return;
     try {
       for (const c of getSelectedCreches()) {
-        await axios.put("/api/superadmin/creches/transferer-enfants", { from: c.nom, to: editValue2 }, { withCredentials: true });
+        await axios.put("/api/admin/creches/transferer-enfants", { from: c.nom, to: editValue2 }, { withCredentials: true });
       }
       setEditMode(null); setEditValue2("");
       fetchCreches();
@@ -177,7 +177,7 @@ const PdgCreches = () => {
         {(showDirectrice || showEnfants) && list.length > 0 && (
           <div style={{ fontSize: "0.8rem", color: "var(--gray-500)" }}>
             {list.map(c => (
-              <div key={c.nom}>{c.nom}{showDirectrice && ` — Dirigée par ${c.directeurPrenom}`}{showEnfants && ` — ${c.nbEnfants} enfant(s)`}</div>
+              <div key={c.nom}>{c.nom}{showDirectrice && ` — Dirigée par ${c.directeurPrenom || "Aucune"}`}{showEnfants && ` — ${c.nbEnfants} enfant(s)`}</div>
             ))}
           </div>
         )}

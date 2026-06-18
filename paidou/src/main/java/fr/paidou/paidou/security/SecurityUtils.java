@@ -41,6 +41,18 @@ public class SecurityUtils {
             if (simulated != null && !simulated.isEstParti()) {
                 User realUser = getRealUser();
                 if (canSimulateUser(realUser, simulated)) {
+                    String simulatedRole = getSimulatedRole();
+                    if (simulatedRole != null) {
+                        User effectiveUser = new User();
+                        effectiveUser.setId(simulated.getId());
+                        effectiveUser.setPrenom(simulated.getPrenom());
+                        effectiveUser.setMdp(simulated.getMdp());
+                        effectiveUser.setEstParti(simulated.isEstParti());
+                        effectiveUser.setDoitChangerMdp(simulated.isDoitChangerMdp());
+                        effectiveUser.setCoordinateur(simulated.getCoordinateur());
+                        effectiveUser.setRole(simulatedRole);
+                        return effectiveUser;
+                    }
                     return simulated;
                 }
             }
@@ -65,10 +77,14 @@ public class SecurityUtils {
 
     // Renvoie l'utilisateur réel si on simule, sinon null
     public User getRealUserIfSimulating() {
-        if (getSimulatedUserId() != null) {
+        if (isSimulating()) {
             return getRealUser();
         }
         return null;
+    }
+
+    public boolean isSimulating() {
+        return getSimulatedUserId() != null;
     }
 
     // ==================== PERMISSIONS ====================
@@ -84,6 +100,10 @@ public class SecurityUtils {
         return getCurrentUser().getRole().equals(role);
     }
 
+    public boolean hasCoordinationScope(User user) {
+        return user.getRole().equals("coordinateur");
+    }
+
     // ==================== PROPRIÉTÉ CRÈCHE ====================
 
     public boolean isProprietaireCreche(User user, String nomCreche) {
@@ -93,11 +113,13 @@ public class SecurityUtils {
         if (creche == null) return false;
 
         if (user.getRole().equals("directrice")) {
+            if (creche.getDirecteur() == null) return false;
             return creche.getDirecteur().getId().equals(user.getId());
         }
 
         if (user.getRole().equals("coordinateur")) {
             User directrice = creche.getDirecteur();
+            if (directrice == null) return false;
             return directrice.getCoordinateur() != null
                 && directrice.getCoordinateur().getId().equals(user.getId());
         }
@@ -109,6 +131,11 @@ public class SecurityUtils {
 
     // Vérifie si un utilisateur peut en simuler un autre (rôle strictement supérieur)
     public boolean canSimulateUser(User realUser, User targetUser) {
+        if (realUser.getId().equals(targetUser.getId())) {
+            return realUser.getRole().equals("coordinateur")
+                && realUser.getCoordinateur() != null;
+        }
+
         int realIndex = ROLE_HIERARCHY.indexOf(realUser.getRole());
         int targetIndex = ROLE_HIERARCHY.indexOf(targetUser.getRole());
         if (realIndex >= targetIndex) return false;
@@ -128,6 +155,16 @@ public class SecurityUtils {
         if (attrs != null) {
             HttpSession session = attrs.getRequest().getSession();
             session.setAttribute("simulatedUserId", userId);
+            session.removeAttribute("simulatedRole");
+        }
+    }
+
+    public void setSelfSimulationAsDirectrice(Long userId) {
+        ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attrs != null) {
+            HttpSession session = attrs.getRequest().getSession();
+            session.setAttribute("simulatedUserId", userId);
+            session.setAttribute("simulatedRole", "directrice");
         }
     }
 
@@ -143,6 +180,17 @@ public class SecurityUtils {
         return null;
     }
 
+    public String getSimulatedRole() {
+        ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attrs != null) {
+            HttpSession session = attrs.getRequest().getSession(false);
+            if (session != null) {
+                return (String) session.getAttribute("simulatedRole");
+            }
+        }
+        return null;
+    }
+
     // Arrête la simulation
     public void stopSimulation() {
         ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
@@ -150,6 +198,7 @@ public class SecurityUtils {
             HttpSession session = attrs.getRequest().getSession(false);
             if (session != null) {
                 session.removeAttribute("simulatedUserId");
+                session.removeAttribute("simulatedRole");
             }
         }
     }
@@ -164,8 +213,7 @@ public class SecurityUtils {
         }
         if (realUser.getRole().equals("coordinateur")) {
             return userRepository.findAll().stream()
-                    .filter(u -> u.getCoordinateur() != null
-                            && u.getCoordinateur().getId().equals(realUser.getId()))
+                    .filter(u -> canSimulateUser(realUser, u))
                     .toList();
         }
         return List.of();

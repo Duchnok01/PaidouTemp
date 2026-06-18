@@ -286,7 +286,7 @@ const Users = () => {
       return;
     }
     try {
-      await axios.put(`/api/users/fix-name?ancienPrenom=${sel[0].prenom}&nouveauPrenom=${editValue}`, null, { withCredentials: true });
+      await axios.put("/api/users/fix-name", null, { params: { ancienPrenom: sel[0].prenom, nouveauPrenom: editValue }, withCredentials: true });
       setEditMode(null);
       setEditValue("");
       fetchUsers();

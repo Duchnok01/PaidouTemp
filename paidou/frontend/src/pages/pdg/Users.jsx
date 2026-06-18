@@ -94,7 +94,7 @@ const PdgUsers = () => {
   const handleCreateUser = async () => {
     if (!newPrenom) return alert("Le prénom est obligatoire");
     try {
-      const res = await axios.post("/api/superadmin/users", { prenom: newPrenom, role: newRole }, { withCredentials: true });
+      const res = await axios.post("/api/admin/users", { prenom: newPrenom, role: newRole }, { withCredentials: true });
       setNewMdp(res.data);
       setNewPrenom("");
       setNewRole("directrice");
@@ -105,7 +105,7 @@ const PdgUsers = () => {
   const handleChangeRole = async (nouveauRole) => {
     if (!actionMessage(`Changer le rôle en "${nouveauRole}" pour`)) return;
     try {
-      await axios.put("/api/superadmin/users/change-role-bulk", { ids: selectedIds, nouveauRole }, { withCredentials: true });
+      await axios.put("/api/admin/users/change-role-bulk", { ids: selectedIds, nouveauRole }, { withCredentials: true });
       fetchUsers();
       setSelectedIds([]);
     } catch (e) { alert(e.response?.data || "Erreur"); }
@@ -147,7 +147,7 @@ const PdgUsers = () => {
   const handleForceChangeMdp = async () => {
     if (!actionMessage("Forcer le changement de MDP pour")) return;
     try {
-      await axios.put("/api/superadmin/users/force-change-mdp-bulk", { ids: selectedIds }, { withCredentials: true });
+      await axios.put("/api/admin/users/force-change-mdp-bulk", { ids: selectedIds }, { withCredentials: true });
       fetchUsers();
     } catch (e) { alert(e.response?.data || "Erreur"); }
   };
@@ -155,7 +155,7 @@ const PdgUsers = () => {
   const handleRetirerCreche = async () => {
     if (!actionMessage("Retirer la crèche de")) return;
     try {
-      await axios.put("/api/superadmin/users/retirer-creche-bulk", { ids: selectedIds }, { withCredentials: true });
+      await axios.put("/api/admin/users/retirer-creche-bulk", { ids: selectedIds }, { withCredentials: true });
       fetchUsers();
       fetchCreches();
     } catch (e) { alert(e.response?.data || "Erreur"); }
@@ -166,7 +166,7 @@ const PdgUsers = () => {
     if (sel.length !== 1) { alert("Sélectionnez exactement une directrice."); return; }
     if (!editValue2) { alert("Sélectionnez une directrice cible."); return; }
     try {
-      await axios.put("/api/superadmin/creches/transferer-toutes", { fromDirectrice: sel[0].prenom, toDirectrice: editValue2 }, { withCredentials: true });
+      await axios.put("/api/admin/creches/transferer-toutes", { fromDirectrice: sel[0].prenom, toDirectrice: editValue2 }, { withCredentials: true });
       setEditMode(null); setEditValue2("");
       fetchUsers(); fetchCreches();
     } catch (e) { alert(e.response?.data || "Erreur"); }
@@ -176,7 +176,7 @@ const PdgUsers = () => {
     if (!editValue2) { alert("Sélectionnez un coordinateur cible."); return; }
     if (!actionMessage(`Assigner le coordinateur "${editValue2}" à`)) return;
     try {
-      await axios.put("/api/superadmin/users/change-coordo-bulk", { ids: selectedIds, newCoordoPrenom: editValue2 }, { withCredentials: true });
+      await axios.put("/api/admin/users/change-coordo-bulk", { ids: selectedIds, newCoordoPrenom: editValue2 }, { withCredentials: true });
       setEditMode(null); setEditValue2("");
       fetchUsers();
     } catch (e) { alert(e.response?.data || "Erreur"); }
@@ -187,7 +187,7 @@ const PdgUsers = () => {
     if (sel.length !== 1) { alert("Sélectionnez exactement un utilisateur."); return; }
     if (!editValue) { alert("Entrez un nouveau prénom."); return; }
     try {
-      await axios.put(`/api/users/fix-name?ancienPrenom=${sel[0].prenom}&nouveauPrenom=${editValue}`, null, { withCredentials: true });
+      await axios.put("/api/users/fix-name", null, { params: { ancienPrenom: sel[0].prenom, nouveauPrenom: editValue }, withCredentials: true });
       setEditMode(null); setEditValue("");
       fetchUsers();
     } catch (e) { alert(e.response?.data || "Erreur"); }
@@ -198,7 +198,7 @@ const PdgUsers = () => {
     if (sel.length !== 1) { alert("Sélectionnez exactement un utilisateur."); return; }
     if (!editValue) { alert("Entrez un nouveau mot de passe."); return; }
     try {
-      await axios.put("/api/superadmin/users/set-password-admin", { id: sel[0].id, nouveauMdp: editValue }, { withCredentials: true });
+      await axios.put("/api/admin/users/set-password-admin", { id: sel[0].id, nouveauMdp: editValue }, { withCredentials: true });
       alert("Mot de passe défini.");
       setEditMode(null); setEditValue("");
     } catch (e) { alert(e.response?.data || "Erreur"); }

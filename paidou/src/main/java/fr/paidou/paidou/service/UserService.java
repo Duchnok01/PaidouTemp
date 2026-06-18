@@ -32,24 +32,6 @@ public class UserService {
         this.permissionService = permissionService;
     }
 
-    public String createUser(String prenom) {
-        String prenomNormalized = prenom.toLowerCase();
-        if (userRepo.findByPrenom(prenomNormalized).isPresent()) {
-            throw new IllegalArgumentException("Ce prénom existe déjà dans la liste des directions.");
-        }
-        User newUser = new User();
-        newUser.setPrenom(prenomNormalized);
-        String mdp = UUID.randomUUID().toString();
-        newUser.setMdp(encoder.encode(mdp));
-        userRepo.save(newUser);
-
-        permissionService.initDefaultPermissions(newUser.getRole());
-
-        User currentUser = securityUtils.getCurrentUser();
-        logService.log("CREER_USER", currentUser, "prenom=" + prenomNormalized);
-        return mdp;
-    }
-
     public User getUserByPrenom(String prenom) {
         return userRepo.findByPrenom(prenom.toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException("User introuvable pour prenom=" + prenom));
@@ -145,6 +127,11 @@ public class UserService {
             );
         }
 
+        if (userRepo.existsByCoordinateurId(user.getId())) {
+            throw new IllegalArgumentException(
+                    "Impossible de supprimer " + prenom + " : cette personne coordonne encore des utilisatrices.");
+        }
+
         userRepo.delete(user);
 
         User currentUser = securityUtils.getCurrentUser();
@@ -176,6 +163,15 @@ public class UserService {
     public void changeRole(Long id, String nouveauRole) {
         User user = userRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User introuvable"));
+        if (!List.of("directrice", "coordinateur", "pdg", "superadmin").contains(nouveauRole)) {
+            throw new IllegalArgumentException("Role inconnu : " + nouveauRole);
+        }
+        if (!nouveauRole.equals("directrice") && !crecheRepo.findByDirecteurId(user.getId()).isEmpty()) {
+            throw new IllegalArgumentException("Impossible de changer ce role : l'utilisateur dirige encore une creche.");
+        }
+        if (!nouveauRole.equals("coordinateur") && userRepo.existsByCoordinateurId(user.getId())) {
+            throw new IllegalArgumentException("Impossible de changer ce role : l'utilisateur coordonne encore d'autres personnes.");
+        }
         String ancienRole = user.getRole();
         user.setRole(nouveauRole);
         userRepo.save(user);
@@ -211,19 +207,36 @@ public class UserService {
     public void changeCoordinateur(Long id, String coordoPrenom) {
         User user = userRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User introuvable"));
-        if (!user.getRole().equals("directrice")) {
-            throw new IllegalArgumentException("Seule une directrice peut avoir une coordinatrice");
+        if (!user.getRole().equals("directrice") && !user.getRole().equals("coordinateur")) {
+            throw new IllegalArgumentException("Seule une directrice ou une coordinatrice peut avoir une coordinatrice");
         }
         User coordo = userRepo.findByPrenom(coordoPrenom.toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException("Coordinatrice introuvable"));
         if (!coordo.getRole().equals("coordinateur")) {
             throw new IllegalArgumentException(coordoPrenom + " n'est pas une coordinatrice");
         }
+        if (coordo.getId().equals(user.getId())) {
+            throw new IllegalArgumentException("Une coordinatrice ne peut pas être sa propre coordinatrice");
+        }
+        if (createsCoordinateurCycle(user, coordo)) {
+            throw new IllegalArgumentException("Cette affectation creerait une boucle de coordination");
+        }
         user.setCoordinateur(coordo);
         userRepo.save(user);
 
         User currentUser = securityUtils.getCurrentUser();
         logService.log("CHANGER_COORDINATRICE", currentUser, user.getPrenom() + " -> " + coordoPrenom);
+    }
+
+    private boolean createsCoordinateurCycle(User user, User newCoordinateur) {
+        User cursor = newCoordinateur;
+        while (cursor != null) {
+            if (cursor.getId().equals(user.getId())) {
+                return true;
+            }
+            cursor = cursor.getCoordinateur();
+        }
+        return false;
     }
 
     // Retirer la crèche d'une directrice

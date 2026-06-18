@@ -10,12 +10,18 @@ export const AuthProvider = ({ children }) => {
 
   const [simulatedUser, setSimulatedUser] = useState(null);
   const [simulatableUsers, setSimulatableUsers] = useState([]);
+  const [hasCoordinationScope, setHasCoordinationScope] = useState(false);
 
   useEffect(() => {
     const checkSession = async () => {
       try {
         const res = await axios.get("/api/users/me", { withCredentials: true });
-        setUser({ id: res.data.id, prenom: res.data.prenom, role: res.data.role });
+        setUser({
+          id: res.data.id,
+          prenom: res.data.prenom,
+          role: res.data.role,
+          doitChangerMdp: res.data.doitChangerMdp,
+        });
         await refreshSimulationStatus();
       } catch (err) {
         setUser(null);
@@ -39,8 +45,12 @@ export const AuthProvider = ({ children }) => {
       } else {
         setSimulatedUser(null);
       }
+      setHasCoordinationScope(Boolean(res.data.hasCoordinationScope));
+      return res.data;
     } catch (err) {
       setSimulatedUser(null);
+      setHasCoordinationScope(false);
+      return null;
     }
   };
 
@@ -58,6 +68,7 @@ export const AuthProvider = ({ children }) => {
       id: userData.id,
       prenom: userData.prenom,
       role: userData.role,
+      doitChangerMdp: userData.doitChangerMdp,
     });
     setSimulatedUser(null);
   };
@@ -67,13 +78,18 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setSimulatedUser(null);
     setSimulatableUsers([]);
+    setHasCoordinationScope(false);
   };
 
-  const startSimulation = async (targetUserId) => {
+  const startSimulation = async (targetUserId, asRole = null) => {
     try {
-      const res = await axios.post(`/api/simulation/start/${targetUserId}`, null, { withCredentials: true });
-      await refreshSimulationStatus();
-      return res.data;
+      const config = {
+        withCredentials: true,
+        params: asRole ? { asRole } : undefined,
+      };
+      const res = await axios.post(`/api/simulation/start/${targetUserId}`, null, config);
+      const status = await refreshSimulationStatus();
+      return status || res.data;
     } catch (err) {
       throw err;
     }
@@ -92,8 +108,10 @@ export const AuthProvider = ({ children }) => {
 
   const getHomePath = () => {
     if (!effectiveUser) return "/";
+    if (user?.doitChangerMdp && !simulatedUser) return "/changer-mdp";
     if (effectiveUser.role === "superadmin" || effectiveUser.role === "admin") return "/superadmin/users";
-    if (effectiveUser.role === "pdg") return "/pdg";
+    if (effectiveUser.role === "pdg") return "/pdg/users";
+    if (!simulatedUser && hasCoordinationScope) return "/coordinateur";
     if (effectiveUser.role === "coordinateur") return "/coordinateur";
     return "/accueil";
   };
@@ -106,6 +124,7 @@ export const AuthProvider = ({ children }) => {
       effectiveUser,
       simulatedUser,
       simulatableUsers,
+      hasCoordinationScope,
       login,
       logout,
       startSimulation,

@@ -20,7 +20,7 @@ const Creche = () => {
 
   const fetchEnfants = async () => {
     try {
-      const res = await axios.get("/api/enfants?nomCreche=" + nom, { withCredentials: true });
+      const res = await axios.get("/api/enfants?nomCreche=" + encodeURIComponent(nom), { withCredentials: true });
       const sorted = [...res.data].sort((a, b) => a.nom.localeCompare(b.nom));
       setEnfants(sorted);
     } catch (err) {

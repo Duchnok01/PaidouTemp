@@ -216,7 +216,7 @@ const Creches = () => {
             {list.map(c => (
               <div key={c.nom}>
                 {c.nom}
-                {showDirectrice && ` — Dirigée par ${c.directeurPrenom}`}
+                {showDirectrice && ` — Dirigée par ${c.directeurPrenom || "Aucune"}`}
                 {showEnfants && ` — ${c.nbEnfants} enfant(s)`}
               </div>
             ))}

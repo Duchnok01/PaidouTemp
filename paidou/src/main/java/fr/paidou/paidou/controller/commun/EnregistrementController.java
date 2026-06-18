@@ -79,38 +79,34 @@ public class EnregistrementController {
     public ResponseEntity<List<EnregistrementSummaryDTO>> getEnregistrements(
             @RequestParam(required = false) Long idEnfant,
             @RequestParam(required = false) String nomCreche) {
-        try {
-            List<EnregistrementVaccination> enregistrements;
+        List<EnregistrementVaccination> enregistrements;
 
-            if (idEnfant != null) {
-                enregistrements = enregistrementService.getEnregistrementsByEnfant(idEnfant);
-            } else if (nomCreche != null) {
-                if (!securityUtils.isProprietaireCreche(securityUtils.getCurrentUser(), nomCreche)) {
-                    return ResponseEntity.status(403).build();
-                }
-                enregistrements = enregistrementService.getEnregistrementsByCreche(nomCreche);
-            } else {
-                if (!securityUtils.hasPermission("VOIR_TOUS_ENREGISTREMENTS")) {
-                    return ResponseEntity.status(403).build();
-                }
-                return ResponseEntity.badRequest().build();
+        if (idEnfant != null) {
+            enregistrements = enregistrementService.getEnregistrementsByEnfant(idEnfant);
+        } else if (nomCreche != null) {
+            if (!securityUtils.isProprietaireCreche(securityUtils.getCurrentUser(), nomCreche)) {
+                return ResponseEntity.status(403).build();
             }
-
-            List<EnregistrementSummaryDTO> dtos = enregistrements.stream()
-                    .map(ev -> new EnregistrementSummaryDTO(
-                            ev.getEnfant().getId_enfant(),
-                            ev.getEnfant().getPrenom(),
-                            ev.getEnfant().getNom(),
-                            ev.getVaccin().getId(),
-                            ev.getVaccin().getNom(),
-                            ev.getId().getDateVaccination(),
-                            ev.getUser().getPrenom()
-                    ))
-                    .toList();
-            return ResponseEntity.ok(dtos);
-        } catch (Exception e) {
-            return ResponseEntity.status(500).build();
+            enregistrements = enregistrementService.getEnregistrementsByCreche(nomCreche);
+        } else {
+            if (!securityUtils.hasPermission("VOIR_TOUS_ENREGISTREMENTS")) {
+                return ResponseEntity.status(403).build();
+            }
+            return ResponseEntity.badRequest().build();
         }
+
+        List<EnregistrementSummaryDTO> dtos = enregistrements.stream()
+                .map(ev -> new EnregistrementSummaryDTO(
+                        ev.getEnfant().getId_enfant(),
+                        ev.getEnfant().getPrenom(),
+                        ev.getEnfant().getNom(),
+                        ev.getVaccin().getId(),
+                        ev.getVaccin().getNom(),
+                        ev.getId().getDateVaccination(),
+                        ev.getUser().getPrenom()
+                ))
+                .toList();
+        return ResponseEntity.ok(dtos);
     }
 
     // ======== DTOs ========

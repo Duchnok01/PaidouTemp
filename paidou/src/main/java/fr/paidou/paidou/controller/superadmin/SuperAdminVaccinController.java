@@ -9,7 +9,7 @@ import java.time.LocalDate;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/superadmin/vaccins")
+@RequestMapping({"/superadmin/vaccins", "/admin/vaccins"})
 public class SuperAdminVaccinController {
 
     private final VaccinService vaccinService;

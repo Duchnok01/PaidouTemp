@@ -1,13 +1,19 @@
-import React, { useState } from "react"; 
+import React, { useEffect, useState } from "react"; 
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
   const [prenom, setPrenom] = useState("");
   const [mdp, setMdp] = useState("");
   const [error, setError] = useState("");
 
-  const { login } = useAuth();
+  const { user, login, getHomePath } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) navigate(getHomePath(), { replace: true });
+  }, [user, getHomePath, navigate]);
 
   const handleLogin = async () => {
     setError("");
@@ -38,9 +44,14 @@ const Login = () => {
 
       try {
         const meRes = await axios.get("/api/users/me", { withCredentials: true });
-        login({ id: meRes.data.id, prenom: result[2], role: result[1] });
+        login({
+          id: meRes.data.id,
+          prenom: result[2],
+          role: result[1],
+          doitChangerMdp: meRes.data.doitChangerMdp,
+        });
       } catch (err) {
-        login({ prenom: result[2], role: result[1] });
+        login({ prenom: result[2], role: result[1], doitChangerMdp: status === "changer-mdp" });
       }
 
       if (status === "changer-mdp") {

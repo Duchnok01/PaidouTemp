@@ -194,6 +194,7 @@ public class EnfantService {
     public List<VaccinStatusDTO> getStatutVaccinal(Long enfantId) {
         Enfant enfant = enfantRepo.findById(enfantId)
                 .orElseThrow(() -> new IllegalArgumentException("Enfant introuvable"));
+        verifierAuthorisationPourCreche(enfant.getCreche().getNom());
         List<Vaccin> vaccins = vaccinService.getAllVaccins();
         List<EnregistrementVaccination> enregistrements = enregistrementRepo.findByIdIdEnfant(enfantId);
         LocalDate aujourdhui = LocalDate.now();

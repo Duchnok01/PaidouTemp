@@ -44,7 +44,7 @@ const Enregistrements = () => {
     try {
       const all = [];
       for (const c of creches) {
-        const res = await axios.get(`/api/enregistrements-vaccination?nomCreche=${c.nom}`, { withCredentials: true });
+        const res = await axios.get("/api/enregistrements-vaccination", { params: { nomCreche: c.nom }, withCredentials: true });
         all.push(...res.data.map(ev => ({ ...ev, crecheNom: c.nom })));
       }
       setEnregistrements(all);
